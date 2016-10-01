@@ -1,0 +1,13 @@
+import builders
+
+env = Environment(CPPFLAGS = ['--std=c++14', '-I.'],
+                  LIBPATH = ['/usr/lib/x86_64-linux-gnu/c++11'])
+
+#env.Slice2cpp(target = 'Security', source = 'slice/Security.ice')
+builders.addSlice2cppBuilder(env)
+
+env.Slice2cpp(target = 'Gem', source = '../slice/Gem.ice')
+
+gem = env.Object(source = 'Gem.cpp')
+
+env.Program('gemServer.cpp', LIBS = [gem, 'Ice', 'IceUtil', 'pthread'])

@@ -1,0 +1,5 @@
+*~
+*.o
+/cpp/.sconsign.dblite
+/cpp/builders.pyc
+/cpp/gemServer
