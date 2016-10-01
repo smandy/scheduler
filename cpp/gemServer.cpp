@@ -30,7 +30,7 @@ public:
         pubToListeners = Gem::GemServerListenerPrx::uncheckedCast(
                                                                   topic->getPublisher() );
         std::cout << "Done" << std::endl;
-    };
+    }
     
     inline Gem::Job* find( const std::string& id ) {
         static thread_local Gem::Job finder;
@@ -44,7 +44,7 @@ public:
         } else {
             return nullptr;
         };
-    };
+    }
 
     virtual void getJob_async(const ::Gem::AMD_GemServer_getJobPtr& cb,
                               const ::std::string& id,
@@ -55,7 +55,7 @@ public:
             ret.push_back(*x);
         }
         cb->ice_response(ret);
-    };
+    }
     
     virtual void submitBatch_async(const ::Gem::AMD_GemServer_submitBatchPtr& cb,
                                    const ::Gem::Batch& batch,
@@ -70,34 +70,33 @@ public:
         pubToListeners->begin_onUpdate( batch.jobs,
                                         []() { std::cout << "Send update to published" << std::endl; } );
         cb->ice_response();
-    };
+    }
     
     virtual void startJob_async(const ::Gem::AMD_GemServer_startJobPtr& cb,
                                 const ::std::string& id,
                                 const ::Ice::Current& = ::Ice::Current()) {
-        std::cout << "Woot" << std::endl;
+        std::cout << "startJob" << std::endl;
         cb->ice_response();
-    };
+    }
     
     virtual void stopJob_async(const ::Gem::AMD_GemServer_stopJobPtr& cb,
                                const ::std::string&,
                                const ::Ice::Current& = ::Ice::Current()) {
-        std::cout << "Woot" << std::endl;
+        std::cout << "stopJob" << std::endl;
         cb->ice_response();
-    };
+    }
     
     virtual void invalidate_async(const ::Gem::AMD_GemServer_invalidatePtr& cb,
                                   const ::std::string&, const ::Ice::Current& = ::Ice::Current()) {
-        std::cout << "Woot" << std::endl;
+        std::cout << "invalidate" << std::endl;
         cb->ice_response();
-    };
+    }
 
     virtual void getStartableJob_async(const ::Gem::AMD_GemServer_getStartableJobPtr& cb, const ::Gem::WorkerId&, const ::Ice::Current& = ::Ice::Current()) {
         Gem::JobSeq ret;
         Gem::Job *selected = nullptr;
-        
-        for (auto &&job : jobs ) {
-            if ( job.state == Gem::JobState::STARTABLE) {
+        for (auto &&job : jobs) {
+            if ( job.state == Gem::JobState::STARTABLE ) {
                 if (selected == nullptr || job.priority<selected->priority) {
                     selected = &job;
                 };
@@ -109,24 +108,23 @@ public:
             ret.push_back(*selected);
         };
         cb->ice_response( ret );
-    };
+    }
     
     virtual void getJobs_async(const ::Gem::AMD_GemServer_getJobsPtr& cb, const ::Ice::Current& = ::Ice::Current()) {
         cb->ice_response( jobs );
-    };
+    }
 
     virtual void addListener_async(const ::Gem::AMD_GemServer_addListenerPtr& cb, const ::Gem::GemServerListenerPrx& prx, const ::Ice::Current& = ::Ice::Current()) {
-        std::cout << " Add listener " << std::endl;
+        std::cout << "Add listener " << std::endl;
         static const IceStorm::QoS theQos;
 
         Gem::Image img { {begin(jobs), end(jobs) }};
 
-        auto prx2 = prx->ice_timeout(5000);
-        prx->begin_onImage( img ,
-                            []() { std::cout << "Called directly" << std::endl; },
-                            [](const Ice::Exception &ex) { std::cout << "Exception" << std::endl; } ,
-                            [](bool b) { std::cout << "Sent " << b << std::endl; });
-        
+        // auto prx2 = prx->ice_timeout(5000);
+        // prx->begin_onImage( img ,
+        //                     []() { std::cout << "Called directly" << std::endl; },
+        //                     [](const Ice::Exception &ex) { std::cout << "Exception" << std::endl; } ,
+        //                     [](bool b) { std::cout << "Sent " << b << std::endl; });
         topic->begin_subscribeAndGetPublisher( theQos, prx, [=]( const Ice::ObjectPrx &response) {
                 std::cout << " Got publisher " << response << std::endl;
                 auto p = Gem::GemServerListenerPrx::uncheckedCast(response);
@@ -134,7 +132,7 @@ public:
                 p->begin_onImage( img , []() { std::cout << "Success with image" << std::endl; } );
                 cb->ice_response();
             } );
-    };
+    }
 };
 
 int main(int argc, char *argv[]) {
