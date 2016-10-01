@@ -1,0 +1,14 @@
+<icegrid>
+    <application name="GemServer">
+        <node name="raffles">
+            <server id="GemServer" exe="/home/andy/repos/gem/cpp/gemServer" activation="manual">
+              <!--<property name="Ice.Trace.Network" value="1"/> -->
+              <property name="Ice.StdOut" value="/tmp/gem.txt" />
+              <property name="Ice.StdErr" value="/tmp/gem.txt" />
+              <property name="IceStorm.TopicManager" value="IceStorm/TopicManager" />
+              <property name="Gem.Topic" value="awada.jobs" />
+              <adapter name="GemServer" id="GemServer" endpoints="tcp -h raffles:ws -h raffles"/>
+            </server>
+        </node>
+    </application>
+</icegrid>
