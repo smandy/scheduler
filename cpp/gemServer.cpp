@@ -9,14 +9,12 @@
 // http://git.asterisk.org/gitweb/?p=asterisk-scf/release/techdemo.git;a=commitdiff_plain;h=89b836724135902a7d628cc08bd8ddd786b82240
 class GemServerImpl : public Gem::GemServer {
     std::vector<Gem::Job> jobs;
-
-    IceStorm::TopicPrx topic;
-    Ice::CommunicatorPtr communicator;
+    //Ice::CommunicatorPtr communicator;
     Gem::GemServerListenerPrx pubToListeners;
+    IceStorm::TopicPrx topic;
     
 public:
-    GemServerImpl(Ice::CommunicatorPtr _communicator) : jobs(),
-                                                        communicator(_communicator) {
+    GemServerImpl(Ice::CommunicatorPtr communicator) : jobs() {
         std::cout << "Get Topic" << std::endl;
         auto topicPrx = IceStorm::TopicManagerPrx::checkedCast( communicator->propertyToProxy("IceStorm.TopicManager"));
         std::cout << "Get Subject" << std::endl;
@@ -27,8 +25,7 @@ public:
         } catch( IceStorm::NoSuchTopic &) {
             topic = topicPrx->create( subject );
         }
-        pubToListeners = Gem::GemServerListenerPrx::uncheckedCast(
-                                                                  topic->getPublisher() );
+        pubToListeners = Gem::GemServerListenerPrx::uncheckedCast(topic->getPublisher());
         std::cout << "Done" << std::endl;
     }
     
