@@ -43,6 +43,10 @@
 namespace
 {
 
+const ::std::string __Gem__GemServerListener__onImage_name = "onImage";
+
+const ::std::string __Gem__GemServerListener__onUpdate_name = "onUpdate";
+
 const ::std::string __Gem__GemServer__submitBatch_name = "submitBatch";
 
 const ::std::string __Gem__GemServer__startJob_name = "startJob";
@@ -55,10 +59,44 @@ const ::std::string __Gem__GemServer__getJobs_name = "getJobs";
 
 const ::std::string __Gem__GemServer__getStartableJob_name = "getStartableJob";
 
+const ::std::string __Gem__GemServer__getJob_name = "getJob";
+
+const ::std::string __Gem__GemServer__addListener_name = "addListener";
+
 }
 
 namespace Ice
 {
+}
+
+IceAsync::Gem::AMD_GemServerListener_onImage::AMD_GemServerListener_onImage(::IceInternal::Incoming& in) :
+    ::IceInternal::IncomingAsync(in)
+{
+}
+
+void
+IceAsync::Gem::AMD_GemServerListener_onImage::ice_response()
+{
+    if(__validateResponse(true))
+    {
+        __writeEmptyParams();
+        __response();
+    }
+}
+
+IceAsync::Gem::AMD_GemServerListener_onUpdate::AMD_GemServerListener_onUpdate(::IceInternal::Incoming& in) :
+    ::IceInternal::IncomingAsync(in)
+{
+}
+
+void
+IceAsync::Gem::AMD_GemServerListener_onUpdate::ice_response()
+{
+    if(__validateResponse(true))
+    {
+        __writeEmptyParams();
+        __response();
+    }
 }
 
 IceAsync::Gem::AMD_GemServer_submitBatch::AMD_GemServer_submitBatch(::IceInternal::Incoming& in) :
@@ -127,7 +165,7 @@ IceAsync::Gem::AMD_GemServer_getJobs::AMD_GemServer_getJobs(::IceInternal::Incom
 }
 
 void
-IceAsync::Gem::AMD_GemServer_getJobs::ice_response(const ::Gem::JobDict& __ret)
+IceAsync::Gem::AMD_GemServer_getJobs::ice_response(const ::Gem::JobSeq& __ret)
 {
     if(__validateResponse(true))
     {
@@ -169,6 +207,159 @@ IceAsync::Gem::AMD_GemServer_getStartableJob::ice_response(const ::Gem::JobSeq& 
         }
         __response();
     }
+}
+
+IceAsync::Gem::AMD_GemServer_getJob::AMD_GemServer_getJob(::IceInternal::Incoming& in) :
+    ::IceInternal::IncomingAsync(in)
+{
+}
+
+void
+IceAsync::Gem::AMD_GemServer_getJob::ice_response(const ::Gem::JobSeq& __ret)
+{
+    if(__validateResponse(true))
+    {
+        try
+        {
+            ::IceInternal::BasicStream* __os = __startWriteParams(::Ice::DefaultFormat);
+            __os->write(__ret);
+            __endWriteParams(true);
+        }
+        catch(const ::Ice::Exception& __ex)
+        {
+            __exception(__ex);
+            return;
+        }
+        __response();
+    }
+}
+
+IceAsync::Gem::AMD_GemServer_addListener::AMD_GemServer_addListener(::IceInternal::Incoming& in) :
+    ::IceInternal::IncomingAsync(in)
+{
+}
+
+void
+IceAsync::Gem::AMD_GemServer_addListener::ice_response()
+{
+    if(__validateResponse(true))
+    {
+        __writeEmptyParams();
+        __response();
+    }
+}
+::IceProxy::Ice::Object* ::IceProxy::Gem::upCast(::IceProxy::Gem::GemServerListener* p) { return p; }
+
+void
+::IceProxy::Gem::__read(::IceInternal::BasicStream* __is, ::IceInternal::ProxyHandle< ::IceProxy::Gem::GemServerListener>& v)
+{
+    ::Ice::ObjectPrx proxy;
+    __is->read(proxy);
+    if(!proxy)
+    {
+        v = 0;
+    }
+    else
+    {
+        v = new ::IceProxy::Gem::GemServerListener;
+        v->__copyFrom(proxy);
+    }
+}
+
+void
+IceProxy::Gem::GemServerListener::onImage(const ::Gem::Image& __p_image, const ::Ice::Context* __ctx)
+{
+    ::IceInternal::Outgoing __og(this, __Gem__GemServerListener__onImage_name, ::Ice::Normal, __ctx);
+    try
+    {
+        ::IceInternal::BasicStream* __os = __og.startWriteParams(::Ice::DefaultFormat);
+        __os->write(__p_image);
+        __og.endWriteParams();
+    }
+    catch(const ::Ice::LocalException& __ex)
+    {
+        __og.abort(__ex);
+    }
+    __invoke(__og);
+}
+
+::Ice::AsyncResultPtr
+IceProxy::Gem::GemServerListener::begin_onImage(const ::Gem::Image& __p_image, const ::Ice::Context* __ctx, const ::IceInternal::CallbackBasePtr& __del, const ::Ice::LocalObjectPtr& __cookie)
+{
+    ::IceInternal::OutgoingAsyncPtr __result = new ::IceInternal::OutgoingAsync(this, __Gem__GemServerListener__onImage_name, __del, __cookie);
+    try
+    {
+        __result->prepare(__Gem__GemServerListener__onImage_name, ::Ice::Normal, __ctx);
+        ::IceInternal::BasicStream* __os = __result->startWriteParams(::Ice::DefaultFormat);
+        __os->write(__p_image);
+        __result->endWriteParams();
+        __result->invoke();
+    }
+    catch(const ::Ice::Exception& __ex)
+    {
+        __result->abort(__ex);
+    }
+    return __result;
+}
+
+void
+IceProxy::Gem::GemServerListener::end_onImage(const ::Ice::AsyncResultPtr& __result)
+{
+    __end(__result, __Gem__GemServerListener__onImage_name);
+}
+
+void
+IceProxy::Gem::GemServerListener::onUpdate(const ::Gem::JobSeq& __p_jobs, const ::Ice::Context* __ctx)
+{
+    ::IceInternal::Outgoing __og(this, __Gem__GemServerListener__onUpdate_name, ::Ice::Normal, __ctx);
+    try
+    {
+        ::IceInternal::BasicStream* __os = __og.startWriteParams(::Ice::DefaultFormat);
+        __os->write(__p_jobs);
+        __og.endWriteParams();
+    }
+    catch(const ::Ice::LocalException& __ex)
+    {
+        __og.abort(__ex);
+    }
+    __invoke(__og);
+}
+
+::Ice::AsyncResultPtr
+IceProxy::Gem::GemServerListener::begin_onUpdate(const ::Gem::JobSeq& __p_jobs, const ::Ice::Context* __ctx, const ::IceInternal::CallbackBasePtr& __del, const ::Ice::LocalObjectPtr& __cookie)
+{
+    ::IceInternal::OutgoingAsyncPtr __result = new ::IceInternal::OutgoingAsync(this, __Gem__GemServerListener__onUpdate_name, __del, __cookie);
+    try
+    {
+        __result->prepare(__Gem__GemServerListener__onUpdate_name, ::Ice::Normal, __ctx);
+        ::IceInternal::BasicStream* __os = __result->startWriteParams(::Ice::DefaultFormat);
+        __os->write(__p_jobs);
+        __result->endWriteParams();
+        __result->invoke();
+    }
+    catch(const ::Ice::Exception& __ex)
+    {
+        __result->abort(__ex);
+    }
+    return __result;
+}
+
+void
+IceProxy::Gem::GemServerListener::end_onUpdate(const ::Ice::AsyncResultPtr& __result)
+{
+    __end(__result, __Gem__GemServerListener__onUpdate_name);
+}
+
+const ::std::string&
+IceProxy::Gem::GemServerListener::ice_staticId()
+{
+    return ::Gem::GemServerListener::ice_staticId();
+}
+
+::IceProxy::Ice::Object*
+IceProxy::Gem::GemServerListener::__newInstance() const
+{
+    return new GemServerListener;
 }
 ::IceProxy::Ice::Object* ::IceProxy::Gem::upCast(::IceProxy::Gem::GemServer* p) { return p; }
 
@@ -356,7 +547,7 @@ IceProxy::Gem::GemServer::end_invalidate(const ::Ice::AsyncResultPtr& __result)
     __end(__result, __Gem__GemServer__invalidate_name);
 }
 
-::Gem::JobDict
+::Gem::JobSeq
 IceProxy::Gem::GemServer::getJobs(const ::Ice::Context* __ctx)
 {
     __checkTwowayOnly(__Gem__GemServer__getJobs_name);
@@ -374,7 +565,7 @@ IceProxy::Gem::GemServer::getJobs(const ::Ice::Context* __ctx)
             throw __uue;
         }
     }
-    ::Gem::JobDict __ret;
+    ::Gem::JobSeq __ret;
     ::IceInternal::BasicStream* __is = __og.startReadParams();
     __is->read(__ret);
     __og.endReadParams();
@@ -402,13 +593,13 @@ IceProxy::Gem::GemServer::begin_getJobs(const ::Ice::Context* __ctx, const ::Ice
 #ifdef ICE_CPP11
 
 ::Ice::AsyncResultPtr
-IceProxy::Gem::GemServer::__begin_getJobs(const ::Ice::Context* __ctx, const ::IceInternal::Function<void (const ::Gem::JobDict&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception, const ::IceInternal::Function<void (bool)>& __sent)
+IceProxy::Gem::GemServer::__begin_getJobs(const ::Ice::Context* __ctx, const ::IceInternal::Function<void (const ::Gem::JobSeq&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception, const ::IceInternal::Function<void (bool)>& __sent)
 {
     class Cpp11CB : public ::IceInternal::Cpp11FnCallbackNC
     {
     public:
 
-        Cpp11CB(const ::std::function<void (const ::Gem::JobDict&)>& responseFunc, const ::std::function<void (const ::Ice::Exception&)>& exceptionFunc, const ::std::function<void (bool)>& sentFunc) :
+        Cpp11CB(const ::std::function<void (const ::Gem::JobSeq&)>& responseFunc, const ::std::function<void (const ::Ice::Exception&)>& exceptionFunc, const ::std::function<void (bool)>& sentFunc) :
             ::IceInternal::Cpp11FnCallbackNC(exceptionFunc, sentFunc),
             _response(responseFunc)
         {
@@ -418,7 +609,7 @@ IceProxy::Gem::GemServer::__begin_getJobs(const ::Ice::Context* __ctx, const ::I
         virtual void completed(const ::Ice::AsyncResultPtr& __result) const
         {
             ::Gem::GemServerPrx __proxy = ::Gem::GemServerPrx::uncheckedCast(__result->getProxy());
-            ::Gem::JobDict __ret;
+            ::Gem::JobSeq __ret;
             try
             {
                 __ret = __proxy->end_getJobs(__result);
@@ -436,17 +627,17 @@ IceProxy::Gem::GemServer::__begin_getJobs(const ::Ice::Context* __ctx, const ::I
     
     private:
         
-        ::std::function<void (const ::Gem::JobDict&)> _response;
+        ::std::function<void (const ::Gem::JobSeq&)> _response;
     };
     return begin_getJobs(__ctx, new Cpp11CB(__response, __exception, __sent));
 }
 #endif
 
-::Gem::JobDict
+::Gem::JobSeq
 IceProxy::Gem::GemServer::end_getJobs(const ::Ice::AsyncResultPtr& __result)
 {
     ::Ice::AsyncResult::__check(__result, this, __Gem__GemServer__getJobs_name);
-    ::Gem::JobDict __ret;
+    ::Gem::JobSeq __ret;
     if(!__result->__wait())
     {
         try
@@ -583,6 +774,167 @@ IceProxy::Gem::GemServer::end_getStartableJob(const ::Ice::AsyncResultPtr& __res
     return __ret;
 }
 
+::Gem::JobSeq
+IceProxy::Gem::GemServer::getJob(const ::std::string& __p_id, const ::Ice::Context* __ctx)
+{
+    __checkTwowayOnly(__Gem__GemServer__getJob_name);
+    ::IceInternal::Outgoing __og(this, __Gem__GemServer__getJob_name, ::Ice::Normal, __ctx);
+    try
+    {
+        ::IceInternal::BasicStream* __os = __og.startWriteParams(::Ice::DefaultFormat);
+        __os->write(__p_id);
+        __og.endWriteParams();
+    }
+    catch(const ::Ice::LocalException& __ex)
+    {
+        __og.abort(__ex);
+    }
+    if(!__og.invoke())
+    {
+        try
+        {
+            __og.throwUserException();
+        }
+        catch(const ::Ice::UserException& __ex)
+        {
+            ::Ice::UnknownUserException __uue(__FILE__, __LINE__, __ex.ice_name());
+            throw __uue;
+        }
+    }
+    ::Gem::JobSeq __ret;
+    ::IceInternal::BasicStream* __is = __og.startReadParams();
+    __is->read(__ret);
+    __og.endReadParams();
+    return __ret;
+}
+
+::Ice::AsyncResultPtr
+IceProxy::Gem::GemServer::begin_getJob(const ::std::string& __p_id, const ::Ice::Context* __ctx, const ::IceInternal::CallbackBasePtr& __del, const ::Ice::LocalObjectPtr& __cookie)
+{
+    __checkAsyncTwowayOnly(__Gem__GemServer__getJob_name);
+    ::IceInternal::OutgoingAsyncPtr __result = new ::IceInternal::OutgoingAsync(this, __Gem__GemServer__getJob_name, __del, __cookie);
+    try
+    {
+        __result->prepare(__Gem__GemServer__getJob_name, ::Ice::Normal, __ctx);
+        ::IceInternal::BasicStream* __os = __result->startWriteParams(::Ice::DefaultFormat);
+        __os->write(__p_id);
+        __result->endWriteParams();
+        __result->invoke();
+    }
+    catch(const ::Ice::Exception& __ex)
+    {
+        __result->abort(__ex);
+    }
+    return __result;
+}
+
+#ifdef ICE_CPP11
+
+::Ice::AsyncResultPtr
+IceProxy::Gem::GemServer::__begin_getJob(const ::std::string& __p_id, const ::Ice::Context* __ctx, const ::IceInternal::Function<void (const ::Gem::JobSeq&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception, const ::IceInternal::Function<void (bool)>& __sent)
+{
+    class Cpp11CB : public ::IceInternal::Cpp11FnCallbackNC
+    {
+    public:
+
+        Cpp11CB(const ::std::function<void (const ::Gem::JobSeq&)>& responseFunc, const ::std::function<void (const ::Ice::Exception&)>& exceptionFunc, const ::std::function<void (bool)>& sentFunc) :
+            ::IceInternal::Cpp11FnCallbackNC(exceptionFunc, sentFunc),
+            _response(responseFunc)
+        {
+            CallbackBase::checkCallback(true, responseFunc || exceptionFunc != nullptr);
+        }
+
+        virtual void completed(const ::Ice::AsyncResultPtr& __result) const
+        {
+            ::Gem::GemServerPrx __proxy = ::Gem::GemServerPrx::uncheckedCast(__result->getProxy());
+            ::Gem::JobSeq __ret;
+            try
+            {
+                __ret = __proxy->end_getJob(__result);
+            }
+            catch(const ::Ice::Exception& ex)
+            {
+                Cpp11FnCallbackNC::exception(__result, ex);
+                return;
+            }
+            if(_response != nullptr)
+            {
+                _response(__ret);
+            }
+        }
+    
+    private:
+        
+        ::std::function<void (const ::Gem::JobSeq&)> _response;
+    };
+    return begin_getJob(__p_id, __ctx, new Cpp11CB(__response, __exception, __sent));
+}
+#endif
+
+::Gem::JobSeq
+IceProxy::Gem::GemServer::end_getJob(const ::Ice::AsyncResultPtr& __result)
+{
+    ::Ice::AsyncResult::__check(__result, this, __Gem__GemServer__getJob_name);
+    ::Gem::JobSeq __ret;
+    if(!__result->__wait())
+    {
+        try
+        {
+            __result->__throwUserException();
+        }
+        catch(const ::Ice::UserException& __ex)
+        {
+            throw ::Ice::UnknownUserException(__FILE__, __LINE__, __ex.ice_name());
+        }
+    }
+    ::IceInternal::BasicStream* __is = __result->__startReadParams();
+    __is->read(__ret);
+    __result->__endReadParams();
+    return __ret;
+}
+
+void
+IceProxy::Gem::GemServer::addListener(const ::Gem::GemServerListenerPrx& __p_listener, const ::Ice::Context* __ctx)
+{
+    ::IceInternal::Outgoing __og(this, __Gem__GemServer__addListener_name, ::Ice::Normal, __ctx);
+    try
+    {
+        ::IceInternal::BasicStream* __os = __og.startWriteParams(::Ice::DefaultFormat);
+        __os->write(__p_listener);
+        __og.endWriteParams();
+    }
+    catch(const ::Ice::LocalException& __ex)
+    {
+        __og.abort(__ex);
+    }
+    __invoke(__og);
+}
+
+::Ice::AsyncResultPtr
+IceProxy::Gem::GemServer::begin_addListener(const ::Gem::GemServerListenerPrx& __p_listener, const ::Ice::Context* __ctx, const ::IceInternal::CallbackBasePtr& __del, const ::Ice::LocalObjectPtr& __cookie)
+{
+    ::IceInternal::OutgoingAsyncPtr __result = new ::IceInternal::OutgoingAsync(this, __Gem__GemServer__addListener_name, __del, __cookie);
+    try
+    {
+        __result->prepare(__Gem__GemServer__addListener_name, ::Ice::Normal, __ctx);
+        ::IceInternal::BasicStream* __os = __result->startWriteParams(::Ice::DefaultFormat);
+        __os->write(__p_listener);
+        __result->endWriteParams();
+        __result->invoke();
+    }
+    catch(const ::Ice::Exception& __ex)
+    {
+        __result->abort(__ex);
+    }
+    return __result;
+}
+
+void
+IceProxy::Gem::GemServer::end_addListener(const ::Ice::AsyncResultPtr& __result)
+{
+    __end(__result, __Gem__GemServer__addListener_name);
+}
+
 const ::std::string&
 IceProxy::Gem::GemServer::ice_staticId()
 {
@@ -593,6 +945,174 @@ IceProxy::Gem::GemServer::ice_staticId()
 IceProxy::Gem::GemServer::__newInstance() const
 {
     return new GemServer;
+}
+
+::Ice::Object* Gem::upCast(::Gem::GemServerListener* p) { return p; }
+
+namespace
+{
+const ::std::string __Gem__GemServerListener_ids[2] =
+{
+    "::Gem::GemServerListener",
+    "::Ice::Object"
+};
+
+}
+
+bool
+Gem::GemServerListener::ice_isA(const ::std::string& _s, const ::Ice::Current&) const
+{
+    return ::std::binary_search(__Gem__GemServerListener_ids, __Gem__GemServerListener_ids + 2, _s);
+}
+
+::std::vector< ::std::string>
+Gem::GemServerListener::ice_ids(const ::Ice::Current&) const
+{
+    return ::std::vector< ::std::string>(&__Gem__GemServerListener_ids[0], &__Gem__GemServerListener_ids[2]);
+}
+
+const ::std::string&
+Gem::GemServerListener::ice_id(const ::Ice::Current&) const
+{
+    return __Gem__GemServerListener_ids[0];
+}
+
+const ::std::string&
+Gem::GemServerListener::ice_staticId()
+{
+#ifdef ICE_HAS_THREAD_SAFE_LOCAL_STATIC
+    static const ::std::string typeId = "::Gem::GemServerListener";
+    return typeId;
+#else
+    return __Gem__GemServerListener_ids[0];
+#endif
+}
+
+::Ice::DispatchStatus
+Gem::GemServerListener::___onImage(::IceInternal::Incoming& __inS, const ::Ice::Current& __current)
+{
+    __checkMode(::Ice::Normal, __current.mode);
+    ::IceInternal::BasicStream* __is = __inS.startReadParams();
+    ::Gem::Image __p_image;
+    __is->read(__p_image);
+    __inS.endReadParams();
+    ::Gem::AMD_GemServerListener_onImagePtr __cb = new IceAsync::Gem::AMD_GemServerListener_onImage(__inS);
+    try
+    {
+        onImage_async(__cb, __p_image, __current);
+    }
+    catch(const ::std::exception& __ex)
+    {
+        __cb->ice_exception(__ex);
+    }
+    catch(...)
+    {
+        __cb->ice_exception();
+    }
+    return ::Ice::DispatchAsync;
+}
+
+::Ice::DispatchStatus
+Gem::GemServerListener::___onUpdate(::IceInternal::Incoming& __inS, const ::Ice::Current& __current)
+{
+    __checkMode(::Ice::Normal, __current.mode);
+    ::IceInternal::BasicStream* __is = __inS.startReadParams();
+    ::Gem::JobSeq __p_jobs;
+    __is->read(__p_jobs);
+    __inS.endReadParams();
+    ::Gem::AMD_GemServerListener_onUpdatePtr __cb = new IceAsync::Gem::AMD_GemServerListener_onUpdate(__inS);
+    try
+    {
+        onUpdate_async(__cb, __p_jobs, __current);
+    }
+    catch(const ::std::exception& __ex)
+    {
+        __cb->ice_exception(__ex);
+    }
+    catch(...)
+    {
+        __cb->ice_exception();
+    }
+    return ::Ice::DispatchAsync;
+}
+
+namespace
+{
+const ::std::string __Gem__GemServerListener_all[] =
+{
+    "ice_id",
+    "ice_ids",
+    "ice_isA",
+    "ice_ping",
+    "onImage",
+    "onUpdate"
+};
+
+}
+
+::Ice::DispatchStatus
+Gem::GemServerListener::__dispatch(::IceInternal::Incoming& in, const ::Ice::Current& current)
+{
+    ::std::pair< const ::std::string*, const ::std::string*> r = ::std::equal_range(__Gem__GemServerListener_all, __Gem__GemServerListener_all + 6, current.operation);
+    if(r.first == r.second)
+    {
+        throw ::Ice::OperationNotExistException(__FILE__, __LINE__, current.id, current.facet, current.operation);
+    }
+
+    switch(r.first - __Gem__GemServerListener_all)
+    {
+        case 0:
+        {
+            return ___ice_id(in, current);
+        }
+        case 1:
+        {
+            return ___ice_ids(in, current);
+        }
+        case 2:
+        {
+            return ___ice_isA(in, current);
+        }
+        case 3:
+        {
+            return ___ice_ping(in, current);
+        }
+        case 4:
+        {
+            return ___onImage(in, current);
+        }
+        case 5:
+        {
+            return ___onUpdate(in, current);
+        }
+    }
+
+    assert(false);
+    throw ::Ice::OperationNotExistException(__FILE__, __LINE__, current.id, current.facet, current.operation);
+}
+
+void
+Gem::GemServerListener::__writeImpl(::IceInternal::BasicStream* __os) const
+{
+    __os->startWriteSlice(ice_staticId(), -1, true);
+    __os->endWriteSlice();
+}
+
+void
+Gem::GemServerListener::__readImpl(::IceInternal::BasicStream* __is)
+{
+    __is->startReadSlice();
+    __is->endReadSlice();
+}
+
+void 
+Gem::__patch(GemServerListenerPtr& handle, const ::Ice::ObjectPtr& v)
+{
+    handle = ::Gem::GemServerListenerPtr::dynamicCast(v);
+    if(v && !handle)
+    {
+        IceInternal::Ex::throwUOE(::Gem::GemServerListener::ice_staticId(), v);
+    }
 }
 
 ::Ice::Object* Gem::upCast(::Gem::GemServer* p) { return p; }
@@ -777,10 +1297,60 @@ Gem::GemServer::___getStartableJob(::IceInternal::Incoming& __inS, const ::Ice::
     return ::Ice::DispatchAsync;
 }
 
+::Ice::DispatchStatus
+Gem::GemServer::___getJob(::IceInternal::Incoming& __inS, const ::Ice::Current& __current)
+{
+    __checkMode(::Ice::Normal, __current.mode);
+    ::IceInternal::BasicStream* __is = __inS.startReadParams();
+    ::std::string __p_id;
+    __is->read(__p_id);
+    __inS.endReadParams();
+    ::Gem::AMD_GemServer_getJobPtr __cb = new IceAsync::Gem::AMD_GemServer_getJob(__inS);
+    try
+    {
+        getJob_async(__cb, __p_id, __current);
+    }
+    catch(const ::std::exception& __ex)
+    {
+        __cb->ice_exception(__ex);
+    }
+    catch(...)
+    {
+        __cb->ice_exception();
+    }
+    return ::Ice::DispatchAsync;
+}
+
+::Ice::DispatchStatus
+Gem::GemServer::___addListener(::IceInternal::Incoming& __inS, const ::Ice::Current& __current)
+{
+    __checkMode(::Ice::Normal, __current.mode);
+    ::IceInternal::BasicStream* __is = __inS.startReadParams();
+    ::Gem::GemServerListenerPrx __p_listener;
+    __is->read(__p_listener);
+    __inS.endReadParams();
+    ::Gem::AMD_GemServer_addListenerPtr __cb = new IceAsync::Gem::AMD_GemServer_addListener(__inS);
+    try
+    {
+        addListener_async(__cb, __p_listener, __current);
+    }
+    catch(const ::std::exception& __ex)
+    {
+        __cb->ice_exception(__ex);
+    }
+    catch(...)
+    {
+        __cb->ice_exception();
+    }
+    return ::Ice::DispatchAsync;
+}
+
 namespace
 {
 const ::std::string __Gem__GemServer_all[] =
 {
+    "addListener",
+    "getJob",
     "getJobs",
     "getStartableJob",
     "ice_id",
@@ -798,7 +1368,7 @@ const ::std::string __Gem__GemServer_all[] =
 ::Ice::DispatchStatus
 Gem::GemServer::__dispatch(::IceInternal::Incoming& in, const ::Ice::Current& current)
 {
-    ::std::pair< const ::std::string*, const ::std::string*> r = ::std::equal_range(__Gem__GemServer_all, __Gem__GemServer_all + 10, current.operation);
+    ::std::pair< const ::std::string*, const ::std::string*> r = ::std::equal_range(__Gem__GemServer_all, __Gem__GemServer_all + 12, current.operation);
     if(r.first == r.second)
     {
         throw ::Ice::OperationNotExistException(__FILE__, __LINE__, current.id, current.facet, current.operation);
@@ -808,41 +1378,49 @@ Gem::GemServer::__dispatch(::IceInternal::Incoming& in, const ::Ice::Current& cu
     {
         case 0:
         {
-            return ___getJobs(in, current);
+            return ___addListener(in, current);
         }
         case 1:
         {
-            return ___getStartableJob(in, current);
+            return ___getJob(in, current);
         }
         case 2:
         {
-            return ___ice_id(in, current);
+            return ___getJobs(in, current);
         }
         case 3:
         {
-            return ___ice_ids(in, current);
+            return ___getStartableJob(in, current);
         }
         case 4:
         {
-            return ___ice_isA(in, current);
+            return ___ice_id(in, current);
         }
         case 5:
         {
-            return ___ice_ping(in, current);
+            return ___ice_ids(in, current);
         }
         case 6:
         {
-            return ___invalidate(in, current);
+            return ___ice_isA(in, current);
         }
         case 7:
         {
-            return ___startJob(in, current);
+            return ___ice_ping(in, current);
         }
         case 8:
         {
-            return ___stopJob(in, current);
+            return ___invalidate(in, current);
         }
         case 9:
+        {
+            return ___startJob(in, current);
+        }
+        case 10:
+        {
+            return ___stopJob(in, current);
+        }
+        case 11:
         {
             return ___submitBatch(in, current);
         }

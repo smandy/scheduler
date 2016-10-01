@@ -37,6 +37,7 @@ module Gem {
         StringSeq cmdLine;
         StringStringDict env;
         StringSeq        dependencies;
+        string    batchId;
     };
 
     sequence<Job> JobSeq;
@@ -50,13 +51,26 @@ module Gem {
         string id;
     };
 
+    struct Image {
+        JobSeq jobs;
+    };
+    
+    interface GemServerListener {
+        ["amd"] void onImage( Image image);
+        
+        ["amd"] void onUpdate( JobSeq jobs);
+    };
+
     interface GemServer {
         ["amd"] void submitBatch( Batch batch );
         ["amd"] void startJob( string id );
         ["amd"] void stopJob( string id );
         ["amd"] void invalidate( string id);
-        ["amd"] JobDict getJobs();
+        ["amd"] JobSeq getJobs();
         
         ["amd"] JobSeq getStartableJob( WorkerId worker );
+        ["amd"] JobSeq getJob( string id );
+
+        ["amd"] void addListener( GemServerListener *listener);
     };
 };
