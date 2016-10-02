@@ -7,9 +7,9 @@
 // https://github.com/SintefRaufossManufacturing/icehms/blob/master/icecfg/icebox.xml
 //typedef std::shared_ptr<Gem::Job> JobPtr;
 // http://git.asterisk.org/gitweb/?p=asterisk-scf/release/techdemo.git;a=commitdiff_plain;h=89b836724135902a7d628cc08bd8ddd786b82240
+
 class GemServerImpl : public Gem::GemServer {
     std::vector<Gem::Job> jobs;
-    //Ice::CommunicatorPtr communicator;
     Gem::GemServerListenerPrx pubToListeners;
     IceStorm::TopicPrx topic;
     
@@ -59,11 +59,11 @@ public:
                                    const ::Ice::Current& = ::Ice::Current()) {
         // TODO - duplicate ids.
         std::cout << "Woot" << std::endl;
+        
         jobs.insert(jobs.end(), begin(batch.jobs), end(batch.jobs));
-        std::sort( begin(jobs), end(jobs), [&]( auto &a,auto &b) {
+        std::sort( begin(jobs), end(jobs), [&]( auto &a, auto &b) {
                 return a.id < b.id;
             });
-
         pubToListeners->begin_onUpdate( batch.jobs,
                                         []() { std::cout << "Send update to published" << std::endl; } );
         cb->ice_response();
@@ -89,12 +89,14 @@ public:
         cb->ice_response();
     }
 
-    virtual void getStartableJob_async(const ::Gem::AMD_GemServer_getStartableJobPtr& cb, const ::Gem::WorkerId&, const ::Ice::Current& = ::Ice::Current()) {
+    virtual void getStartableJob_async(const ::Gem::AMD_GemServer_getStartableJobPtr& cb,
+                                       const ::Gem::WorkerId&,
+                                       const ::Ice::Current& = ::Ice::Current()) {
         Gem::JobSeq ret;
         Gem::Job *selected = nullptr;
         for (auto &&job : jobs) {
             if ( job.state == Gem::JobState::STARTABLE ) {
-                if (selected == nullptr || job.priority<selected->priority) {
+                if (selected == nullptr || job.priority < selected->priority) {
                     selected = &job;
                 };
             }
@@ -111,31 +113,30 @@ public:
         cb->ice_response( jobs );
     }
 
-    virtual void addListener_async(const ::Gem::AMD_GemServer_addListenerPtr& cb, const ::Gem::GemServerListenerPrx& prx, const ::Ice::Current& = ::Ice::Current()) {
+    virtual void addListener_async(const ::Gem::AMD_GemServer_addListenerPtr& cb,
+                                   const ::Gem::GemServerListenerPrx& prx,
+                                   const ::Ice::Current& = ::Ice::Current()) {
         std::cout << "Add listener " << std::endl;
         static const IceStorm::QoS theQos;
-
-        Gem::Image img { {begin(jobs), end(jobs) }};
-
-        // auto prx2 = prx->ice_timeout(5000);
-        // prx->begin_onImage( img ,
-        //                     []() { std::cout << "Called directly" << std::endl; },
-        //                     [](const Ice::Exception &ex) { std::cout << "Exception" << std::endl; } ,
-        //                     [](bool b) { std::cout << "Sent " << b << std::endl; });
-        topic->begin_subscribeAndGetPublisher( theQos, prx, [=]( const Ice::ObjectPrx &response) {
-                std::cout << " Got publisher " << response << std::endl;
-                auto p = Gem::GemServerListenerPrx::uncheckedCast(response);
-                std::cout << "Made image " << std::endl;
-                p->begin_onImage( img , []() { std::cout << "Success with image" << std::endl; } );
-                cb->ice_response();
-            } );
+        Gem::Image img { { begin(jobs), end(jobs) } };
+        topic->begin_subscribeAndGetPublisher(theQos,
+                                              prx,
+                                              [&img,cb](const Ice::ObjectPrx &response) {
+                                                  std::cout << " Got publisher " << response << std::endl;
+                                                  auto p = Gem::GemServerListenerPrx::uncheckedCast(response);
+                                                  std::cout << "Made image " << std::endl;
+                                                  p->begin_onImage( img ,
+                                                                    []() {
+                                                                        std::cout << "Success with image" << std::endl;
+                                                                    } );
+                                                  cb->ice_response();
+                                              } );
     }
 };
 
 int main(int argc, char *argv[]) {
     std::cout << "Make communicator" << std::endl;
     auto communicator = Ice::initialize( argc, argv);
-    
     std::cout << "Make server" << std::endl;
     auto server = std::make_shared<GemServerImpl>(communicator);
     std::cout << "Make adapter" << std::endl;
