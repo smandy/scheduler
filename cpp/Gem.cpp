@@ -55,6 +55,10 @@ const ::std::string __Gem__GemServer__stopJob_name = "stopJob";
 
 const ::std::string __Gem__GemServer__invalidate_name = "invalidate";
 
+const ::std::string __Gem__GemServer__reset_name = "reset";
+
+const ::std::string __Gem__GemServer__dumpStatus_name = "dumpStatus";
+
 const ::std::string __Gem__GemServer__getJobs_name = "getJobs";
 
 const ::std::string __Gem__GemServer__getStartableJob_name = "getStartableJob";
@@ -62,6 +66,8 @@ const ::std::string __Gem__GemServer__getStartableJob_name = "getStartableJob";
 const ::std::string __Gem__GemServer__getJob_name = "getJob";
 
 const ::std::string __Gem__GemServer__addListener_name = "addListener";
+
+const ::std::string __Gem__GemServer__onWorkerStates_name = "onWorkerStates";
 
 }
 
@@ -159,6 +165,46 @@ IceAsync::Gem::AMD_GemServer_invalidate::ice_response()
     }
 }
 
+IceAsync::Gem::AMD_GemServer_reset::AMD_GemServer_reset(::IceInternal::Incoming& in) :
+    ::IceInternal::IncomingAsync(in)
+{
+}
+
+void
+IceAsync::Gem::AMD_GemServer_reset::ice_response()
+{
+    if(__validateResponse(true))
+    {
+        __writeEmptyParams();
+        __response();
+    }
+}
+
+IceAsync::Gem::AMD_GemServer_dumpStatus::AMD_GemServer_dumpStatus(::IceInternal::Incoming& in) :
+    ::IceInternal::IncomingAsync(in)
+{
+}
+
+void
+IceAsync::Gem::AMD_GemServer_dumpStatus::ice_response(const ::std::string& __ret)
+{
+    if(__validateResponse(true))
+    {
+        try
+        {
+            ::IceInternal::BasicStream* __os = __startWriteParams(::Ice::DefaultFormat);
+            __os->write(__ret);
+            __endWriteParams(true);
+        }
+        catch(const ::Ice::Exception& __ex)
+        {
+            __exception(__ex);
+            return;
+        }
+        __response();
+    }
+}
+
 IceAsync::Gem::AMD_GemServer_getJobs::AMD_GemServer_getJobs(::IceInternal::Incoming& in) :
     ::IceInternal::IncomingAsync(in)
 {
@@ -241,6 +287,21 @@ IceAsync::Gem::AMD_GemServer_addListener::AMD_GemServer_addListener(::IceInterna
 
 void
 IceAsync::Gem::AMD_GemServer_addListener::ice_response()
+{
+    if(__validateResponse(true))
+    {
+        __writeEmptyParams();
+        __response();
+    }
+}
+
+IceAsync::Gem::AMD_GemServer_onWorkerStates::AMD_GemServer_onWorkerStates(::IceInternal::Incoming& in) :
+    ::IceInternal::IncomingAsync(in)
+{
+}
+
+void
+IceAsync::Gem::AMD_GemServer_onWorkerStates::ice_response()
 {
     if(__validateResponse(true))
     {
@@ -545,6 +606,145 @@ void
 IceProxy::Gem::GemServer::end_invalidate(const ::Ice::AsyncResultPtr& __result)
 {
     __end(__result, __Gem__GemServer__invalidate_name);
+}
+
+void
+IceProxy::Gem::GemServer::reset(const ::Ice::Context* __ctx)
+{
+    ::IceInternal::Outgoing __og(this, __Gem__GemServer__reset_name, ::Ice::Normal, __ctx);
+    __og.writeEmptyParams();
+    __invoke(__og);
+}
+
+::Ice::AsyncResultPtr
+IceProxy::Gem::GemServer::begin_reset(const ::Ice::Context* __ctx, const ::IceInternal::CallbackBasePtr& __del, const ::Ice::LocalObjectPtr& __cookie)
+{
+    ::IceInternal::OutgoingAsyncPtr __result = new ::IceInternal::OutgoingAsync(this, __Gem__GemServer__reset_name, __del, __cookie);
+    try
+    {
+        __result->prepare(__Gem__GemServer__reset_name, ::Ice::Normal, __ctx);
+        __result->writeEmptyParams();
+        __result->invoke();
+    }
+    catch(const ::Ice::Exception& __ex)
+    {
+        __result->abort(__ex);
+    }
+    return __result;
+}
+
+void
+IceProxy::Gem::GemServer::end_reset(const ::Ice::AsyncResultPtr& __result)
+{
+    __end(__result, __Gem__GemServer__reset_name);
+}
+
+::std::string
+IceProxy::Gem::GemServer::dumpStatus(const ::Ice::Context* __ctx)
+{
+    __checkTwowayOnly(__Gem__GemServer__dumpStatus_name);
+    ::IceInternal::Outgoing __og(this, __Gem__GemServer__dumpStatus_name, ::Ice::Normal, __ctx);
+    __og.writeEmptyParams();
+    if(!__og.invoke())
+    {
+        try
+        {
+            __og.throwUserException();
+        }
+        catch(const ::Ice::UserException& __ex)
+        {
+            ::Ice::UnknownUserException __uue(__FILE__, __LINE__, __ex.ice_name());
+            throw __uue;
+        }
+    }
+    ::std::string __ret;
+    ::IceInternal::BasicStream* __is = __og.startReadParams();
+    __is->read(__ret);
+    __og.endReadParams();
+    return __ret;
+}
+
+::Ice::AsyncResultPtr
+IceProxy::Gem::GemServer::begin_dumpStatus(const ::Ice::Context* __ctx, const ::IceInternal::CallbackBasePtr& __del, const ::Ice::LocalObjectPtr& __cookie)
+{
+    __checkAsyncTwowayOnly(__Gem__GemServer__dumpStatus_name);
+    ::IceInternal::OutgoingAsyncPtr __result = new ::IceInternal::OutgoingAsync(this, __Gem__GemServer__dumpStatus_name, __del, __cookie);
+    try
+    {
+        __result->prepare(__Gem__GemServer__dumpStatus_name, ::Ice::Normal, __ctx);
+        __result->writeEmptyParams();
+        __result->invoke();
+    }
+    catch(const ::Ice::Exception& __ex)
+    {
+        __result->abort(__ex);
+    }
+    return __result;
+}
+
+#ifdef ICE_CPP11
+
+::Ice::AsyncResultPtr
+IceProxy::Gem::GemServer::__begin_dumpStatus(const ::Ice::Context* __ctx, const ::IceInternal::Function<void (const ::std::string&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception, const ::IceInternal::Function<void (bool)>& __sent)
+{
+    class Cpp11CB : public ::IceInternal::Cpp11FnCallbackNC
+    {
+    public:
+
+        Cpp11CB(const ::std::function<void (const ::std::string&)>& responseFunc, const ::std::function<void (const ::Ice::Exception&)>& exceptionFunc, const ::std::function<void (bool)>& sentFunc) :
+            ::IceInternal::Cpp11FnCallbackNC(exceptionFunc, sentFunc),
+            _response(responseFunc)
+        {
+            CallbackBase::checkCallback(true, responseFunc || exceptionFunc != nullptr);
+        }
+
+        virtual void completed(const ::Ice::AsyncResultPtr& __result) const
+        {
+            ::Gem::GemServerPrx __proxy = ::Gem::GemServerPrx::uncheckedCast(__result->getProxy());
+            ::std::string __ret;
+            try
+            {
+                __ret = __proxy->end_dumpStatus(__result);
+            }
+            catch(const ::Ice::Exception& ex)
+            {
+                Cpp11FnCallbackNC::exception(__result, ex);
+                return;
+            }
+            if(_response != nullptr)
+            {
+                _response(__ret);
+            }
+        }
+    
+    private:
+        
+        ::std::function<void (const ::std::string&)> _response;
+    };
+    return begin_dumpStatus(__ctx, new Cpp11CB(__response, __exception, __sent));
+}
+#endif
+
+::std::string
+IceProxy::Gem::GemServer::end_dumpStatus(const ::Ice::AsyncResultPtr& __result)
+{
+    ::Ice::AsyncResult::__check(__result, this, __Gem__GemServer__dumpStatus_name);
+    ::std::string __ret;
+    if(!__result->__wait())
+    {
+        try
+        {
+            __result->__throwUserException();
+        }
+        catch(const ::Ice::UserException& __ex)
+        {
+            throw ::Ice::UnknownUserException(__FILE__, __LINE__, __ex.ice_name());
+        }
+    }
+    ::IceInternal::BasicStream* __is = __result->__startReadParams();
+    __is->read(__ret);
+    __result->__endReadParams();
+    return __ret;
 }
 
 ::Gem::JobSeq
@@ -935,6 +1135,48 @@ IceProxy::Gem::GemServer::end_addListener(const ::Ice::AsyncResultPtr& __result)
     __end(__result, __Gem__GemServer__addListener_name);
 }
 
+void
+IceProxy::Gem::GemServer::onWorkerStates(const ::Gem::JobWorkerStateSeq& __p_xs, const ::Ice::Context* __ctx)
+{
+    ::IceInternal::Outgoing __og(this, __Gem__GemServer__onWorkerStates_name, ::Ice::Normal, __ctx);
+    try
+    {
+        ::IceInternal::BasicStream* __os = __og.startWriteParams(::Ice::DefaultFormat);
+        __os->write(__p_xs);
+        __og.endWriteParams();
+    }
+    catch(const ::Ice::LocalException& __ex)
+    {
+        __og.abort(__ex);
+    }
+    __invoke(__og);
+}
+
+::Ice::AsyncResultPtr
+IceProxy::Gem::GemServer::begin_onWorkerStates(const ::Gem::JobWorkerStateSeq& __p_xs, const ::Ice::Context* __ctx, const ::IceInternal::CallbackBasePtr& __del, const ::Ice::LocalObjectPtr& __cookie)
+{
+    ::IceInternal::OutgoingAsyncPtr __result = new ::IceInternal::OutgoingAsync(this, __Gem__GemServer__onWorkerStates_name, __del, __cookie);
+    try
+    {
+        __result->prepare(__Gem__GemServer__onWorkerStates_name, ::Ice::Normal, __ctx);
+        ::IceInternal::BasicStream* __os = __result->startWriteParams(::Ice::DefaultFormat);
+        __os->write(__p_xs);
+        __result->endWriteParams();
+        __result->invoke();
+    }
+    catch(const ::Ice::Exception& __ex)
+    {
+        __result->abort(__ex);
+    }
+    return __result;
+}
+
+void
+IceProxy::Gem::GemServer::end_onWorkerStates(const ::Ice::AsyncResultPtr& __result)
+{
+    __end(__result, __Gem__GemServer__onWorkerStates_name);
+}
+
 const ::std::string&
 IceProxy::Gem::GemServer::ice_staticId()
 {
@@ -1253,6 +1495,48 @@ Gem::GemServer::___invalidate(::IceInternal::Incoming& __inS, const ::Ice::Curre
 }
 
 ::Ice::DispatchStatus
+Gem::GemServer::___reset(::IceInternal::Incoming& __inS, const ::Ice::Current& __current)
+{
+    __checkMode(::Ice::Normal, __current.mode);
+    __inS.readEmptyParams();
+    ::Gem::AMD_GemServer_resetPtr __cb = new IceAsync::Gem::AMD_GemServer_reset(__inS);
+    try
+    {
+        reset_async(__cb, __current);
+    }
+    catch(const ::std::exception& __ex)
+    {
+        __cb->ice_exception(__ex);
+    }
+    catch(...)
+    {
+        __cb->ice_exception();
+    }
+    return ::Ice::DispatchAsync;
+}
+
+::Ice::DispatchStatus
+Gem::GemServer::___dumpStatus(::IceInternal::Incoming& __inS, const ::Ice::Current& __current)
+{
+    __checkMode(::Ice::Normal, __current.mode);
+    __inS.readEmptyParams();
+    ::Gem::AMD_GemServer_dumpStatusPtr __cb = new IceAsync::Gem::AMD_GemServer_dumpStatus(__inS);
+    try
+    {
+        dumpStatus_async(__cb, __current);
+    }
+    catch(const ::std::exception& __ex)
+    {
+        __cb->ice_exception(__ex);
+    }
+    catch(...)
+    {
+        __cb->ice_exception();
+    }
+    return ::Ice::DispatchAsync;
+}
+
+::Ice::DispatchStatus
 Gem::GemServer::___getJobs(::IceInternal::Incoming& __inS, const ::Ice::Current& __current)
 {
     __checkMode(::Ice::Normal, __current.mode);
@@ -1345,11 +1629,36 @@ Gem::GemServer::___addListener(::IceInternal::Incoming& __inS, const ::Ice::Curr
     return ::Ice::DispatchAsync;
 }
 
+::Ice::DispatchStatus
+Gem::GemServer::___onWorkerStates(::IceInternal::Incoming& __inS, const ::Ice::Current& __current)
+{
+    __checkMode(::Ice::Normal, __current.mode);
+    ::IceInternal::BasicStream* __is = __inS.startReadParams();
+    ::Gem::JobWorkerStateSeq __p_xs;
+    __is->read(__p_xs);
+    __inS.endReadParams();
+    ::Gem::AMD_GemServer_onWorkerStatesPtr __cb = new IceAsync::Gem::AMD_GemServer_onWorkerStates(__inS);
+    try
+    {
+        onWorkerStates_async(__cb, __p_xs, __current);
+    }
+    catch(const ::std::exception& __ex)
+    {
+        __cb->ice_exception(__ex);
+    }
+    catch(...)
+    {
+        __cb->ice_exception();
+    }
+    return ::Ice::DispatchAsync;
+}
+
 namespace
 {
 const ::std::string __Gem__GemServer_all[] =
 {
     "addListener",
+    "dumpStatus",
     "getJob",
     "getJobs",
     "getStartableJob",
@@ -1358,6 +1667,8 @@ const ::std::string __Gem__GemServer_all[] =
     "ice_isA",
     "ice_ping",
     "invalidate",
+    "onWorkerStates",
+    "reset",
     "startJob",
     "stopJob",
     "submitBatch"
@@ -1368,7 +1679,7 @@ const ::std::string __Gem__GemServer_all[] =
 ::Ice::DispatchStatus
 Gem::GemServer::__dispatch(::IceInternal::Incoming& in, const ::Ice::Current& current)
 {
-    ::std::pair< const ::std::string*, const ::std::string*> r = ::std::equal_range(__Gem__GemServer_all, __Gem__GemServer_all + 12, current.operation);
+    ::std::pair< const ::std::string*, const ::std::string*> r = ::std::equal_range(__Gem__GemServer_all, __Gem__GemServer_all + 15, current.operation);
     if(r.first == r.second)
     {
         throw ::Ice::OperationNotExistException(__FILE__, __LINE__, current.id, current.facet, current.operation);
@@ -1382,45 +1693,57 @@ Gem::GemServer::__dispatch(::IceInternal::Incoming& in, const ::Ice::Current& cu
         }
         case 1:
         {
-            return ___getJob(in, current);
+            return ___dumpStatus(in, current);
         }
         case 2:
         {
-            return ___getJobs(in, current);
+            return ___getJob(in, current);
         }
         case 3:
         {
-            return ___getStartableJob(in, current);
+            return ___getJobs(in, current);
         }
         case 4:
         {
-            return ___ice_id(in, current);
+            return ___getStartableJob(in, current);
         }
         case 5:
         {
-            return ___ice_ids(in, current);
+            return ___ice_id(in, current);
         }
         case 6:
         {
-            return ___ice_isA(in, current);
+            return ___ice_ids(in, current);
         }
         case 7:
         {
-            return ___ice_ping(in, current);
+            return ___ice_isA(in, current);
         }
         case 8:
         {
-            return ___invalidate(in, current);
+            return ___ice_ping(in, current);
         }
         case 9:
         {
-            return ___startJob(in, current);
+            return ___invalidate(in, current);
         }
         case 10:
         {
-            return ___stopJob(in, current);
+            return ___onWorkerStates(in, current);
         }
         case 11:
+        {
+            return ___reset(in, current);
+        }
+        case 12:
+        {
+            return ___startJob(in, current);
+        }
+        case 13:
+        {
+            return ___stopJob(in, current);
+        }
+        case 14:
         {
             return ___submitBatch(in, current);
         }

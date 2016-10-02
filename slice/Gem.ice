@@ -23,20 +23,27 @@ module Gem {
     };
 
     sequence<JobUpdate> JobUpdateSeq;
+    
+    struct WorkerId {
+        string id;
+    };
 
     struct JobWorkerState {
+        WorkerId worker;
         string id;
         JobState state;
     };
 
+    sequence<JobWorkerState> JobWorkerStateSeq;
+
     struct Job {
         string    id;
-        int       priority;
+        StringSeq dependencies;
         JobState  state = STARTABLE;
+        int       priority;
         string    pwd;
         StringSeq cmdLine;
         StringStringDict env;
-        StringSeq        dependencies;
         string    batchId;
     };
 
@@ -47,9 +54,6 @@ module Gem {
         JobSeq jobs;
     };
 
-    struct WorkerId {
-        string id;
-    };
 
     struct Image {
         JobSeq jobs;
@@ -57,7 +61,6 @@ module Gem {
     
     interface GemServerListener {
         ["amd"] void onImage( Image image);
-        
         ["amd"] void onUpdate( JobSeq jobs);
     };
 
@@ -66,11 +69,15 @@ module Gem {
         ["amd"] void startJob( string id );
         ["amd"] void stopJob( string id );
         ["amd"] void invalidate( string id);
-        ["amd"] JobSeq getJobs();
+        ["amd"] void reset();
+        ["amd"] string dumpStatus();
         
+        ["amd"] JobSeq getJobs();
         ["amd"] JobSeq getStartableJob( WorkerId worker );
         ["amd"] JobSeq getJob( string id );
 
         ["amd"] void addListener( GemServerListener *listener);
+
+        ["amd"] void onWorkerStates( JobWorkerStateSeq xs);
     };
 };

@@ -187,110 +187,6 @@ struct JobUpdate
 
 typedef ::std::vector< ::Gem::JobUpdate> JobUpdateSeq;
 
-struct JobWorkerState
-{
-    ::std::string id;
-    ::Gem::JobState state;
-
-    bool operator==(const JobWorkerState& __rhs) const
-    {
-        if(this == &__rhs)
-        {
-            return true;
-        }
-        if(id != __rhs.id)
-        {
-            return false;
-        }
-        if(state != __rhs.state)
-        {
-            return false;
-        }
-        return true;
-    }
-
-    bool operator<(const JobWorkerState& __rhs) const
-    {
-        if(this == &__rhs)
-        {
-            return false;
-        }
-        if(id < __rhs.id)
-        {
-            return true;
-        }
-        else if(__rhs.id < id)
-        {
-            return false;
-        }
-        if(state < __rhs.state)
-        {
-            return true;
-        }
-        else if(__rhs.state < state)
-        {
-            return false;
-        }
-        return false;
-    }
-
-    bool operator!=(const JobWorkerState& __rhs) const
-    {
-        return !operator==(__rhs);
-    }
-    bool operator<=(const JobWorkerState& __rhs) const
-    {
-        return operator<(__rhs) || operator==(__rhs);
-    }
-    bool operator>(const JobWorkerState& __rhs) const
-    {
-        return !operator<(__rhs) && !operator==(__rhs);
-    }
-    bool operator>=(const JobWorkerState& __rhs) const
-    {
-        return !operator<(__rhs);
-    }
-};
-
-struct Job
-{
-    Job() :
-        state(STARTABLE)
-    {
-    }
-    
-    Job(const ::std::string& __ice_id, ::Ice::Int __ice_priority, ::Gem::JobState __ice_state, const ::std::string& __ice_pwd, const ::Gem::StringSeq& __ice_cmdLine, const ::Gem::StringStringDict& __ice_env, const ::Gem::StringSeq& __ice_dependencies, const ::std::string& __ice_batchId) :
-        id(__ice_id),
-        priority(__ice_priority),
-        state(__ice_state),
-        pwd(__ice_pwd),
-        cmdLine(__ice_cmdLine),
-        env(__ice_env),
-        dependencies(__ice_dependencies),
-        batchId(__ice_batchId)
-    {
-    }
-    
-
-    ::std::string id;
-    ::Ice::Int priority;
-    ::Gem::JobState state;
-    ::std::string pwd;
-    ::Gem::StringSeq cmdLine;
-    ::Gem::StringStringDict env;
-    ::Gem::StringSeq dependencies;
-    ::std::string batchId;
-};
-
-typedef ::std::vector< ::Gem::Job> JobSeq;
-
-typedef ::std::map< ::std::string, ::Gem::Job> JobDict;
-
-struct Batch
-{
-    ::Gem::JobSeq jobs;
-};
-
 struct WorkerId
 {
     ::std::string id;
@@ -343,6 +239,125 @@ struct WorkerId
     }
 };
 
+struct JobWorkerState
+{
+    ::Gem::WorkerId worker;
+    ::std::string id;
+    ::Gem::JobState state;
+
+    bool operator==(const JobWorkerState& __rhs) const
+    {
+        if(this == &__rhs)
+        {
+            return true;
+        }
+        if(worker != __rhs.worker)
+        {
+            return false;
+        }
+        if(id != __rhs.id)
+        {
+            return false;
+        }
+        if(state != __rhs.state)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    bool operator<(const JobWorkerState& __rhs) const
+    {
+        if(this == &__rhs)
+        {
+            return false;
+        }
+        if(worker < __rhs.worker)
+        {
+            return true;
+        }
+        else if(__rhs.worker < worker)
+        {
+            return false;
+        }
+        if(id < __rhs.id)
+        {
+            return true;
+        }
+        else if(__rhs.id < id)
+        {
+            return false;
+        }
+        if(state < __rhs.state)
+        {
+            return true;
+        }
+        else if(__rhs.state < state)
+        {
+            return false;
+        }
+        return false;
+    }
+
+    bool operator!=(const JobWorkerState& __rhs) const
+    {
+        return !operator==(__rhs);
+    }
+    bool operator<=(const JobWorkerState& __rhs) const
+    {
+        return operator<(__rhs) || operator==(__rhs);
+    }
+    bool operator>(const JobWorkerState& __rhs) const
+    {
+        return !operator<(__rhs) && !operator==(__rhs);
+    }
+    bool operator>=(const JobWorkerState& __rhs) const
+    {
+        return !operator<(__rhs);
+    }
+};
+
+typedef ::std::vector< ::Gem::JobWorkerState> JobWorkerStateSeq;
+
+struct Job
+{
+    Job() :
+        state(STARTABLE)
+    {
+    }
+    
+    Job(const ::std::string& __ice_id, const ::Gem::StringSeq& __ice_dependencies, ::Gem::JobState __ice_state, ::Ice::Int __ice_priority, const ::std::string& __ice_pwd, const ::Gem::StringSeq& __ice_cmdLine, const ::Gem::StringStringDict& __ice_env, const ::std::string& __ice_batchId) :
+        id(__ice_id),
+        dependencies(__ice_dependencies),
+        state(__ice_state),
+        priority(__ice_priority),
+        pwd(__ice_pwd),
+        cmdLine(__ice_cmdLine),
+        env(__ice_env),
+        batchId(__ice_batchId)
+    {
+    }
+    
+
+    ::std::string id;
+    ::Gem::StringSeq dependencies;
+    ::Gem::JobState state;
+    ::Ice::Int priority;
+    ::std::string pwd;
+    ::Gem::StringSeq cmdLine;
+    ::Gem::StringStringDict env;
+    ::std::string batchId;
+};
+
+typedef ::std::vector< ::Gem::Job> JobSeq;
+
+typedef ::std::map< ::std::string, ::Gem::Job> JobDict;
+
+struct Batch
+{
+    ::Gem::JobSeq jobs;
+};
+
 struct Image
 {
     ::Gem::JobSeq jobs;
@@ -393,10 +408,36 @@ struct StreamReader< ::Gem::JobUpdate, S>
 };
 
 template<>
+struct StreamableTraits< ::Gem::WorkerId>
+{
+    static const StreamHelperCategory helper = StreamHelperCategoryStruct;
+    static const int minWireSize = 1;
+    static const bool fixedLength = false;
+};
+
+template<class S>
+struct StreamWriter< ::Gem::WorkerId, S>
+{
+    static void write(S* __os, const ::Gem::WorkerId& v)
+    {
+        __os->write(v.id);
+    }
+};
+
+template<class S>
+struct StreamReader< ::Gem::WorkerId, S>
+{
+    static void read(S* __is, ::Gem::WorkerId& v)
+    {
+        __is->read(v.id);
+    }
+};
+
+template<>
 struct StreamableTraits< ::Gem::JobWorkerState>
 {
     static const StreamHelperCategory helper = StreamHelperCategoryStruct;
-    static const int minWireSize = 2;
+    static const int minWireSize = 3;
     static const bool fixedLength = false;
 };
 
@@ -405,6 +446,7 @@ struct StreamWriter< ::Gem::JobWorkerState, S>
 {
     static void write(S* __os, const ::Gem::JobWorkerState& v)
     {
+        __os->write(v.worker);
         __os->write(v.id);
         __os->write(v.state);
     }
@@ -415,6 +457,7 @@ struct StreamReader< ::Gem::JobWorkerState, S>
 {
     static void read(S* __is, ::Gem::JobWorkerState& v)
     {
+        __is->read(v.worker);
         __is->read(v.id);
         __is->read(v.state);
     }
@@ -434,12 +477,12 @@ struct StreamWriter< ::Gem::Job, S>
     static void write(S* __os, const ::Gem::Job& v)
     {
         __os->write(v.id);
-        __os->write(v.priority);
+        __os->write(v.dependencies);
         __os->write(v.state);
+        __os->write(v.priority);
         __os->write(v.pwd);
         __os->write(v.cmdLine);
         __os->write(v.env);
-        __os->write(v.dependencies);
         __os->write(v.batchId);
     }
 };
@@ -450,12 +493,12 @@ struct StreamReader< ::Gem::Job, S>
     static void read(S* __is, ::Gem::Job& v)
     {
         __is->read(v.id);
-        __is->read(v.priority);
+        __is->read(v.dependencies);
         __is->read(v.state);
+        __is->read(v.priority);
         __is->read(v.pwd);
         __is->read(v.cmdLine);
         __is->read(v.env);
-        __is->read(v.dependencies);
         __is->read(v.batchId);
     }
 };
@@ -483,32 +526,6 @@ struct StreamReader< ::Gem::Batch, S>
     static void read(S* __is, ::Gem::Batch& v)
     {
         __is->read(v.jobs);
-    }
-};
-
-template<>
-struct StreamableTraits< ::Gem::WorkerId>
-{
-    static const StreamHelperCategory helper = StreamHelperCategoryStruct;
-    static const int minWireSize = 1;
-    static const bool fixedLength = false;
-};
-
-template<class S>
-struct StreamWriter< ::Gem::WorkerId, S>
-{
-    static void write(S* __os, const ::Gem::WorkerId& v)
-    {
-        __os->write(v.id);
-    }
-};
-
-template<class S>
-struct StreamReader< ::Gem::WorkerId, S>
-{
-    static void read(S* __is, ::Gem::WorkerId& v)
-    {
-        __is->read(v.id);
     }
 };
 
@@ -597,6 +614,24 @@ public:
 
 typedef ::IceUtil::Handle< ::Gem::AMD_GemServer_invalidate> AMD_GemServer_invalidatePtr;
 
+class AMD_GemServer_reset : virtual public ::Ice::AMDCallback
+{
+public:
+
+    virtual void ice_response() = 0;
+};
+
+typedef ::IceUtil::Handle< ::Gem::AMD_GemServer_reset> AMD_GemServer_resetPtr;
+
+class AMD_GemServer_dumpStatus : virtual public ::Ice::AMDCallback
+{
+public:
+
+    virtual void ice_response(const ::std::string&) = 0;
+};
+
+typedef ::IceUtil::Handle< ::Gem::AMD_GemServer_dumpStatus> AMD_GemServer_dumpStatusPtr;
+
 class AMD_GemServer_getJobs : virtual public ::Ice::AMDCallback
 {
 public:
@@ -632,6 +667,15 @@ public:
 };
 
 typedef ::IceUtil::Handle< ::Gem::AMD_GemServer_addListener> AMD_GemServer_addListenerPtr;
+
+class AMD_GemServer_onWorkerStates : virtual public ::Ice::AMDCallback
+{
+public:
+
+    virtual void ice_response() = 0;
+};
+
+typedef ::IceUtil::Handle< ::Gem::AMD_GemServer_onWorkerStates> AMD_GemServer_onWorkerStatesPtr;
 
 }
 
@@ -695,6 +739,24 @@ public:
     virtual void ice_response();
 };
 
+class AMD_GemServer_reset : public ::Gem::AMD_GemServer_reset, public ::IceInternal::IncomingAsync
+{
+public:
+
+    AMD_GemServer_reset(::IceInternal::Incoming&);
+
+    virtual void ice_response();
+};
+
+class AMD_GemServer_dumpStatus : public ::Gem::AMD_GemServer_dumpStatus, public ::IceInternal::IncomingAsync
+{
+public:
+
+    AMD_GemServer_dumpStatus(::IceInternal::Incoming&);
+
+    virtual void ice_response(const ::std::string&);
+};
+
 class AMD_GemServer_getJobs : public ::Gem::AMD_GemServer_getJobs, public ::IceInternal::IncomingAsync
 {
 public:
@@ -731,6 +793,15 @@ public:
     virtual void ice_response();
 };
 
+class AMD_GemServer_onWorkerStates : public ::Gem::AMD_GemServer_onWorkerStates, public ::IceInternal::IncomingAsync
+{
+public:
+
+    AMD_GemServer_onWorkerStates(::IceInternal::Incoming&);
+
+    virtual void ice_response();
+};
+
 }
 
 }
@@ -756,6 +827,12 @@ typedef ::IceUtil::Handle< Callback_GemServer_stopJob_Base> Callback_GemServer_s
 class Callback_GemServer_invalidate_Base : virtual public ::IceInternal::CallbackBase { };
 typedef ::IceUtil::Handle< Callback_GemServer_invalidate_Base> Callback_GemServer_invalidatePtr;
 
+class Callback_GemServer_reset_Base : virtual public ::IceInternal::CallbackBase { };
+typedef ::IceUtil::Handle< Callback_GemServer_reset_Base> Callback_GemServer_resetPtr;
+
+class Callback_GemServer_dumpStatus_Base : virtual public ::IceInternal::CallbackBase { };
+typedef ::IceUtil::Handle< Callback_GemServer_dumpStatus_Base> Callback_GemServer_dumpStatusPtr;
+
 class Callback_GemServer_getJobs_Base : virtual public ::IceInternal::CallbackBase { };
 typedef ::IceUtil::Handle< Callback_GemServer_getJobs_Base> Callback_GemServer_getJobsPtr;
 
@@ -767,6 +844,9 @@ typedef ::IceUtil::Handle< Callback_GemServer_getJob_Base> Callback_GemServer_ge
 
 class Callback_GemServer_addListener_Base : virtual public ::IceInternal::CallbackBase { };
 typedef ::IceUtil::Handle< Callback_GemServer_addListener_Base> Callback_GemServer_addListenerPtr;
+
+class Callback_GemServer_onWorkerStates_Base : virtual public ::IceInternal::CallbackBase { };
+typedef ::IceUtil::Handle< Callback_GemServer_onWorkerStates_Base> Callback_GemServer_onWorkerStatesPtr;
 
 }
 
@@ -1315,6 +1395,152 @@ private:
     
 public:
 
+    void reset()
+    {
+        reset(0);
+    }
+    void reset(const ::Ice::Context& __ctx)
+    {
+        reset(&__ctx);
+    }
+#ifdef ICE_CPP11
+    ::Ice::AsyncResultPtr
+    begin_reset(const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    {
+        return begin_reset(0, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent));
+    }
+    ::Ice::AsyncResultPtr
+    begin_reset(const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    {
+        return begin_reset(0, ::Ice::newCallback(__completed, __sent), 0);
+    }
+    ::Ice::AsyncResultPtr
+    begin_reset(const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    {
+        return begin_reset(&__ctx, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent), 0);
+    }
+    ::Ice::AsyncResultPtr
+    begin_reset(const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    {
+        return begin_reset(&__ctx, ::Ice::newCallback(__completed, __sent));
+    }
+#endif
+
+    ::Ice::AsyncResultPtr begin_reset()
+    {
+        return begin_reset(0, ::IceInternal::__dummyCallback, 0);
+    }
+
+    ::Ice::AsyncResultPtr begin_reset(const ::Ice::Context& __ctx)
+    {
+        return begin_reset(&__ctx, ::IceInternal::__dummyCallback, 0);
+    }
+
+    ::Ice::AsyncResultPtr begin_reset(const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_reset(0, __del, __cookie);
+    }
+
+    ::Ice::AsyncResultPtr begin_reset(const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_reset(&__ctx, __del, __cookie);
+    }
+
+    ::Ice::AsyncResultPtr begin_reset(const ::Gem::Callback_GemServer_resetPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_reset(0, __del, __cookie);
+    }
+
+    ::Ice::AsyncResultPtr begin_reset(const ::Ice::Context& __ctx, const ::Gem::Callback_GemServer_resetPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_reset(&__ctx, __del, __cookie);
+    }
+
+    void end_reset(const ::Ice::AsyncResultPtr&);
+    
+private:
+
+    void reset(const ::Ice::Context*);
+    ::Ice::AsyncResultPtr begin_reset(const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
+    
+public:
+
+    ::std::string dumpStatus()
+    {
+        return dumpStatus(0);
+    }
+    ::std::string dumpStatus(const ::Ice::Context& __ctx)
+    {
+        return dumpStatus(&__ctx);
+    }
+#ifdef ICE_CPP11
+    ::Ice::AsyncResultPtr
+    begin_dumpStatus(const ::IceInternal::Function<void (const ::std::string&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    {
+        return __begin_dumpStatus(0, __response, __exception, __sent);
+    }
+    ::Ice::AsyncResultPtr
+    begin_dumpStatus(const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    {
+        return begin_dumpStatus(0, ::Ice::newCallback(__completed, __sent), 0);
+    }
+    ::Ice::AsyncResultPtr
+    begin_dumpStatus(const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::std::string&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    {
+        return __begin_dumpStatus(&__ctx, __response, __exception, __sent);
+    }
+    ::Ice::AsyncResultPtr
+    begin_dumpStatus(const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    {
+        return begin_dumpStatus(&__ctx, ::Ice::newCallback(__completed, __sent));
+    }
+    
+private:
+
+    ::Ice::AsyncResultPtr __begin_dumpStatus(const ::Ice::Context* __ctx, const ::IceInternal::Function<void (const ::std::string&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception, const ::IceInternal::Function<void (bool)>& __sent);
+    
+public:
+#endif
+
+    ::Ice::AsyncResultPtr begin_dumpStatus()
+    {
+        return begin_dumpStatus(0, ::IceInternal::__dummyCallback, 0);
+    }
+
+    ::Ice::AsyncResultPtr begin_dumpStatus(const ::Ice::Context& __ctx)
+    {
+        return begin_dumpStatus(&__ctx, ::IceInternal::__dummyCallback, 0);
+    }
+
+    ::Ice::AsyncResultPtr begin_dumpStatus(const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_dumpStatus(0, __del, __cookie);
+    }
+
+    ::Ice::AsyncResultPtr begin_dumpStatus(const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_dumpStatus(&__ctx, __del, __cookie);
+    }
+
+    ::Ice::AsyncResultPtr begin_dumpStatus(const ::Gem::Callback_GemServer_dumpStatusPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_dumpStatus(0, __del, __cookie);
+    }
+
+    ::Ice::AsyncResultPtr begin_dumpStatus(const ::Ice::Context& __ctx, const ::Gem::Callback_GemServer_dumpStatusPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_dumpStatus(&__ctx, __del, __cookie);
+    }
+
+    ::std::string end_dumpStatus(const ::Ice::AsyncResultPtr&);
+    
+private:
+
+    ::std::string dumpStatus(const ::Ice::Context*);
+    ::Ice::AsyncResultPtr begin_dumpStatus(const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
+    
+public:
+
     ::Gem::JobSeq getJobs()
     {
         return getJobs(0);
@@ -1612,6 +1838,76 @@ private:
     ::Ice::AsyncResultPtr begin_addListener(const ::Gem::GemServerListenerPrx&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
     
 public:
+
+    void onWorkerStates(const ::Gem::JobWorkerStateSeq& __p_xs)
+    {
+        onWorkerStates(__p_xs, 0);
+    }
+    void onWorkerStates(const ::Gem::JobWorkerStateSeq& __p_xs, const ::Ice::Context& __ctx)
+    {
+        onWorkerStates(__p_xs, &__ctx);
+    }
+#ifdef ICE_CPP11
+    ::Ice::AsyncResultPtr
+    begin_onWorkerStates(const ::Gem::JobWorkerStateSeq& __p_xs, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    {
+        return begin_onWorkerStates(__p_xs, 0, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent));
+    }
+    ::Ice::AsyncResultPtr
+    begin_onWorkerStates(const ::Gem::JobWorkerStateSeq& __p_xs, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    {
+        return begin_onWorkerStates(__p_xs, 0, ::Ice::newCallback(__completed, __sent), 0);
+    }
+    ::Ice::AsyncResultPtr
+    begin_onWorkerStates(const ::Gem::JobWorkerStateSeq& __p_xs, const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    {
+        return begin_onWorkerStates(__p_xs, &__ctx, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent), 0);
+    }
+    ::Ice::AsyncResultPtr
+    begin_onWorkerStates(const ::Gem::JobWorkerStateSeq& __p_xs, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    {
+        return begin_onWorkerStates(__p_xs, &__ctx, ::Ice::newCallback(__completed, __sent));
+    }
+#endif
+
+    ::Ice::AsyncResultPtr begin_onWorkerStates(const ::Gem::JobWorkerStateSeq& __p_xs)
+    {
+        return begin_onWorkerStates(__p_xs, 0, ::IceInternal::__dummyCallback, 0);
+    }
+
+    ::Ice::AsyncResultPtr begin_onWorkerStates(const ::Gem::JobWorkerStateSeq& __p_xs, const ::Ice::Context& __ctx)
+    {
+        return begin_onWorkerStates(__p_xs, &__ctx, ::IceInternal::__dummyCallback, 0);
+    }
+
+    ::Ice::AsyncResultPtr begin_onWorkerStates(const ::Gem::JobWorkerStateSeq& __p_xs, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_onWorkerStates(__p_xs, 0, __del, __cookie);
+    }
+
+    ::Ice::AsyncResultPtr begin_onWorkerStates(const ::Gem::JobWorkerStateSeq& __p_xs, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_onWorkerStates(__p_xs, &__ctx, __del, __cookie);
+    }
+
+    ::Ice::AsyncResultPtr begin_onWorkerStates(const ::Gem::JobWorkerStateSeq& __p_xs, const ::Gem::Callback_GemServer_onWorkerStatesPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_onWorkerStates(__p_xs, 0, __del, __cookie);
+    }
+
+    ::Ice::AsyncResultPtr begin_onWorkerStates(const ::Gem::JobWorkerStateSeq& __p_xs, const ::Ice::Context& __ctx, const ::Gem::Callback_GemServer_onWorkerStatesPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_onWorkerStates(__p_xs, &__ctx, __del, __cookie);
+    }
+
+    void end_onWorkerStates(const ::Ice::AsyncResultPtr&);
+    
+private:
+
+    void onWorkerStates(const ::Gem::JobWorkerStateSeq&, const ::Ice::Context*);
+    ::Ice::AsyncResultPtr begin_onWorkerStates(const ::Gem::JobWorkerStateSeq&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
+    
+public:
     
     ::IceInternal::ProxyHandle<GemServer> ice_context(const ::Ice::Context& __context) const
     {
@@ -1792,6 +2088,12 @@ public:
     virtual void invalidate_async(const ::Gem::AMD_GemServer_invalidatePtr&, const ::std::string&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___invalidate(::IceInternal::Incoming&, const ::Ice::Current&);
 
+    virtual void reset_async(const ::Gem::AMD_GemServer_resetPtr&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    ::Ice::DispatchStatus ___reset(::IceInternal::Incoming&, const ::Ice::Current&);
+
+    virtual void dumpStatus_async(const ::Gem::AMD_GemServer_dumpStatusPtr&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    ::Ice::DispatchStatus ___dumpStatus(::IceInternal::Incoming&, const ::Ice::Current&);
+
     virtual void getJobs_async(const ::Gem::AMD_GemServer_getJobsPtr&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___getJobs(::IceInternal::Incoming&, const ::Ice::Current&);
 
@@ -1803,6 +2105,9 @@ public:
 
     virtual void addListener_async(const ::Gem::AMD_GemServer_addListenerPtr&, const ::Gem::GemServerListenerPrx&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___addListener(::IceInternal::Incoming&, const ::Ice::Current&);
+
+    virtual void onWorkerStates_async(const ::Gem::AMD_GemServer_onWorkerStatesPtr&, const ::Gem::JobWorkerStateSeq&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    ::Ice::DispatchStatus ___onWorkerStates(::IceInternal::Incoming&, const ::Ice::Current&);
 
     virtual ::Ice::DispatchStatus __dispatch(::IceInternal::Incoming&, const ::Ice::Current&);
 
@@ -2321,6 +2626,192 @@ newCallback_GemServer_invalidate(T* instance, void (T::*excb)(const ::Ice::Excep
 }
 
 template<class T>
+class CallbackNC_GemServer_reset : public Callback_GemServer_reset_Base, public ::IceInternal::OnewayCallbackNC<T>
+{
+public:
+
+    typedef IceUtil::Handle<T> TPtr;
+
+    typedef void (T::*Exception)(const ::Ice::Exception&);
+    typedef void (T::*Sent)(bool);
+    typedef void (T::*Response)();
+
+    CallbackNC_GemServer_reset(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
+        : ::IceInternal::OnewayCallbackNC<T>(obj, cb, excb, sentcb)
+    {
+    }
+};
+
+template<class T> Callback_GemServer_resetPtr
+newCallback_GemServer_reset(const IceUtil::Handle<T>& instance, void (T::*cb)(), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServer_reset<T>(instance, cb, excb, sentcb);
+}
+
+template<class T> Callback_GemServer_resetPtr
+newCallback_GemServer_reset(const IceUtil::Handle<T>& instance, void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServer_reset<T>(instance, 0, excb, sentcb);
+}
+
+template<class T> Callback_GemServer_resetPtr
+newCallback_GemServer_reset(T* instance, void (T::*cb)(), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServer_reset<T>(instance, cb, excb, sentcb);
+}
+
+template<class T> Callback_GemServer_resetPtr
+newCallback_GemServer_reset(T* instance, void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServer_reset<T>(instance, 0, excb, sentcb);
+}
+
+template<class T, typename CT>
+class Callback_GemServer_reset : public Callback_GemServer_reset_Base, public ::IceInternal::OnewayCallback<T, CT>
+{
+public:
+
+    typedef IceUtil::Handle<T> TPtr;
+
+    typedef void (T::*Exception)(const ::Ice::Exception& , const CT&);
+    typedef void (T::*Sent)(bool , const CT&);
+    typedef void (T::*Response)(const CT&);
+
+    Callback_GemServer_reset(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
+        : ::IceInternal::OnewayCallback<T, CT>(obj, cb, excb, sentcb)
+    {
+    }
+};
+
+template<class T, typename CT> Callback_GemServer_resetPtr
+newCallback_GemServer_reset(const IceUtil::Handle<T>& instance, void (T::*cb)(const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServer_reset<T, CT>(instance, cb, excb, sentcb);
+}
+
+template<class T, typename CT> Callback_GemServer_resetPtr
+newCallback_GemServer_reset(const IceUtil::Handle<T>& instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServer_reset<T, CT>(instance, 0, excb, sentcb);
+}
+
+template<class T, typename CT> Callback_GemServer_resetPtr
+newCallback_GemServer_reset(T* instance, void (T::*cb)(const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServer_reset<T, CT>(instance, cb, excb, sentcb);
+}
+
+template<class T, typename CT> Callback_GemServer_resetPtr
+newCallback_GemServer_reset(T* instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServer_reset<T, CT>(instance, 0, excb, sentcb);
+}
+
+template<class T>
+class CallbackNC_GemServer_dumpStatus : public Callback_GemServer_dumpStatus_Base, public ::IceInternal::TwowayCallbackNC<T>
+{
+public:
+
+    typedef IceUtil::Handle<T> TPtr;
+
+    typedef void (T::*Exception)(const ::Ice::Exception&);
+    typedef void (T::*Sent)(bool);
+    typedef void (T::*Response)(const ::std::string&);
+
+    CallbackNC_GemServer_dumpStatus(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
+        : ::IceInternal::TwowayCallbackNC<T>(obj, cb != 0, excb, sentcb), _response(cb)
+    {
+    }
+
+    virtual void completed(const ::Ice::AsyncResultPtr& __result) const
+    {
+        ::Gem::GemServerPrx __proxy = ::Gem::GemServerPrx::uncheckedCast(__result->getProxy());
+        ::std::string __ret;
+        try
+        {
+            __ret = __proxy->end_dumpStatus(__result);
+        }
+        catch(const ::Ice::Exception& ex)
+        {
+            ::IceInternal::CallbackNC<T>::exception(__result, ex);
+            return;
+        }
+        if(_response)
+        {
+            (::IceInternal::CallbackNC<T>::_callback.get()->*_response)(__ret);
+        }
+    }
+
+    private:
+
+    Response _response;
+};
+
+template<class T> Callback_GemServer_dumpStatusPtr
+newCallback_GemServer_dumpStatus(const IceUtil::Handle<T>& instance, void (T::*cb)(const ::std::string&), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServer_dumpStatus<T>(instance, cb, excb, sentcb);
+}
+
+template<class T> Callback_GemServer_dumpStatusPtr
+newCallback_GemServer_dumpStatus(T* instance, void (T::*cb)(const ::std::string&), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServer_dumpStatus<T>(instance, cb, excb, sentcb);
+}
+
+template<class T, typename CT>
+class Callback_GemServer_dumpStatus : public Callback_GemServer_dumpStatus_Base, public ::IceInternal::TwowayCallback<T, CT>
+{
+public:
+
+    typedef IceUtil::Handle<T> TPtr;
+
+    typedef void (T::*Exception)(const ::Ice::Exception& , const CT&);
+    typedef void (T::*Sent)(bool , const CT&);
+    typedef void (T::*Response)(const ::std::string&, const CT&);
+
+    Callback_GemServer_dumpStatus(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
+        : ::IceInternal::TwowayCallback<T, CT>(obj, cb != 0, excb, sentcb), _response(cb)
+    {
+    }
+
+    virtual void completed(const ::Ice::AsyncResultPtr& __result) const
+    {
+        ::Gem::GemServerPrx __proxy = ::Gem::GemServerPrx::uncheckedCast(__result->getProxy());
+        ::std::string __ret;
+        try
+        {
+            __ret = __proxy->end_dumpStatus(__result);
+        }
+        catch(const ::Ice::Exception& ex)
+        {
+            ::IceInternal::Callback<T, CT>::exception(__result, ex);
+            return;
+        }
+        if(_response)
+        {
+            (::IceInternal::Callback<T, CT>::_callback.get()->*_response)(__ret, CT::dynamicCast(__result->getCookie()));
+        }
+    }
+
+    private:
+
+    Response _response;
+};
+
+template<class T, typename CT> Callback_GemServer_dumpStatusPtr
+newCallback_GemServer_dumpStatus(const IceUtil::Handle<T>& instance, void (T::*cb)(const ::std::string&, const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServer_dumpStatus<T, CT>(instance, cb, excb, sentcb);
+}
+
+template<class T, typename CT> Callback_GemServer_dumpStatusPtr
+newCallback_GemServer_dumpStatus(T* instance, void (T::*cb)(const ::std::string&, const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServer_dumpStatus<T, CT>(instance, cb, excb, sentcb);
+}
+
+template<class T>
 class CallbackNC_GemServer_getJobs : public Callback_GemServer_getJobs_Base, public ::IceInternal::TwowayCallbackNC<T>
 {
 public:
@@ -2712,6 +3203,88 @@ template<class T, typename CT> Callback_GemServer_addListenerPtr
 newCallback_GemServer_addListener(T* instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
 {
     return new Callback_GemServer_addListener<T, CT>(instance, 0, excb, sentcb);
+}
+
+template<class T>
+class CallbackNC_GemServer_onWorkerStates : public Callback_GemServer_onWorkerStates_Base, public ::IceInternal::OnewayCallbackNC<T>
+{
+public:
+
+    typedef IceUtil::Handle<T> TPtr;
+
+    typedef void (T::*Exception)(const ::Ice::Exception&);
+    typedef void (T::*Sent)(bool);
+    typedef void (T::*Response)();
+
+    CallbackNC_GemServer_onWorkerStates(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
+        : ::IceInternal::OnewayCallbackNC<T>(obj, cb, excb, sentcb)
+    {
+    }
+};
+
+template<class T> Callback_GemServer_onWorkerStatesPtr
+newCallback_GemServer_onWorkerStates(const IceUtil::Handle<T>& instance, void (T::*cb)(), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServer_onWorkerStates<T>(instance, cb, excb, sentcb);
+}
+
+template<class T> Callback_GemServer_onWorkerStatesPtr
+newCallback_GemServer_onWorkerStates(const IceUtil::Handle<T>& instance, void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServer_onWorkerStates<T>(instance, 0, excb, sentcb);
+}
+
+template<class T> Callback_GemServer_onWorkerStatesPtr
+newCallback_GemServer_onWorkerStates(T* instance, void (T::*cb)(), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServer_onWorkerStates<T>(instance, cb, excb, sentcb);
+}
+
+template<class T> Callback_GemServer_onWorkerStatesPtr
+newCallback_GemServer_onWorkerStates(T* instance, void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServer_onWorkerStates<T>(instance, 0, excb, sentcb);
+}
+
+template<class T, typename CT>
+class Callback_GemServer_onWorkerStates : public Callback_GemServer_onWorkerStates_Base, public ::IceInternal::OnewayCallback<T, CT>
+{
+public:
+
+    typedef IceUtil::Handle<T> TPtr;
+
+    typedef void (T::*Exception)(const ::Ice::Exception& , const CT&);
+    typedef void (T::*Sent)(bool , const CT&);
+    typedef void (T::*Response)(const CT&);
+
+    Callback_GemServer_onWorkerStates(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
+        : ::IceInternal::OnewayCallback<T, CT>(obj, cb, excb, sentcb)
+    {
+    }
+};
+
+template<class T, typename CT> Callback_GemServer_onWorkerStatesPtr
+newCallback_GemServer_onWorkerStates(const IceUtil::Handle<T>& instance, void (T::*cb)(const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServer_onWorkerStates<T, CT>(instance, cb, excb, sentcb);
+}
+
+template<class T, typename CT> Callback_GemServer_onWorkerStatesPtr
+newCallback_GemServer_onWorkerStates(const IceUtil::Handle<T>& instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServer_onWorkerStates<T, CT>(instance, 0, excb, sentcb);
+}
+
+template<class T, typename CT> Callback_GemServer_onWorkerStatesPtr
+newCallback_GemServer_onWorkerStates(T* instance, void (T::*cb)(const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServer_onWorkerStates<T, CT>(instance, cb, excb, sentcb);
+}
+
+template<class T, typename CT> Callback_GemServer_onWorkerStatesPtr
+newCallback_GemServer_onWorkerStates(T* instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServer_onWorkerStates<T, CT>(instance, 0, excb, sentcb);
 }
 
 }
