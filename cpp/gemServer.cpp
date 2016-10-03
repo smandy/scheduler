@@ -12,6 +12,7 @@
 // http://git.asterisk.org/gitweb/?p=asterisk-scf/release/techdemo.git;a=commitdiff_plain;h=89b836724135902a7d628cc08bd8ddd786b82240
 
 class GraphNode;
+
 using GraphNodePtr = std::shared_ptr<GraphNode>;
 
 struct GraphNode {
@@ -24,17 +25,15 @@ struct GraphNode {
     std::vector<GraphNodePtr> dependents;
 };
 
-
 class Graph {
     std::map<std::string, GraphNodePtr> nodes;
 
 public:
     std::string dump() {
         std::ostringstream oss;
-        for( auto &kv : nodes) {
+        for(auto &kv : nodes) {
             oss << kv.first << std::endl;
             oss << "===========" << std::endl;
-
             {
                 auto sep = "";
                 oss << "dependents : ";
@@ -44,7 +43,7 @@ public:
                 };
                 oss << std::endl;
             }
-
+            
             {
                 auto sep = "";
                 oss << "dependencies : ";
@@ -54,7 +53,6 @@ public:
                 };
                 oss << std::endl;
             }
-
         };
         return oss.str();
     };
@@ -107,13 +105,16 @@ public:
         std::cout << "Done" << std::endl;
     }
     
-    inline Gem::Job* find( const std::string& id ) {
+    inline Gem::Job* find(const std::string& id) {
         static thread_local Gem::Job finder;
         Gem::Job *ret = nullptr;
         finder.id = id;
-        auto x = std::lower_bound( begin(jobs), end(jobs), finder, [&]( auto& a, auto& b) {
-                return a.id < b.id;
-            });
+        auto x = std::lower_bound( begin(jobs),
+                                   end(jobs),
+                                   finder,
+                                   []( auto& a, auto& b) {
+                                       return a.id < b.id;
+                                   });
         if (x != end(jobs) && x->id==id) {
             return &(*x);
         } else {
@@ -134,7 +135,7 @@ public:
         cb->ice_response(ret);
     }
 
-    void blockDependenciesOf( const std::string &id ) {
+    void blockDependenciesOf(const std::string &id ) {
         auto node = graph.getNode( id );
         for ( auto& depNode : node->dependents ) {
             auto depJob = find( depNode->id );
