@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <stdexcept>
 
+// Pointers for getting icestorm up
+// Aha - the trick was exposing IceStorm/TopicManager as a well known object
 // https://github.com/SintefRaufossManufacturing/icehms/blob/master/icecfg/icebox.xml
 //typedef std::shared_ptr<Gem::Job> JobPtr;
 // http://git.asterisk.org/gitweb/?p=asterisk-scf/release/techdemo.git;a=commitdiff_plain;h=89b836724135902a7d628cc08bd8ddd786b82240
@@ -12,17 +14,16 @@
 class GraphNode;
 using GraphNodePtr = std::shared_ptr<GraphNode>;
 
-
 struct GraphNode {
-    const std::string id;
+    const std::string& id;
     
     GraphNode( const std::string &s) : id {s},
                                        dependencies {},
                                        dependents {} {};
-    
     std::vector<GraphNodePtr> dependencies;
     std::vector<GraphNodePtr> dependents;
 };
+
 
 class Graph {
     std::map<std::string, GraphNodePtr> nodes;
@@ -88,7 +89,6 @@ class GemServerImpl : public Gem::GemServer {
     std::vector<Gem::Job> jobs;
     Gem::GemServerListenerPrx pubToListeners;
     IceStorm::TopicPrx topic;
-    
     Graph graph;
 
 public:
@@ -148,28 +148,21 @@ public:
     virtual void submitBatch_async(const ::Gem::AMD_GemServer_submitBatchPtr& cb,
                                    const ::Gem::Batch& batch,
                                    const ::Ice::Current& = ::Ice::Current()) {
-        // TODO - duplicate ids.
-        std::cout << "Woot" << std::endl;
-        
-        // Take mutable copies
-        //auto newJobs( begin(batch.job), end(batch.jobs));
-
-        auto currentSize = jobs.size();
+        const auto currentSize = jobs.size();
         std::cout << "AddJobs" << std::endl;
         graph.addJobs( batch.jobs );
         std::cout << "Inserting" << std::endl;
         jobs.insert(jobs.end(), begin(batch.jobs), end(batch.jobs));
         std::cout << "Inserted" << std::endl;
-
         std::cout << "Sorting" << std::endl;
         std::sort( begin(jobs), end(jobs), [&]( auto &a, auto &b) {
                 return a.id < b.id;
             });
-        for( auto it = begin(batch.jobs) + currentSize; it != end(batch.jobs); ++it) {
-            std::cout << "Looping " << it->id << std::endl;
-            blockDependenciesOf( it->id );
-        };
         
+        for( auto& job : batch.jobs) {
+            std::cout << "Looping " << job.id << std::endl;
+            blockDependenciesOf( job.id );
+        };
         pubToListeners->begin_onUpdate( batch.jobs,
                                         []() { std::cout << "Send update to published" << std::endl; } );
         cb->ice_response();
@@ -206,6 +199,7 @@ public:
                                        const ::Ice::Current& = ::Ice::Current()) {
         Gem::JobSeq ret;
         Gem::Job *selected = nullptr;
+        
         for (auto &&job : jobs) {
             if ( job.state == Gem::JobState::STARTABLE ) {
                 if (selected == nullptr || job.priority < selected->priority) {

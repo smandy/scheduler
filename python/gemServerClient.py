@@ -1,3 +1,4 @@
+import random
 import Ice
 
 Ice.loadSlice('../slice/Gem.ice')
@@ -9,16 +10,15 @@ communicator = Ice.initialize(['--Ice.Config=../config/client.config'])
 prx = communicator.propertyToProxy("GemServer.Proxy")
 
 server = Gem.GemServerPrx.checkedCast( prx )
-
 server.reset()
 
 job1 = Gem.Job( 'id1', [], Gem.JobState.STARTABLE , 5)
 job2 = Gem.Job( 'id2', ['id1'], Gem.JobState.STARTABLE , 2)
 job3 = Gem.Job( 'id3', ['id1', 'id2'], Gem.JobState.STARTABLE , 2)
 
-naughty = Gem.Job( 'bad', [], Gem.JobState.FAILED , 2)
+#naughty = Gem.Job( 'bad', [], Gem.JobState.FAILED , 2)
 
-job4 = Gem.Job( 'id4', ['id3', 'bad'], Gem.JobState.STARTABLE , 2)
+job4 = Gem.Job( 'id4', ['id3'], Gem.JobState.STARTABLE , 2)
 pt1 = Gem.Job( 'pt1', ['id4'], Gem.JobState.STARTABLE , 2)
 pt2 = Gem.Job( 'pt2', ['pt1'], Gem.JobState.STARTABLE , 2)
 
@@ -34,7 +34,7 @@ job8 = Gem.Job( 'id8', ['id5', 'id6'], Gem.JobState.STARTABLE , 1)
 job9 = Gem.Job( 'id9', ['id6', 'id7'], Gem.JobState.STARTABLE , 2)
 
 job10 = Gem.Job( 'id10', ['id8', 'id9'], Gem.JobState.STARTABLE , 2)
-job11 = Gem.Job( 'id11', ['bad','id8', 'id9'], Gem.JobState.STARTABLE , 2)
+job11 = Gem.Job( 'id11', ['id8', 'id9'], Gem.JobState.STARTABLE , 2)
 
 job12 = Gem.Job( 'id12', ['id5', 'id10'], Gem.JobState.STARTABLE , 2)
 job13 = Gem.Job( 'id13', ['id2', 'id3' ,'id10'], Gem.JobState.STARTABLE , 2)
@@ -43,8 +43,9 @@ job14 = Gem.Job( 'id14', ['id10', 'id11'], Gem.JobState.STARTABLE , 2)
 terminal = Gem.Job( 'terminal', ['id12','id13','id14'], Gem.JobState.STARTABLE , 2)
 
 batch = Gem.Batch()
-batch.jobs = [job1, job2, job3, naughty, job4, job5,
-              job6, job7, job8, job9 , job10, job11, job12, job13, job14, pt1, pt2, terminal  ] + reduces
+batch.jobs = [job1, job2, job3, job4, job5,
+              job6, job7, job8, job9 , job10, job11,
+              job12, job13, job14, pt1, pt2, terminal ] + reduces
 
 print "Sending"
 server.submitBatch( batch )
@@ -57,7 +58,6 @@ if 0:
     jobs2 = server.getStartableJob(wid)
     jobs3 = server.getStartableJob(wid)
     print jobs1, jobs2, jobs3
-
 
 js = server.getJobs()
 import os
@@ -73,12 +73,11 @@ digraph G2 {
 
 }
 """
+
 dn = os.path.expanduser('~/jobs')
 for x in os.listdir( dn):
     print x
     os.remove( '%s/%s' % (dn,x))
-    
-    
 
 js = Gem.JobState
 
@@ -102,10 +101,8 @@ def stateSummary():
     for x in xs:
         print x.state, x.id
 
-
-        
 def doGraph(t):
-    stateSummary()
+    #stateSummary()
     print t
     dotFile = os.path.expanduser( '~/jobs/%s.dot' % t)
     pngFile = os.path.expanduser( '~/jobs/%s.png' % t)
@@ -128,37 +125,38 @@ def doGraph(t):
     import subprocess
     subprocess.Popen( 'dot -Tpng -o %s %s' % (pngFile, dotFile), shell = True)
 
-
 n = 0
 
-doGraph( 'state%02d' % n)
+doGraph( 'state%03d' % n)
+
 n += 1
-latch = False
+
 while True:
     jobs = server.getJobs()
-    if set( [x.state for x in jobs ] ) == set( [ js.COMPLETED ] ):
+    if set( [ x.state for x in jobs ] ) == set( [ js.COMPLETED ] ):
         break
-
+    fails = [ x for x in jobs if x.state == js.FAILED ]
     jobs1 = []
-
+    
     for i in range(5):
         newJobs = server.getStartableJob(wid)
         if not newJobs:
             break
         jobs1 += newJobs
-    
-    if not jobs1:
-        break
-    
-    if n > 3 and not latch:
-        latch = True
-        setState('bad', js.STARTABLE)
         
-    doGraph( 'state%02d' % n)
-    n += 1
+    if not jobs1 and fails:
+        # Manual intervention
+        setState( fails[0].id, js.STARTABLE)
+    #if not jobs1:
+    #    break
     
+        
+    doGraph( 'state%03d' % n)
+    n += 1
     for x in jobs1:
-        doComplete( x.id )
-    doGraph( 'state%02d' % n)
+        state = random.choice( [ js.FAILED, js.COMPLETED,
+                                 js.COMPLETED, js.COMPLETED] )
+        setState( x.id, state )
+    doGraph( 'state%03d' % n)
     n += 1
         
