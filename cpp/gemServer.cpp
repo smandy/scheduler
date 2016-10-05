@@ -29,27 +29,27 @@ public:
                 };
                 oss << std::endl;
             }
-        };
+        }
         return oss.str();
-    };
+    }
     
     void reset() {
         dependants.clear();
-    };
+    }
     
     std::vector<std::string>& getDependents(const std::string &id) {
         return dependants[id];
-    };
+    }
     
     void addJobs( const Gem::JobSeq &jobs) {
         for ( auto &job : jobs) {
             if ( !job.dependencies.empty()) {
                 for ( auto &depId : job.dependencies) {
                     getDependents( depId ).push_back( job.id );
-                };
-            };
-        };
-    };
+                }
+            }
+        }
+    }
 };
 
 class GemServerImpl : public Gem::GemServer {
@@ -90,7 +90,7 @@ public:
             std::ostringstream err;
             err << "Logic error can't find " << id << std::endl;
             throw std::logic_error( err.str() );
-        };
+        }
     }
 
     virtual void getJob_async(const ::Gem::AMD_GemServer_getJobPtr& cb,
@@ -109,8 +109,8 @@ public:
         for ( auto& depNode : deps) {
             auto depJob = find( depNode );
             depJob->state = Gem::JobState::BLOCKED;
-        };
-    };
+        }
+    }
     
     virtual void submitBatch_async(const ::Gem::AMD_GemServer_submitBatchPtr& cb,
                                    const ::Gem::Batch& batch,
@@ -150,16 +150,18 @@ public:
     }
     
     virtual void invalidate_async(const ::Gem::AMD_GemServer_invalidatePtr& cb,
-                                  const ::std::string&, const ::Ice::Current& = ::Ice::Current()) {
+                                  const ::std::string&,
+                                  const ::Ice::Current& = ::Ice::Current()) {
         std::cout << "invalidate" << std::endl;
         cb->ice_response();
     }
 
-    virtual void reset_async(const ::Gem::AMD_GemServer_resetPtr& cb, const ::Ice::Current& = ::Ice::Current()) {
+    virtual void reset_async(const ::Gem::AMD_GemServer_resetPtr& cb,
+                             const ::Ice::Current& = ::Ice::Current()) {
         jobs.clear();
         graph.reset();
         cb->ice_response();
-    };
+    }
     
     virtual void getStartableJob_async(const ::Gem::AMD_GemServer_getStartableJobPtr& cb,
                                        const ::Gem::WorkerId&,
@@ -182,17 +184,21 @@ public:
         cb->ice_response( ret );
     }
 
-    virtual void dumpStatus_async(const ::Gem::AMD_GemServer_dumpStatusPtr& cb, const ::Ice::Current& = ::Ice::Current()) {
+    virtual void dumpStatus_async(const ::Gem::AMD_GemServer_dumpStatusPtr& cb,
+                                  const ::Ice::Current& = ::Ice::Current()) {
         auto s = graph.dump();
         std::cout << s << std::endl;
         cb->ice_response(s);
-    };
+    }
     
-    virtual void getJobs_async(const ::Gem::AMD_GemServer_getJobsPtr& cb, const ::Ice::Current& = ::Ice::Current()) {
+    virtual void getJobs_async(const ::Gem::AMD_GemServer_getJobsPtr& cb,
+                               const ::Ice::Current& = ::Ice::Current()) {
         cb->ice_response( jobs );
     }
 
-    virtual void onWorkerStates_async(const ::Gem::AMD_GemServer_onWorkerStatesPtr& cb, const ::Gem::JobWorkerStateSeq& jwss, const ::Ice::Current& = ::Ice::Current()) {
+    virtual void onWorkerStates_async(const ::Gem::AMD_GemServer_onWorkerStatesPtr& cb,
+                                      const ::Gem::JobWorkerStateSeq& jwss,
+                                      const ::Ice::Current& = ::Ice::Current()) {
         std::vector<Gem::Job> updated;
         for( auto &jws : jwss) {
             auto job = find( jws.id );
@@ -211,9 +217,10 @@ public:
                                             []() { std::cout << "Publushed update" << std::endl; } );
         }
         cb->ice_response();
-    };
+    }
 
-    void checkIsStartable( const std::string& id, std::vector<Gem::Job>& updatedSink ) {
+    void checkIsStartable( const std::string& id,
+                           std::vector<Gem::Job>& updatedSink ) {
         auto job = find( id );
         if (job->state == Gem::JobState::BLOCKED) {
             bool isStartable = true;
@@ -228,14 +235,14 @@ public:
                 job->state = Gem::JobState::STARTABLE;
                 updatedSink.push_back( *job);
             };
-        };
-    };
+        }
+    }
 
     bool causesBlockage( const std::string id ) {
         auto job = find(id);
         return job->state != Gem::JobState::WAIVERED &&
             job->state != Gem::JobState::COMPLETED;
-    };
+    }
 
     virtual void addListener_async(const ::Gem::AMD_GemServer_addListenerPtr& cb,
                                    const ::Gem::GemServerListenerPrx& prx,
