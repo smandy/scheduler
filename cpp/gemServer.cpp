@@ -11,14 +11,13 @@
 //typedef std::shared_ptr<Gem::Job> JobPtr;
 // http://git.asterisk.org/gitweb/?p=asterisk-scf/release/techdemo.git;a=commitdiff_plain;h=89b836724135902a7d628cc08bd8ddd786b82240
 
-class GraphNode;
+struct GraphNode;
 
 using GraphNodePtr = std::shared_ptr<GraphNode>;
 
 struct GraphNode {
-    const std::string& id;
-    
-    GraphNode( const std::string &s) : id {s},
+    const std::string id;
+    GraphNode(const std::string &s) : id {s},
                                        dependencies {},
                                        dependents {} {};
     std::vector<GraphNodePtr> dependencies;
@@ -82,7 +81,6 @@ public:
     };
 };
 
-
 class GemServerImpl : public Gem::GemServer {
     std::vector<Gem::Job> jobs;
     Gem::GemServerListenerPrx pubToListeners;
@@ -120,7 +118,7 @@ public:
         } else {
             std::ostringstream err;
             err << "Logic error can't find " << id << std::endl;
-            throw std::logic_error( err.str());
+            throw std::logic_error( err.str() );
         };
     }
 
@@ -287,6 +285,7 @@ public:
                                                                     []() {
                                                                         std::cout << "Success with image" << std::endl;
                                                                     } );
+                                                  // Hmmm ... should this be inside the lambda above maybe?
                                                   cb->ice_response();
                                               } );
     }
