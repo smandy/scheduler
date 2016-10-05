@@ -11,43 +11,20 @@
 //typedef std::shared_ptr<Gem::Job> JobPtr;
 // http://git.asterisk.org/gitweb/?p=asterisk-scf/release/techdemo.git;a=commitdiff_plain;h=89b836724135902a7d628cc08bd8ddd786b82240
 
-struct GraphNode;
-
-using GraphNodePtr = std::shared_ptr<GraphNode>;
-
-struct GraphNode {
-    const std::string id;
-    GraphNode(const std::string &s) : id {s},
-                                       dependencies {},
-                                       dependents {} {};
-    std::vector<GraphNodePtr> dependencies;
-    std::vector<GraphNodePtr> dependents;
-};
-
 class Graph {
-    std::map<std::string, GraphNodePtr> nodes;
+    std::map<std::string, std::vector<std::string> > dependants;
 
 public:
     std::string dump() {
         std::ostringstream oss;
-        for(auto &kv : nodes) {
+        for(auto &kv : dependants) {
             oss << kv.first << std::endl;
             oss << "===========" << std::endl;
             {
                 auto sep = "";
                 oss << "dependents : ";
-                for ( auto dep : kv.second->dependents) {
-                    oss << sep << dep->id;
-                    sep = ",";
-                };
-                oss << std::endl;
-            }
-            
-            {
-                auto sep = "";
-                oss << "dependencies : ";
-                for ( auto dep : kv.second->dependencies) {
-                    oss << sep << dep->id;
+                for ( auto& dep : kv.second) {
+                    oss << sep << dep;
                     sep = ",";
                 };
                 oss << std::endl;
@@ -57,24 +34,18 @@ public:
     };
     
     void reset() {
-        nodes.clear();
+        dependants.clear();
     };
     
-    GraphNodePtr getNode(const std::string &id) {
-        if ( nodes.find( id ) == end(nodes) ) {
-            nodes.emplace( id, std::make_shared<GraphNode>(id));
-        }
-        return nodes[id];
+    std::vector<std::string>& getDependents(const std::string &id) {
+        return dependants[id];
     };
     
     void addJobs( const Gem::JobSeq &jobs) {
         for ( auto &job : jobs) {
             if ( !job.dependencies.empty()) {
-                auto node = getNode( job.id );
-                for ( auto &dependency : job.dependencies) {
-                    auto depNode = getNode( dependency );
-                    node->dependencies.push_back( depNode );
-                    depNode->dependents.push_back( node );
+                for ( auto &depId : job.dependencies) {
+                    getDependents( depId ).push_back( job.id );
                 };
             };
         };
@@ -134,12 +105,9 @@ public:
     }
 
     void blockDependenciesOf(const std::string &id ) {
-        auto node = graph.getNode( id );
-        for ( auto& depNode : node->dependents ) {
-            auto depJob = find( depNode->id );
-            if ( depJob == nullptr) {
-                std::cout << " Logic error can't find job " << node->id << std::endl;
-            };
+        auto& deps = graph.getDependents( id );
+        for ( auto& depNode : deps) {
+            auto depJob = find( depNode );
             depJob->state = Gem::JobState::BLOCKED;
         };
     };
@@ -232,10 +200,10 @@ public:
                 job->state = jws.state;
                 updated.push_back(*job);
             };
-            auto node = graph.getNode( job->id );
-            for ( auto dep : node->dependents) {
-                std::cout << "Check startable " << dep->id << std::endl;
-                checkIsStartable( dep->id, updated);
+            auto node = graph.getDependents( job->id );
+            for ( auto dep : node) {
+                std::cout << "Check startable " << dep << std::endl;
+                checkIsStartable( dep, updated);
             };
         };
         if ( !updated.empty() ) {
