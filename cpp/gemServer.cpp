@@ -3,7 +3,6 @@
 #include "IceStorm/IceStorm.h"
 #include <memory>
 #include <unordered_map>
-#include <stdexcept>
 
 // Pointers for getting icestorm up
 // Aha - the trick was exposing IceStorm/TopicManager as a well known object
@@ -11,69 +10,28 @@
 //typedef std::shared_ptr<Gem::Job> JobPtr;
 // http://git.asterisk.org/gitweb/?p=asterisk-scf/release/techdemo.git;a=commitdiff_plain;h=89b836724135902a7d628cc08bd8ddd786b82240
 
-class Graph {
-    std::map<std::string, std::vector<std::string> > dependants;
-
-public:
-    std::string dump() {
-        std::ostringstream oss;
-        for(auto &kv : dependants) {
-            oss << kv.first << std::endl;
-            oss << "===========" << std::endl;
-            {
-                auto sep = "";
-                oss << "dependents : ";
-                for ( auto& dep : kv.second) {
-                    oss << sep << dep;
-                    sep = ",";
-                };
-                oss << std::endl;
-            }
-        }
-        return oss.str();
-    }
-    
-    void reset() {
-        dependants.clear();
-    }
-    
-    std::vector<std::string>& getDependents(const std::string &id) {
-        return dependants[id];
-    }
-    
-    void addJobs( const Gem::JobSeq &jobs) {
-        for ( auto &job : jobs) {
-            if ( !job.dependencies.empty()) {
-                for ( auto &depId : job.dependencies) {
-                    getDependents( depId ).push_back( job.id );
-                }
-            }
-        }
-    }
-};
-
 class GemServerImpl : public Gem::GemServer {
     std::vector<Gem::Job> jobs;
     Gem::GemServerListenerPrx pubToListeners;
     IceStorm::TopicPrx topic;
-    Graph graph;
-
+    std::unordered_map<std::string, std::vector<std::string> > dependants;
+    
 public:
-    GemServerImpl(Ice::CommunicatorPtr communicator) : jobs() {
+    GemServerImpl(Ice::CommunicatorPtr communicator) {
         std::cout << "Get Topic" << std::endl;
         auto topicPrx = IceStorm::TopicManagerPrx::checkedCast( communicator->propertyToProxy("IceStorm.TopicManager"));
         std::cout << "Get Subject" << std::endl;
         auto subject = communicator->getProperties()->getProperty("Gem.Topic");
         std::cout << "Subject is " << subject << std::endl;
         try {
-            topic = topicPrx->retrieve( subject );
+            topic = topicPrx->retrieve(subject);
         } catch( IceStorm::NoSuchTopic &) {
-            topic = topicPrx->create( subject );
+            topic = topicPrx->create(subject);
         }
         pubToListeners = Gem::GemServerListenerPrx::uncheckedCast(topic->getPublisher());
         std::cout << "Done" << std::endl;
     }
-    
+
     inline Gem::Job* find(const std::string& id) {
         static thread_local Gem::Job finder;
         Gem::Job *ret = nullptr;
@@ -87,27 +45,19 @@ public:
         if (x != end(jobs) && x->id==id) {
             return &(*x);
         } else {
-            std::ostringstream err;
-            err << "Logic error can't find " << id << std::endl;
-            throw std::logic_error( err.str() );
+            throw Gem::JobNotFound(id);
         }
     }
 
     virtual void getJob_async(const ::Gem::AMD_GemServer_getJobPtr& cb,
                               const ::std::string& id,
                               const ::Ice::Current& = ::Ice::Current()) {
-        Gem::JobSeq ret;
-        Gem::Job* x = find(id);
-        if (x !=nullptr) {
-            ret.push_back(*x);
-        }
-        cb->ice_response(ret);
+        cb->ice_response(*find(id));
     }
 
     void blockDependenciesOf(const std::string &id ) {
-        auto& deps = graph.getDependents( id );
-        for ( auto& depNode : deps) {
-            auto depJob = find( depNode );
+        for ( auto& depId : dependants[id]) {
+            auto depJob = find(depId);
             depJob->state = Gem::JobState::BLOCKED;
         }
     }
@@ -115,23 +65,26 @@ public:
     virtual void submitBatch_async(const ::Gem::AMD_GemServer_submitBatchPtr& cb,
                                    const ::Gem::Batch& batch,
                                    const ::Ice::Current& = ::Ice::Current()) {
-        const auto currentSize = jobs.size();
-        std::cout << "AddJobs" << std::endl;
-        graph.addJobs( batch.jobs );
+        std::cout << "Submitbatch" << std::endl;
+        for ( auto &job : batch.jobs) {
+            if ( !job.dependencies.empty()) {
+                for ( auto &depId : job.dependencies) {
+                    dependants[depId].push_back( job.id );
+                }
+            }
+        }
         std::cout << "Inserting" << std::endl;
         jobs.insert(jobs.end(), begin(batch.jobs), end(batch.jobs));
-        std::cout << "Inserted" << std::endl;
         std::cout << "Sorting" << std::endl;
-        std::sort( begin(jobs), end(jobs), [&]( auto &a, auto &b) {
+        std::sort(begin(jobs), end(jobs), [&]( auto &a, auto &b) {
                 return a.id < b.id;
             });
-        
-        for( auto& job : batch.jobs) {
+        for(auto& job : batch.jobs) {
             std::cout << "Looping " << job.id << std::endl;
             blockDependenciesOf( job.id );
-        };
-        pubToListeners->begin_onUpdate( batch.jobs,
-                                        []() { std::cout << "Send update to published" << std::endl; } );
+        }
+        pubToListeners->begin_onUpdate(batch.jobs,
+                                        []() { std::cout << "Sent new jobs" << std::endl; } );
         cb->ice_response();
     }
     
@@ -159,7 +112,7 @@ public:
     virtual void reset_async(const ::Gem::AMD_GemServer_resetPtr& cb,
                              const ::Ice::Current& = ::Ice::Current()) {
         jobs.clear();
-        graph.reset();
+        dependants.clear();
         cb->ice_response();
     }
     
@@ -168,27 +121,23 @@ public:
                                        const ::Ice::Current& = ::Ice::Current()) {
         Gem::JobSeq ret;
         Gem::Job *selected = nullptr;
-        
-        for (auto &&job : jobs) {
-            if ( job.state == Gem::JobState::STARTABLE ) {
-                if (selected == nullptr || job.priority < selected->priority) {
+        for (auto &job : jobs) {
+            if (job.state == Gem::JobState::STARTABLE ) {
+                if (!selected || job.priority < selected->priority) {
                     selected = &job;
-                };
+                }
             }
-        };
-        
-        if (selected != nullptr) {
+        }
+        if (selected) {
             selected->state = Gem::JobState::STARTED;
             ret.push_back(*selected);
-        };
+        }
         cb->ice_response( ret );
     }
 
     virtual void dumpStatus_async(const ::Gem::AMD_GemServer_dumpStatusPtr& cb,
                                   const ::Ice::Current& = ::Ice::Current()) {
-        auto s = graph.dump();
-        std::cout << s << std::endl;
-        cb->ice_response(s);
+        cb->ice_response("Unimplemented");
     }
     
     virtual void getJobs_async(const ::Gem::AMD_GemServer_getJobsPtr& cb,
@@ -200,19 +149,18 @@ public:
                                       const ::Gem::JobWorkerStateSeq& jwss,
                                       const ::Ice::Current& = ::Ice::Current()) {
         std::vector<Gem::Job> updated;
-        for( auto &jws : jwss) {
+        for(auto &jws : jwss) {
             auto job = find( jws.id );
             if ( job->state != jws.state) {
                 job->state = jws.state;
                 updated.push_back(*job);
-            };
-            auto node = graph.getDependents( job->id );
-            for ( auto dep : node) {
+            }
+            for ( auto dep : dependants[job->id]) {
                 std::cout << "Check startable " << dep << std::endl;
                 checkIsStartable( dep, updated);
-            };
-        };
-        if ( !updated.empty() ) {
+            }
+        }
+        if (!updated.empty()) {
             pubToListeners->begin_onUpdate( updated ,
                                             []() { std::cout << "Publushed update" << std::endl; } );
         }
@@ -220,7 +168,7 @@ public:
     }
 
     void checkIsStartable( const std::string& id,
-                           std::vector<Gem::Job>& updatedSink ) {
+                           std::vector<Gem::Job>& updatedSink) {
         auto job = find( id );
         if (job->state == Gem::JobState::BLOCKED) {
             bool isStartable = true;
@@ -229,12 +177,12 @@ public:
                     isStartable = false;
                     break;
                 };
-            };
+            }
             std::cout << "job is " << id << " startable is " << (isStartable ? "true" : "false") << std::endl;
-            if ( isStartable ) {
+            if (isStartable) {
                 job->state = Gem::JobState::STARTABLE;
                 updatedSink.push_back( *job);
-            };
+            }
         }
     }
 
@@ -249,7 +197,7 @@ public:
                                    const ::Ice::Current& = ::Ice::Current()) {
         std::cout << "Add listener " << std::endl;
         static const IceStorm::QoS theQos;
-        Gem::Image img { { begin(jobs), end(jobs) } };
+        Gem::Image img({jobs});
         topic->begin_subscribeAndGetPublisher(theQos,
                                               prx,
                                               [&](const Ice::ObjectPrx &response) {

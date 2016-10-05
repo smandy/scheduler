@@ -71,6 +71,57 @@ const ::std::string __Gem__GemServer__onWorkerStates_name = "onWorkerStates";
 
 }
 
+namespace
+{
+
+const ::IceInternal::DefaultUserExceptionFactoryInit< ::Gem::JobNotFound> __Gem__JobNotFound_init("::Gem::JobNotFound");
+
+}
+
+Gem::JobNotFound::JobNotFound(const ::std::string& __ice_id) :
+    ::Ice::UserException(),
+    id(__ice_id)
+{
+}
+
+Gem::JobNotFound::~JobNotFound() throw()
+{
+}
+
+::std::string
+Gem::JobNotFound::ice_name() const
+{
+    return "Gem::JobNotFound";
+}
+
+Gem::JobNotFound*
+Gem::JobNotFound::ice_clone() const
+{
+    return new JobNotFound(*this);
+}
+
+void
+Gem::JobNotFound::ice_throw() const
+{
+    throw *this;
+}
+
+void
+Gem::JobNotFound::__writeImpl(::IceInternal::BasicStream* __os) const
+{
+    __os->startWriteSlice("::Gem::JobNotFound", -1, true);
+    __os->write(id);
+    __os->endWriteSlice();
+}
+
+void
+Gem::JobNotFound::__readImpl(::IceInternal::BasicStream* __is)
+{
+    __is->startReadSlice();
+    __is->read(id);
+    __is->endReadSlice();
+}
+
 namespace Ice
 {
 }
@@ -261,7 +312,7 @@ IceAsync::Gem::AMD_GemServer_getJob::AMD_GemServer_getJob(::IceInternal::Incomin
 }
 
 void
-IceAsync::Gem::AMD_GemServer_getJob::ice_response(const ::Gem::JobSeq& __ret)
+IceAsync::Gem::AMD_GemServer_getJob::ice_response(const ::Gem::Job& __ret)
 {
     if(__validateResponse(true))
     {
@@ -277,6 +328,23 @@ IceAsync::Gem::AMD_GemServer_getJob::ice_response(const ::Gem::JobSeq& __ret)
             return;
         }
         __response();
+    }
+}
+
+void
+IceAsync::Gem::AMD_GemServer_getJob::ice_exception(const ::std::exception& ex)
+{
+    if(const ::Gem::JobNotFound* __ex = dynamic_cast<const ::Gem::JobNotFound*>(&ex))
+    {
+        if(__validateResponse(false))
+        {
+            __writeUserException(*__ex, ::Ice::DefaultFormat);
+            __response();
+        }
+    }
+    else
+    {
+        ::IceInternal::IncomingAsync::ice_exception(ex);
     }
 }
 
@@ -974,7 +1042,7 @@ IceProxy::Gem::GemServer::end_getStartableJob(const ::Ice::AsyncResultPtr& __res
     return __ret;
 }
 
-::Gem::JobSeq
+::Gem::Job
 IceProxy::Gem::GemServer::getJob(const ::std::string& __p_id, const ::Ice::Context* __ctx)
 {
     __checkTwowayOnly(__Gem__GemServer__getJob_name);
@@ -995,13 +1063,17 @@ IceProxy::Gem::GemServer::getJob(const ::std::string& __p_id, const ::Ice::Conte
         {
             __og.throwUserException();
         }
+        catch(const ::Gem::JobNotFound&)
+        {
+            throw;
+        }
         catch(const ::Ice::UserException& __ex)
         {
             ::Ice::UnknownUserException __uue(__FILE__, __LINE__, __ex.ice_name());
             throw __uue;
         }
     }
-    ::Gem::JobSeq __ret;
+    ::Gem::Job __ret;
     ::IceInternal::BasicStream* __is = __og.startReadParams();
     __is->read(__ret);
     __og.endReadParams();
@@ -1031,13 +1103,13 @@ IceProxy::Gem::GemServer::begin_getJob(const ::std::string& __p_id, const ::Ice:
 #ifdef ICE_CPP11
 
 ::Ice::AsyncResultPtr
-IceProxy::Gem::GemServer::__begin_getJob(const ::std::string& __p_id, const ::Ice::Context* __ctx, const ::IceInternal::Function<void (const ::Gem::JobSeq&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception, const ::IceInternal::Function<void (bool)>& __sent)
+IceProxy::Gem::GemServer::__begin_getJob(const ::std::string& __p_id, const ::Ice::Context* __ctx, const ::IceInternal::Function<void (const ::Gem::Job&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception, const ::IceInternal::Function<void (bool)>& __sent)
 {
     class Cpp11CB : public ::IceInternal::Cpp11FnCallbackNC
     {
     public:
 
-        Cpp11CB(const ::std::function<void (const ::Gem::JobSeq&)>& responseFunc, const ::std::function<void (const ::Ice::Exception&)>& exceptionFunc, const ::std::function<void (bool)>& sentFunc) :
+        Cpp11CB(const ::std::function<void (const ::Gem::Job&)>& responseFunc, const ::std::function<void (const ::Ice::Exception&)>& exceptionFunc, const ::std::function<void (bool)>& sentFunc) :
             ::IceInternal::Cpp11FnCallbackNC(exceptionFunc, sentFunc),
             _response(responseFunc)
         {
@@ -1047,7 +1119,7 @@ IceProxy::Gem::GemServer::__begin_getJob(const ::std::string& __p_id, const ::Ic
         virtual void completed(const ::Ice::AsyncResultPtr& __result) const
         {
             ::Gem::GemServerPrx __proxy = ::Gem::GemServerPrx::uncheckedCast(__result->getProxy());
-            ::Gem::JobSeq __ret;
+            ::Gem::Job __ret;
             try
             {
                 __ret = __proxy->end_getJob(__result);
@@ -1065,22 +1137,26 @@ IceProxy::Gem::GemServer::__begin_getJob(const ::std::string& __p_id, const ::Ic
     
     private:
         
-        ::std::function<void (const ::Gem::JobSeq&)> _response;
+        ::std::function<void (const ::Gem::Job&)> _response;
     };
     return begin_getJob(__p_id, __ctx, new Cpp11CB(__response, __exception, __sent));
 }
 #endif
 
-::Gem::JobSeq
+::Gem::Job
 IceProxy::Gem::GemServer::end_getJob(const ::Ice::AsyncResultPtr& __result)
 {
     ::Ice::AsyncResult::__check(__result, this, __Gem__GemServer__getJob_name);
-    ::Gem::JobSeq __ret;
+    ::Gem::Job __ret;
     if(!__result->__wait())
     {
         try
         {
             __result->__throwUserException();
+        }
+        catch(const ::Gem::JobNotFound&)
+        {
+            throw;
         }
         catch(const ::Ice::UserException& __ex)
         {

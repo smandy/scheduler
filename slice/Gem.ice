@@ -64,6 +64,10 @@ module Gem {
         ["amd"] void onUpdate( JobSeq jobs);
     };
 
+    exception JobNotFound {
+        string id;
+    };
+
     interface GemServer {
         ["amd"] void submitBatch( Batch batch );
         ["amd"] void startJob( string id );
@@ -74,7 +78,7 @@ module Gem {
         
         ["amd"] JobSeq getJobs();
         ["amd"] JobSeq getStartableJob( WorkerId worker );
-        ["amd"] JobSeq getJob( string id );
+        ["amd"] Job getJob( string id ) throws JobNotFound;
 
         ["amd"] void addListener( GemServerListener *listener);
 

@@ -32,6 +32,7 @@
 #include <Ice/AsyncResult.h>
 #include <Ice/Incoming.h>
 #include <Ice/IncomingAsync.h>
+#include <Ice/FactoryTableInit.h>
 #include <IceUtil/ScopedArray.h>
 #include <IceUtil/Optional.h>
 #include <Ice/StreamF.h>
@@ -363,6 +364,29 @@ struct Image
     ::Gem::JobSeq jobs;
 };
 
+class JobNotFound : public ::Ice::UserException
+{
+public:
+
+    JobNotFound() {}
+    explicit JobNotFound(const ::std::string&);
+    virtual ~JobNotFound() throw();
+
+    virtual ::std::string ice_name() const;
+    virtual JobNotFound* ice_clone() const;
+    virtual void ice_throw() const;
+
+    ::std::string id;
+
+protected:
+    virtual void __writeImpl(::IceInternal::BasicStream*) const;
+    virtual void __readImpl(::IceInternal::BasicStream*);
+    using ::Ice::UserException::__writeImpl;
+    using ::Ice::UserException::__readImpl;
+};
+
+static JobNotFound __JobNotFound_init;
+
 }
 
 namespace Ice
@@ -555,6 +579,12 @@ struct StreamReader< ::Gem::Image, S>
     }
 };
 
+template<>
+struct StreamableTraits< ::Gem::JobNotFound>
+{
+    static const StreamHelperCategory helper = StreamHelperCategoryUserException;
+};
+
 }
 
 namespace Gem
@@ -654,7 +684,7 @@ class AMD_GemServer_getJob : virtual public ::Ice::AMDCallback
 {
 public:
 
-    virtual void ice_response(const ::Gem::JobSeq&) = 0;
+    virtual void ice_response(const ::Gem::Job&) = 0;
 };
 
 typedef ::IceUtil::Handle< ::Gem::AMD_GemServer_getJob> AMD_GemServer_getJobPtr;
@@ -781,7 +811,10 @@ public:
 
     AMD_GemServer_getJob(::IceInternal::Incoming&);
 
-    virtual void ice_response(const ::Gem::JobSeq&);
+    virtual void ice_response(const ::Gem::Job&);
+    // COMPILERFIX: The using directive avoid compiler warnings with -Woverloaded-virtual
+    using ::IceInternal::IncomingAsync::ice_exception;
+    virtual void ice_exception(const ::std::exception&);
 };
 
 class AMD_GemServer_addListener : public ::Gem::AMD_GemServer_addListener, public ::IceInternal::IncomingAsync
@@ -1693,17 +1726,17 @@ private:
     
 public:
 
-    ::Gem::JobSeq getJob(const ::std::string& __p_id)
+    ::Gem::Job getJob(const ::std::string& __p_id)
     {
         return getJob(__p_id, 0);
     }
-    ::Gem::JobSeq getJob(const ::std::string& __p_id, const ::Ice::Context& __ctx)
+    ::Gem::Job getJob(const ::std::string& __p_id, const ::Ice::Context& __ctx)
     {
         return getJob(__p_id, &__ctx);
     }
 #ifdef ICE_CPP11
     ::Ice::AsyncResultPtr
-    begin_getJob(const ::std::string& __p_id, const ::IceInternal::Function<void (const ::Gem::JobSeq&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_getJob(const ::std::string& __p_id, const ::IceInternal::Function<void (const ::Gem::Job&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
         return __begin_getJob(__p_id, 0, __response, __exception, __sent);
     }
@@ -1713,7 +1746,7 @@ public:
         return begin_getJob(__p_id, 0, ::Ice::newCallback(__completed, __sent), 0);
     }
     ::Ice::AsyncResultPtr
-    begin_getJob(const ::std::string& __p_id, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Gem::JobSeq&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_getJob(const ::std::string& __p_id, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Gem::Job&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
         return __begin_getJob(__p_id, &__ctx, __response, __exception, __sent);
     }
@@ -1725,7 +1758,7 @@ public:
     
 private:
 
-    ::Ice::AsyncResultPtr __begin_getJob(const ::std::string& __p_id, const ::Ice::Context* __ctx, const ::IceInternal::Function<void (const ::Gem::JobSeq&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception, const ::IceInternal::Function<void (bool)>& __sent);
+    ::Ice::AsyncResultPtr __begin_getJob(const ::std::string& __p_id, const ::Ice::Context* __ctx, const ::IceInternal::Function<void (const ::Gem::Job&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception, const ::IceInternal::Function<void (bool)>& __sent);
     
 public:
 #endif
@@ -1760,11 +1793,11 @@ public:
         return begin_getJob(__p_id, &__ctx, __del, __cookie);
     }
 
-    ::Gem::JobSeq end_getJob(const ::Ice::AsyncResultPtr&);
+    ::Gem::Job end_getJob(const ::Ice::AsyncResultPtr&);
     
 private:
 
-    ::Gem::JobSeq getJob(const ::std::string&, const ::Ice::Context*);
+    ::Gem::Job getJob(const ::std::string&, const ::Ice::Context*);
     ::Ice::AsyncResultPtr begin_getJob(const ::std::string&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
     
 public:
@@ -3028,7 +3061,7 @@ public:
 
     typedef void (T::*Exception)(const ::Ice::Exception&);
     typedef void (T::*Sent)(bool);
-    typedef void (T::*Response)(const ::Gem::JobSeq&);
+    typedef void (T::*Response)(const ::Gem::Job&);
 
     CallbackNC_GemServer_getJob(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
         : ::IceInternal::TwowayCallbackNC<T>(obj, cb != 0, excb, sentcb), _response(cb)
@@ -3038,7 +3071,7 @@ public:
     virtual void completed(const ::Ice::AsyncResultPtr& __result) const
     {
         ::Gem::GemServerPrx __proxy = ::Gem::GemServerPrx::uncheckedCast(__result->getProxy());
-        ::Gem::JobSeq __ret;
+        ::Gem::Job __ret;
         try
         {
             __ret = __proxy->end_getJob(__result);
@@ -3060,13 +3093,13 @@ public:
 };
 
 template<class T> Callback_GemServer_getJobPtr
-newCallback_GemServer_getJob(const IceUtil::Handle<T>& instance, void (T::*cb)(const ::Gem::JobSeq&), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+newCallback_GemServer_getJob(const IceUtil::Handle<T>& instance, void (T::*cb)(const ::Gem::Job&), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
 {
     return new CallbackNC_GemServer_getJob<T>(instance, cb, excb, sentcb);
 }
 
 template<class T> Callback_GemServer_getJobPtr
-newCallback_GemServer_getJob(T* instance, void (T::*cb)(const ::Gem::JobSeq&), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+newCallback_GemServer_getJob(T* instance, void (T::*cb)(const ::Gem::Job&), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
 {
     return new CallbackNC_GemServer_getJob<T>(instance, cb, excb, sentcb);
 }
@@ -3080,7 +3113,7 @@ public:
 
     typedef void (T::*Exception)(const ::Ice::Exception& , const CT&);
     typedef void (T::*Sent)(bool , const CT&);
-    typedef void (T::*Response)(const ::Gem::JobSeq&, const CT&);
+    typedef void (T::*Response)(const ::Gem::Job&, const CT&);
 
     Callback_GemServer_getJob(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
         : ::IceInternal::TwowayCallback<T, CT>(obj, cb != 0, excb, sentcb), _response(cb)
@@ -3090,7 +3123,7 @@ public:
     virtual void completed(const ::Ice::AsyncResultPtr& __result) const
     {
         ::Gem::GemServerPrx __proxy = ::Gem::GemServerPrx::uncheckedCast(__result->getProxy());
-        ::Gem::JobSeq __ret;
+        ::Gem::Job __ret;
         try
         {
             __ret = __proxy->end_getJob(__result);
@@ -3112,13 +3145,13 @@ public:
 };
 
 template<class T, typename CT> Callback_GemServer_getJobPtr
-newCallback_GemServer_getJob(const IceUtil::Handle<T>& instance, void (T::*cb)(const ::Gem::JobSeq&, const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+newCallback_GemServer_getJob(const IceUtil::Handle<T>& instance, void (T::*cb)(const ::Gem::Job&, const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
 {
     return new Callback_GemServer_getJob<T, CT>(instance, cb, excb, sentcb);
 }
 
 template<class T, typename CT> Callback_GemServer_getJobPtr
-newCallback_GemServer_getJob(T* instance, void (T::*cb)(const ::Gem::JobSeq&, const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+newCallback_GemServer_getJob(T* instance, void (T::*cb)(const ::Gem::Job&, const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
 {
     return new Callback_GemServer_getJob<T, CT>(instance, cb, excb, sentcb);
 }

@@ -126,9 +126,7 @@ def doGraph(t):
     subprocess.Popen( 'dot -Tpng -o %s %s' % (pngFile, dotFile), shell = True)
 
 n = 0
-
 doGraph( 'state%03d' % n)
-
 n += 1
 
 while True:
@@ -145,11 +143,8 @@ while True:
         jobs1 += newJobs
         
     if not jobs1 and fails:
-        # Manual intervention
+        # lets pretend Manual intervention
         setState( fails[0].id, js.STARTABLE)
-    #if not jobs1:
-    #    break
-    
         
     doGraph( 'state%03d' % n)
     n += 1
