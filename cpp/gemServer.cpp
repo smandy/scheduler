@@ -160,6 +160,7 @@ public:
                 checkIsStartable( dep, updated);
             }
         }
+        
         if (!updated.empty()) {
             pubToListeners->begin_onUpdate( updated ,
                                             []() { std::cout << "Publushed update" << std::endl; } );
@@ -197,20 +198,24 @@ public:
                                    const ::Ice::Current& = ::Ice::Current()) {
         std::cout << "Add listener " << std::endl;
         static const IceStorm::QoS theQos;
-        Gem::Image img({jobs});
+        std::cout << "Add listener " << std::endl;
         topic->begin_subscribeAndGetPublisher(theQos,
                                               prx,
-                                              [&](const Ice::ObjectPrx &response) {
-                                                  std::cout << " Got publisher " << response << std::endl;
+                                              [this,cb](const Ice::ObjectPrx &response) {
+                                                  //std::cout << " Got publisher " << response << std::endl;
                                                   auto p = Gem::GemServerListenerPrx::uncheckedCast(response);
-                                                  std::cout << "Made image " << std::endl;
+                                                  Gem::Image img { jobs };
+                                                  //std::cout << "Made image " << std::endl;
                                                   p->begin_onImage( img ,
                                                                     []() {
                                                                         std::cout << "Success with image" << std::endl;
-                                                                    } );
-                                                  // Hmmm ... should this be inside the lambda above maybe?
+                                                                    });
+                                                  //std::cout << "Called image " << cb << std::endl;
+                                                  // Hmmm ... should this be in side the lambda above maybe?
                                                   cb->ice_response();
+                                                  //std::cout << "Called response " << std::endl;
                                               } );
+        std::cout << "End method" << std::endl;
     }
 };
 
