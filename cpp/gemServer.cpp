@@ -1,8 +1,10 @@
-#include "Gem.h"
+#include "gem.h"
 #include "Ice/Ice.h"
 #include "IceStorm/IceStorm.h"
 #include <memory>
 #include <unordered_map>
+#include <iostream>
+
 
 // Pointers for getting icestorm up
 // Aha - the trick was exposing IceStorm/TopicManager as a well known object
@@ -221,13 +223,15 @@ public:
 
 int main(int argc, char *argv[]) {
     std::cout << "Make communicator" << std::endl;
-    auto communicator = Ice::initialize( argc, argv);
+    auto communicator = Ice::initialize(argc, argv);
     std::cout << "Make server" << std::endl;
-    auto server = std::make_shared<GemServerImpl>(communicator);
+    auto server = std::make_unique<GemServerImpl>(communicator);
     std::cout << "Make adapter" << std::endl;
     auto adapter = communicator->createObjectAdapter("GemServer");
     std::cout << "Add impl to adapter" << std::endl;
-    auto prx = adapter->add( server.get(), communicator->stringToIdentity("server"));
+    
+    // Liveness ensured by scope of main
+    auto prx = adapter->add(server.get(), communicator->stringToIdentity("server"));
     std::cout << "Activate adpater" << std::endl;
     adapter->activate();
     std::cout << "Wait for shutdown" << std::endl;
