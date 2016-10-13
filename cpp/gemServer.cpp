@@ -5,7 +5,6 @@
 #include <unordered_map>
 #include <iostream>
 
-
 // Pointers for getting icestorm up
 // Aha - the trick was exposing IceStorm/TopicManager as a well known object
 // https://github.com/SintefRaufossManufacturing/icehms/blob/master/icecfg/icebox.xml

@@ -1,7 +1,7 @@
 import random
 import Ice
 
-Ice.loadSlice('../slice/Gem.ice')
+Ice.loadSlice('../slice/gem.ice')
 print "Woot"
 import Gem
 

@@ -10,11 +10,12 @@
               <property name="IceStorm.TopicManager.AdapterId" value="IceStorm.TopicManager" />
               <property name="IceStorm.Publish.AdapterId"      value="IceStorm.Publish" />
               <property name="IceStorm.InstanceName" value="IceStorm" />
-              
             </properties>
+            
             <adapter name="IceStorm.TopicManager" id="IceStorm.TopicManager" endpoints="tcp -h raffles">
               <object identity="IceStorm/TopicManager" type="::IceStorm::TopicManager"/>
             </adapter>
+            
             <adapter name="IceStorm.Publish" id="IceStorm.Publish" endpoints="tcp -h raffles" />
           </service>
 
