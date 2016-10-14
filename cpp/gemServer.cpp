@@ -130,7 +130,7 @@ public:
             }
         }
         if (selected) {
-            selected->state = Gem::JobState::STARTED;
+            selected->state = Gem::JobState::SCHEDULED;
             ret.push_back(*selected);
         }
         cb->ice_response( ret );

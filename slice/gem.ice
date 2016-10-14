@@ -75,13 +75,10 @@ module Gem {
         ["amd"] void invalidate( string id);
         ["amd"] void reset();
         ["amd"] string dumpStatus();
-        
         ["amd"] JobSeq getJobs();
         ["amd"] JobSeq getStartableJob( WorkerId worker );
         ["amd"] Job getJob( string id ) throws JobNotFound;
-
         ["amd"] void addListener( GemServerListener *listener);
-
         ["amd"] void onWorkerStates( JobWorkerStateSeq xs);
     };
 };
