@@ -3,6 +3,7 @@
 #include "IceStorm/IceStorm.h"
 #include <memory>
 #include <unordered_map>
+#include <set>
 #include <iostream>
 
 // Pointers for getting icestorm up
@@ -13,10 +14,10 @@
 
 class GemServerImpl : public Gem::GemServer {
     std::vector<Gem::Job> jobs;
-    Gem::GemServerListenerPrx pubToListeners;
+    //Gem::GemServerListenerPrx pubToListeners;
     IceStorm::TopicPrx topic;
     std::unordered_map<std::string, std::vector<std::string> > dependants;
-    
+    std::set<::Gem::GemServerListenerPrx> listeners;
 public:
     GemServerImpl(Ice::CommunicatorPtr communicator) {
         std::cout << "Get Topic" << std::endl;
@@ -29,7 +30,7 @@ public:
         } catch( IceStorm::NoSuchTopic &) {
             topic = topicPrx->create(subject);
         }
-        pubToListeners = Gem::GemServerListenerPrx::uncheckedCast(topic->getPublisher());
+        listeners.insert(Gem::GemServerListenerPrx::uncheckedCast(topic->getPublisher()));
         std::cout << "Done" << std::endl;
     }
     
@@ -84,8 +85,21 @@ public:
             std::cout << "Looping " << job.id << std::endl;
             blockDependenciesOf( job.id );
         }
-        pubToListeners->begin_onUpdate(batch.jobs,
-                                        []() { std::cout << "Sent new jobs" << std::endl; } );
+
+        for ( auto& listener : listeners) {
+            listener->begin_onUpdate(batch.jobs,
+                                     []() {
+                                         std::cout << "Sent new jobs" << std::endl;
+                                     },
+                                     [&](const Ice::Exception& ex) {
+                                         std::cout << "Bad listener" << std::endl;
+                                         auto it = listeners.find(listener);
+                                         if ( it != std::end(listeners)) {
+                                             std::cout << "Expunging" << std::endl;
+                                             listeners.erase( it );
+                                         }
+                                     });
+        }
         cb->ice_response();
     }
     
@@ -163,8 +177,17 @@ public:
         }
         
         if (!updated.empty()) {
-            pubToListeners->begin_onUpdate( updated ,
-                                            []() { std::cout << "Publushed update" << std::endl; } );
+            for ( auto& listener : listeners) {
+                listener->begin_onUpdate(updated,
+                                         []() {
+                                             std::cout << "Sent new jobs" << std::endl;
+                                         },
+                                         [&](const Ice::Exception& ex) {
+                                             std::cout << "Bad listener" << std::endl;
+                                             auto it = listeners.find(listener);
+                                             listeners.erase( it );
+                                         });
+            }
         }
         cb->ice_response();
     }
@@ -194,6 +217,13 @@ public:
             job->state != Gem::JobState::COMPLETED;
     }
 
+    virtual void addListenerWithIdent_async(const ::Gem::AMD_GemServer_addListenerWithIdentPtr& cb, const ::Ice::Identity& ident, const ::Ice::Current& current = ::Ice::Current()) {
+        std::cout << "Addlistener with ident" << std::endl;
+        ::Gem::GemServerListenerPrx client = Gem::GemServerListenerPrx::uncheckedCast(current.con->createProxy(ident));
+        listeners.insert(client);
+        cb->ice_response();
+    };
+    
     virtual void addListener_async(const ::Gem::AMD_GemServer_addListenerPtr& cb,
                                    const ::Gem::GemServerListenerPrx& prx,
                                    const ::Ice::Current& = ::Ice::Current()) {

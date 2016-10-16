@@ -1,7 +1,5 @@
 import Ice
-Ice.loadSlice('../slice/gem.ice')
-print "Woot"
-import Gem
+from gemHelper import Gem
 
 def makeBatch():
     job1 = Gem.Job( 'id1', [], Gem.JobState.STARTABLE , 5)

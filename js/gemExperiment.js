@@ -8,7 +8,7 @@ var props = Ice.createProperties();
 
 //props.setProperty('Ice.Default.Locator', 'IceGrid/Locator:tcp -h raffles -p 4061:ws -h raffles -p 4063');
 
-props.setProperty('Ice.Default.Locator', 'IceGrid/Locator:tcp -h raffles -p 4061:ws -h raffles -p 4063');
+props.setProperty('Ice.Default.Locator', 'IceGrid/Locator:ws -h raffles -p 4063');
 props.setProperty( 'GemServer.Proxy' , 'server@GemServer');
 iid.properties = props;
 

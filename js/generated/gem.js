@@ -233,6 +233,7 @@
             Gem.JobNotFound
         ], , ],
         "addListener": [, , , 1, , , [["Gem.GemServerListenerPrx"]], , , , ],
+        "addListenerWithIdent": [, , , 1, , , [[Ice.Identity]], , , , ],
         "onWorkerStates": [, , , 1, , , [["Gem.JobWorkerStateSeqHelper"]], , , , ]
     });
     exports.Gem = Gem;

@@ -67,6 +67,8 @@ const ::std::string __Gem__GemServer__getJob_name = "getJob";
 
 const ::std::string __Gem__GemServer__addListener_name = "addListener";
 
+const ::std::string __Gem__GemServer__addListenerWithIdent_name = "addListenerWithIdent";
+
 const ::std::string __Gem__GemServer__onWorkerStates_name = "onWorkerStates";
 
 }
@@ -355,6 +357,21 @@ IceAsync::Gem::AMD_GemServer_addListener::AMD_GemServer_addListener(::IceInterna
 
 void
 IceAsync::Gem::AMD_GemServer_addListener::ice_response()
+{
+    if(__validateResponse(true))
+    {
+        __writeEmptyParams();
+        __response();
+    }
+}
+
+IceAsync::Gem::AMD_GemServer_addListenerWithIdent::AMD_GemServer_addListenerWithIdent(::IceInternal::Incoming& in) :
+    ::IceInternal::IncomingAsync(in)
+{
+}
+
+void
+IceAsync::Gem::AMD_GemServer_addListenerWithIdent::ice_response()
 {
     if(__validateResponse(true))
     {
@@ -1212,6 +1229,48 @@ IceProxy::Gem::GemServer::end_addListener(const ::Ice::AsyncResultPtr& __result)
 }
 
 void
+IceProxy::Gem::GemServer::addListenerWithIdent(const ::Ice::Identity& __p_ident, const ::Ice::Context* __ctx)
+{
+    ::IceInternal::Outgoing __og(this, __Gem__GemServer__addListenerWithIdent_name, ::Ice::Normal, __ctx);
+    try
+    {
+        ::IceInternal::BasicStream* __os = __og.startWriteParams(::Ice::DefaultFormat);
+        __os->write(__p_ident);
+        __og.endWriteParams();
+    }
+    catch(const ::Ice::LocalException& __ex)
+    {
+        __og.abort(__ex);
+    }
+    __invoke(__og);
+}
+
+::Ice::AsyncResultPtr
+IceProxy::Gem::GemServer::begin_addListenerWithIdent(const ::Ice::Identity& __p_ident, const ::Ice::Context* __ctx, const ::IceInternal::CallbackBasePtr& __del, const ::Ice::LocalObjectPtr& __cookie)
+{
+    ::IceInternal::OutgoingAsyncPtr __result = new ::IceInternal::OutgoingAsync(this, __Gem__GemServer__addListenerWithIdent_name, __del, __cookie);
+    try
+    {
+        __result->prepare(__Gem__GemServer__addListenerWithIdent_name, ::Ice::Normal, __ctx);
+        ::IceInternal::BasicStream* __os = __result->startWriteParams(::Ice::DefaultFormat);
+        __os->write(__p_ident);
+        __result->endWriteParams();
+        __result->invoke();
+    }
+    catch(const ::Ice::Exception& __ex)
+    {
+        __result->abort(__ex);
+    }
+    return __result;
+}
+
+void
+IceProxy::Gem::GemServer::end_addListenerWithIdent(const ::Ice::AsyncResultPtr& __result)
+{
+    __end(__result, __Gem__GemServer__addListenerWithIdent_name);
+}
+
+void
 IceProxy::Gem::GemServer::onWorkerStates(const ::Gem::JobWorkerStateSeq& __p_xs, const ::Ice::Context* __ctx)
 {
     ::IceInternal::Outgoing __og(this, __Gem__GemServer__onWorkerStates_name, ::Ice::Normal, __ctx);
@@ -1706,6 +1765,30 @@ Gem::GemServer::___addListener(::IceInternal::Incoming& __inS, const ::Ice::Curr
 }
 
 ::Ice::DispatchStatus
+Gem::GemServer::___addListenerWithIdent(::IceInternal::Incoming& __inS, const ::Ice::Current& __current)
+{
+    __checkMode(::Ice::Normal, __current.mode);
+    ::IceInternal::BasicStream* __is = __inS.startReadParams();
+    ::Ice::Identity __p_ident;
+    __is->read(__p_ident);
+    __inS.endReadParams();
+    ::Gem::AMD_GemServer_addListenerWithIdentPtr __cb = new IceAsync::Gem::AMD_GemServer_addListenerWithIdent(__inS);
+    try
+    {
+        addListenerWithIdent_async(__cb, __p_ident, __current);
+    }
+    catch(const ::std::exception& __ex)
+    {
+        __cb->ice_exception(__ex);
+    }
+    catch(...)
+    {
+        __cb->ice_exception();
+    }
+    return ::Ice::DispatchAsync;
+}
+
+::Ice::DispatchStatus
 Gem::GemServer::___onWorkerStates(::IceInternal::Incoming& __inS, const ::Ice::Current& __current)
 {
     __checkMode(::Ice::Normal, __current.mode);
@@ -1734,6 +1817,7 @@ namespace
 const ::std::string __Gem__GemServer_all[] =
 {
     "addListener",
+    "addListenerWithIdent",
     "dumpStatus",
     "getJob",
     "getJobs",
@@ -1755,7 +1839,7 @@ const ::std::string __Gem__GemServer_all[] =
 ::Ice::DispatchStatus
 Gem::GemServer::__dispatch(::IceInternal::Incoming& in, const ::Ice::Current& current)
 {
-    ::std::pair< const ::std::string*, const ::std::string*> r = ::std::equal_range(__Gem__GemServer_all, __Gem__GemServer_all + 15, current.operation);
+    ::std::pair< const ::std::string*, const ::std::string*> r = ::std::equal_range(__Gem__GemServer_all, __Gem__GemServer_all + 16, current.operation);
     if(r.first == r.second)
     {
         throw ::Ice::OperationNotExistException(__FILE__, __LINE__, current.id, current.facet, current.operation);
@@ -1769,57 +1853,61 @@ Gem::GemServer::__dispatch(::IceInternal::Incoming& in, const ::Ice::Current& cu
         }
         case 1:
         {
-            return ___dumpStatus(in, current);
+            return ___addListenerWithIdent(in, current);
         }
         case 2:
         {
-            return ___getJob(in, current);
+            return ___dumpStatus(in, current);
         }
         case 3:
         {
-            return ___getJobs(in, current);
+            return ___getJob(in, current);
         }
         case 4:
         {
-            return ___getStartableJob(in, current);
+            return ___getJobs(in, current);
         }
         case 5:
         {
-            return ___ice_id(in, current);
+            return ___getStartableJob(in, current);
         }
         case 6:
         {
-            return ___ice_ids(in, current);
+            return ___ice_id(in, current);
         }
         case 7:
         {
-            return ___ice_isA(in, current);
+            return ___ice_ids(in, current);
         }
         case 8:
         {
-            return ___ice_ping(in, current);
+            return ___ice_isA(in, current);
         }
         case 9:
         {
-            return ___invalidate(in, current);
+            return ___ice_ping(in, current);
         }
         case 10:
         {
-            return ___onWorkerStates(in, current);
+            return ___invalidate(in, current);
         }
         case 11:
         {
-            return ___reset(in, current);
+            return ___onWorkerStates(in, current);
         }
         case 12:
         {
-            return ___startJob(in, current);
+            return ___reset(in, current);
         }
         case 13:
         {
-            return ___stopJob(in, current);
+            return ___startJob(in, current);
         }
         case 14:
+        {
+            return ___stopJob(in, current);
+        }
+        case 15:
         {
             return ___submitBatch(in, current);
         }

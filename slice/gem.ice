@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Ice/Identity.ice"
+
 module Gem {
     sequence<string> StringSeq;
     
@@ -79,6 +81,7 @@ module Gem {
         ["amd"] JobSeq getStartableJob( WorkerId worker );
         ["amd"] Job getJob( string id ) throws JobNotFound;
         ["amd"] void addListener( GemServerListener *listener);
+["amd"] void addListenerWithIdent( Ice::Identity ident);
         ["amd"] void onWorkerStates( JobWorkerStateSeq xs);
     };
 };

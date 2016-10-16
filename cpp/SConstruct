@@ -1,6 +1,7 @@
 import builders
 
 env = Environment(CPPFLAGS = ['--std=c++14', '-I.'],
+                  SLICE_INCLUDES= ['/usr/share/Ice-3.6.1/slice'],
                   LIBPATH = ['/usr/lib/x86_64-linux-gnu/c++11'])
 
 #env.Slice2cpp(target = 'Security', source = 'slice/Security.ice')

@@ -36,6 +36,7 @@
 #include <IceUtil/ScopedArray.h>
 #include <IceUtil/Optional.h>
 #include <Ice/StreamF.h>
+#include <Ice/Identity.h>
 #include <IceUtil/UndefSysMacros.h>
 
 #ifndef ICE_IGNORE_VERSION
@@ -698,6 +699,15 @@ public:
 
 typedef ::IceUtil::Handle< ::Gem::AMD_GemServer_addListener> AMD_GemServer_addListenerPtr;
 
+class AMD_GemServer_addListenerWithIdent : virtual public ::Ice::AMDCallback
+{
+public:
+
+    virtual void ice_response() = 0;
+};
+
+typedef ::IceUtil::Handle< ::Gem::AMD_GemServer_addListenerWithIdent> AMD_GemServer_addListenerWithIdentPtr;
+
 class AMD_GemServer_onWorkerStates : virtual public ::Ice::AMDCallback
 {
 public:
@@ -826,6 +836,15 @@ public:
     virtual void ice_response();
 };
 
+class AMD_GemServer_addListenerWithIdent : public ::Gem::AMD_GemServer_addListenerWithIdent, public ::IceInternal::IncomingAsync
+{
+public:
+
+    AMD_GemServer_addListenerWithIdent(::IceInternal::Incoming&);
+
+    virtual void ice_response();
+};
+
 class AMD_GemServer_onWorkerStates : public ::Gem::AMD_GemServer_onWorkerStates, public ::IceInternal::IncomingAsync
 {
 public:
@@ -877,6 +896,9 @@ typedef ::IceUtil::Handle< Callback_GemServer_getJob_Base> Callback_GemServer_ge
 
 class Callback_GemServer_addListener_Base : virtual public ::IceInternal::CallbackBase { };
 typedef ::IceUtil::Handle< Callback_GemServer_addListener_Base> Callback_GemServer_addListenerPtr;
+
+class Callback_GemServer_addListenerWithIdent_Base : virtual public ::IceInternal::CallbackBase { };
+typedef ::IceUtil::Handle< Callback_GemServer_addListenerWithIdent_Base> Callback_GemServer_addListenerWithIdentPtr;
 
 class Callback_GemServer_onWorkerStates_Base : virtual public ::IceInternal::CallbackBase { };
 typedef ::IceUtil::Handle< Callback_GemServer_onWorkerStates_Base> Callback_GemServer_onWorkerStatesPtr;
@@ -1872,6 +1894,76 @@ private:
     
 public:
 
+    void addListenerWithIdent(const ::Ice::Identity& __p_ident)
+    {
+        addListenerWithIdent(__p_ident, 0);
+    }
+    void addListenerWithIdent(const ::Ice::Identity& __p_ident, const ::Ice::Context& __ctx)
+    {
+        addListenerWithIdent(__p_ident, &__ctx);
+    }
+#ifdef ICE_CPP11
+    ::Ice::AsyncResultPtr
+    begin_addListenerWithIdent(const ::Ice::Identity& __p_ident, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    {
+        return begin_addListenerWithIdent(__p_ident, 0, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent));
+    }
+    ::Ice::AsyncResultPtr
+    begin_addListenerWithIdent(const ::Ice::Identity& __p_ident, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    {
+        return begin_addListenerWithIdent(__p_ident, 0, ::Ice::newCallback(__completed, __sent), 0);
+    }
+    ::Ice::AsyncResultPtr
+    begin_addListenerWithIdent(const ::Ice::Identity& __p_ident, const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    {
+        return begin_addListenerWithIdent(__p_ident, &__ctx, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent), 0);
+    }
+    ::Ice::AsyncResultPtr
+    begin_addListenerWithIdent(const ::Ice::Identity& __p_ident, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    {
+        return begin_addListenerWithIdent(__p_ident, &__ctx, ::Ice::newCallback(__completed, __sent));
+    }
+#endif
+
+    ::Ice::AsyncResultPtr begin_addListenerWithIdent(const ::Ice::Identity& __p_ident)
+    {
+        return begin_addListenerWithIdent(__p_ident, 0, ::IceInternal::__dummyCallback, 0);
+    }
+
+    ::Ice::AsyncResultPtr begin_addListenerWithIdent(const ::Ice::Identity& __p_ident, const ::Ice::Context& __ctx)
+    {
+        return begin_addListenerWithIdent(__p_ident, &__ctx, ::IceInternal::__dummyCallback, 0);
+    }
+
+    ::Ice::AsyncResultPtr begin_addListenerWithIdent(const ::Ice::Identity& __p_ident, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_addListenerWithIdent(__p_ident, 0, __del, __cookie);
+    }
+
+    ::Ice::AsyncResultPtr begin_addListenerWithIdent(const ::Ice::Identity& __p_ident, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_addListenerWithIdent(__p_ident, &__ctx, __del, __cookie);
+    }
+
+    ::Ice::AsyncResultPtr begin_addListenerWithIdent(const ::Ice::Identity& __p_ident, const ::Gem::Callback_GemServer_addListenerWithIdentPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_addListenerWithIdent(__p_ident, 0, __del, __cookie);
+    }
+
+    ::Ice::AsyncResultPtr begin_addListenerWithIdent(const ::Ice::Identity& __p_ident, const ::Ice::Context& __ctx, const ::Gem::Callback_GemServer_addListenerWithIdentPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_addListenerWithIdent(__p_ident, &__ctx, __del, __cookie);
+    }
+
+    void end_addListenerWithIdent(const ::Ice::AsyncResultPtr&);
+    
+private:
+
+    void addListenerWithIdent(const ::Ice::Identity&, const ::Ice::Context*);
+    ::Ice::AsyncResultPtr begin_addListenerWithIdent(const ::Ice::Identity&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
+    
+public:
+
     void onWorkerStates(const ::Gem::JobWorkerStateSeq& __p_xs)
     {
         onWorkerStates(__p_xs, 0);
@@ -2138,6 +2230,9 @@ public:
 
     virtual void addListener_async(const ::Gem::AMD_GemServer_addListenerPtr&, const ::Gem::GemServerListenerPrx&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___addListener(::IceInternal::Incoming&, const ::Ice::Current&);
+
+    virtual void addListenerWithIdent_async(const ::Gem::AMD_GemServer_addListenerWithIdentPtr&, const ::Ice::Identity&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    ::Ice::DispatchStatus ___addListenerWithIdent(::IceInternal::Incoming&, const ::Ice::Current&);
 
     virtual void onWorkerStates_async(const ::Gem::AMD_GemServer_onWorkerStatesPtr&, const ::Gem::JobWorkerStateSeq&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___onWorkerStates(::IceInternal::Incoming&, const ::Ice::Current&);
@@ -3236,6 +3331,88 @@ template<class T, typename CT> Callback_GemServer_addListenerPtr
 newCallback_GemServer_addListener(T* instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
 {
     return new Callback_GemServer_addListener<T, CT>(instance, 0, excb, sentcb);
+}
+
+template<class T>
+class CallbackNC_GemServer_addListenerWithIdent : public Callback_GemServer_addListenerWithIdent_Base, public ::IceInternal::OnewayCallbackNC<T>
+{
+public:
+
+    typedef IceUtil::Handle<T> TPtr;
+
+    typedef void (T::*Exception)(const ::Ice::Exception&);
+    typedef void (T::*Sent)(bool);
+    typedef void (T::*Response)();
+
+    CallbackNC_GemServer_addListenerWithIdent(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
+        : ::IceInternal::OnewayCallbackNC<T>(obj, cb, excb, sentcb)
+    {
+    }
+};
+
+template<class T> Callback_GemServer_addListenerWithIdentPtr
+newCallback_GemServer_addListenerWithIdent(const IceUtil::Handle<T>& instance, void (T::*cb)(), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServer_addListenerWithIdent<T>(instance, cb, excb, sentcb);
+}
+
+template<class T> Callback_GemServer_addListenerWithIdentPtr
+newCallback_GemServer_addListenerWithIdent(const IceUtil::Handle<T>& instance, void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServer_addListenerWithIdent<T>(instance, 0, excb, sentcb);
+}
+
+template<class T> Callback_GemServer_addListenerWithIdentPtr
+newCallback_GemServer_addListenerWithIdent(T* instance, void (T::*cb)(), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServer_addListenerWithIdent<T>(instance, cb, excb, sentcb);
+}
+
+template<class T> Callback_GemServer_addListenerWithIdentPtr
+newCallback_GemServer_addListenerWithIdent(T* instance, void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServer_addListenerWithIdent<T>(instance, 0, excb, sentcb);
+}
+
+template<class T, typename CT>
+class Callback_GemServer_addListenerWithIdent : public Callback_GemServer_addListenerWithIdent_Base, public ::IceInternal::OnewayCallback<T, CT>
+{
+public:
+
+    typedef IceUtil::Handle<T> TPtr;
+
+    typedef void (T::*Exception)(const ::Ice::Exception& , const CT&);
+    typedef void (T::*Sent)(bool , const CT&);
+    typedef void (T::*Response)(const CT&);
+
+    Callback_GemServer_addListenerWithIdent(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
+        : ::IceInternal::OnewayCallback<T, CT>(obj, cb, excb, sentcb)
+    {
+    }
+};
+
+template<class T, typename CT> Callback_GemServer_addListenerWithIdentPtr
+newCallback_GemServer_addListenerWithIdent(const IceUtil::Handle<T>& instance, void (T::*cb)(const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServer_addListenerWithIdent<T, CT>(instance, cb, excb, sentcb);
+}
+
+template<class T, typename CT> Callback_GemServer_addListenerWithIdentPtr
+newCallback_GemServer_addListenerWithIdent(const IceUtil::Handle<T>& instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServer_addListenerWithIdent<T, CT>(instance, 0, excb, sentcb);
+}
+
+template<class T, typename CT> Callback_GemServer_addListenerWithIdentPtr
+newCallback_GemServer_addListenerWithIdent(T* instance, void (T::*cb)(const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServer_addListenerWithIdent<T, CT>(instance, cb, excb, sentcb);
+}
+
+template<class T, typename CT> Callback_GemServer_addListenerWithIdentPtr
+newCallback_GemServer_addListenerWithIdent(T* instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServer_addListenerWithIdent<T, CT>(instance, 0, excb, sentcb);
 }
 
 template<class T>
