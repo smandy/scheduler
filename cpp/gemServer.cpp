@@ -85,7 +85,6 @@ public:
             std::cout << "Looping " << job.id << std::endl;
             blockDependenciesOf( job.id );
         }
-
         for ( auto& listener : listeners) {
             listener->begin_onUpdate(batch.jobs,
                                      []() {
@@ -220,7 +219,16 @@ public:
     virtual void addListenerWithIdent_async(const ::Gem::AMD_GemServer_addListenerWithIdentPtr& cb, const ::Ice::Identity& ident, const ::Ice::Current& current = ::Ice::Current()) {
         std::cout << "Addlistener with ident" << std::endl;
         ::Gem::GemServerListenerPrx client = Gem::GemServerListenerPrx::uncheckedCast(current.con->createProxy(ident));
-        listeners.insert(client);
+        Gem::Image img { jobs };
+        //std::cout << "Made image " << std::endl;
+        client->begin_onImage( img ,
+                               [this,client]() {
+                                   std::cout << "Success with image" << std::endl;
+                                   listeners.insert(client);
+                               },
+                               [](const Ice::Exception& ex) {
+                                   std::cout << "Failed to send to listener - sod him " << ex.what() << std::endl;
+                               });
         cb->ice_response();
     };
     

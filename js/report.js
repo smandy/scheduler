@@ -2,7 +2,7 @@ var grid;
 var data = [];
 var options = {
     editable: false,
-    enableAddRow: false,
+    enableAddRow: true,
     enableCellNavigation: true,
     enableColumnReorder : false
 };
@@ -25,7 +25,6 @@ var iid = new Ice.InitializationData();
 var props = Ice.createProperties();
 
 props.setProperty('Ice.Default.Locator', 'IceGrid/Locator:ws -h raffles -p 4063');
-props.setProperty( 'GemServer.Proxy' , 'server@GemServer');
 iid.properties = props;
 
 var communicator = Ice.initialize( iid );
@@ -36,6 +35,10 @@ console.log("About to ping " + proxy);
 var MyCallBackReceiver = Ice.Class( Gem.GemServerListener, {
     onImage_async : function( cb, image, current) {
         console.log("On Image!");
+        for (i = 0;i<image.jobs.length;i++) {
+            data[i] = image.jobs[i];
+            grid.invalidateRow(i);
+        }
         cb.ice_response();
     },
     onUpdate_async : function( cb, jobs, current) {
@@ -47,44 +50,34 @@ var MyCallBackReceiver = Ice.Class( Gem.GemServerListener, {
 var server;
 Gem.GemServerPrx.checkedCast( proxy ).then( function(prx) {
     server = prx;
-    server.getJobs().then( function(jobs) {
-        console.log("Woot got " + jobs.length);
-        for (i = 0;i<jobs.length;i++) {
-            data[i] = jobs[i];
-            grid.invalidateRow(i);
-        }
-        grid.render();
-        return communicator.createObjectAdapter("").then(
-            function(adapter)
-            {
-                console.log("Made adapter");
-                //
-                // Create a callback receiver servant and add it to
-                // the object adapter.
-                //
-                var r = adapter.addWithUUID(new MyCallBackReceiver());
-                
-                //
-                // Set the connection adapter and remember the connection.
-                //
-                connection = proxy.ice_getCachedConnection();
-                connection.setAdapter(adapter);
-                //
-                // Register the client with the bidir server.
-                var ident = r.ice_getIdentity();
-                console.log("Going for it " + server + 'ident is ' + ident.name);
-                server.addListenerWithIdent(r.ice_getIdentity()).then(
-                    function() {
-                        console.log('uranu');
-                    },
-                    function(ex) {
-                        console.log('uvavu ' + ex);
-                    });
-                console.log("Went for it");
-            });
-    }, function(ex) {
-        console.log('failed');
-    });
-});
+    return communicator.createObjectAdapter("").then(
+        function(adapter)
+        {
+            console.log("Made adapter");
+            //
+            // Create a callback receiver servant and add it to
+            // the object adapter.
+            //
+            var r = adapter.addWithUUID(new MyCallBackReceiver());
+            
+            //
+            // Set the connection adapter and remember the connection.
+            //
+            connection = proxy.ice_getCachedConnection();
+            connection.setAdapter(adapter);
+            //
+            // Register the client with the bidir server.
+            var ident = r.ice_getIdentity();
+            console.log("Going for it " + server + 'ident is ' + ident.name);
+            server.addListenerWithIdent(r.ice_getIdentity()).then(
+                function() {
+                    console.log('uranu');
+                },
+                function(ex) {
+                    console.log('uvavu ' + ex);
+                });
+            console.log("Went for it");
+        });
+} );
 
 
