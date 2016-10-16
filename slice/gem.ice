@@ -64,6 +64,7 @@ module Gem {
     interface GemServerListener {
         ["amd"] void onImage( Image image);
         ["amd"] void onUpdate( JobSeq jobs);
+        ["amd"] void reset( );
     };
 
     exception JobNotFound {

@@ -185,7 +185,8 @@
     Slice.defineOperations(Gem.GemServerListener, Gem.GemServerListenerPrx,
     {
         "onImage": [, , , 1, , , [[Gem.Image]], , , , ],
-        "onUpdate": [, , , 1, , , [["Gem.JobSeqHelper"]], , , , ]
+        "onUpdate": [, , , 1, , , [["Gem.JobSeqHelper"]], , , , ],
+        "reset": [, , , 1, , , , , , , ]
     });
 
     Gem.JobNotFound = Slice.defineUserException(

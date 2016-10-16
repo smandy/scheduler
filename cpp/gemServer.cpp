@@ -14,10 +14,9 @@
 
 class GemServerImpl : public Gem::GemServer {
     std::vector<Gem::Job> jobs;
-    //Gem::GemServerListenerPrx pubToListeners;
     IceStorm::TopicPrx topic;
     std::unordered_map<std::string, std::vector<std::string> > dependants;
-    std::set<::Gem::GemServerListenerPrx> listeners;
+    std::set<Gem::GemServerListenerPrx> listeners;
 public:
     GemServerImpl(Ice::CommunicatorPtr communicator) {
         std::cout << "Get Topic" << std::endl;
@@ -184,7 +183,9 @@ public:
                                          [&](const Ice::Exception& ex) {
                                              std::cout << "Bad listener" << std::endl;
                                              auto it = listeners.find(listener);
-                                             listeners.erase( it );
+                                             if ( it != end(listeners) ) {
+                                                 listeners.erase( it );
+                                             }
                                          });
             }
         }
@@ -216,7 +217,9 @@ public:
             job->state != Gem::JobState::COMPLETED;
     }
 
-    virtual void addListenerWithIdent_async(const ::Gem::AMD_GemServer_addListenerWithIdentPtr& cb, const ::Ice::Identity& ident, const ::Ice::Current& current = ::Ice::Current()) {
+    virtual void addListenerWithIdent_async(const ::Gem::AMD_GemServer_addListenerWithIdentPtr& cb,
+                                            const ::Ice::Identity& ident,
+                                            const ::Ice::Current& current = ::Ice::Current()) {
         std::cout << "Addlistener with ident" << std::endl;
         ::Gem::GemServerListenerPrx client = Gem::GemServerListenerPrx::uncheckedCast(current.con->createProxy(ident));
         Gem::Image img { jobs };

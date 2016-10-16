@@ -47,6 +47,8 @@ const ::std::string __Gem__GemServerListener__onImage_name = "onImage";
 
 const ::std::string __Gem__GemServerListener__onUpdate_name = "onUpdate";
 
+const ::std::string __Gem__GemServerListener__reset_name = "reset";
+
 const ::std::string __Gem__GemServer__submitBatch_name = "submitBatch";
 
 const ::std::string __Gem__GemServer__startJob_name = "startJob";
@@ -150,6 +152,21 @@ IceAsync::Gem::AMD_GemServerListener_onUpdate::AMD_GemServerListener_onUpdate(::
 
 void
 IceAsync::Gem::AMD_GemServerListener_onUpdate::ice_response()
+{
+    if(__validateResponse(true))
+    {
+        __writeEmptyParams();
+        __response();
+    }
+}
+
+IceAsync::Gem::AMD_GemServerListener_reset::AMD_GemServerListener_reset(::IceInternal::Incoming& in) :
+    ::IceInternal::IncomingAsync(in)
+{
+}
+
+void
+IceAsync::Gem::AMD_GemServerListener_reset::ice_response()
 {
     if(__validateResponse(true))
     {
@@ -494,6 +511,37 @@ void
 IceProxy::Gem::GemServerListener::end_onUpdate(const ::Ice::AsyncResultPtr& __result)
 {
     __end(__result, __Gem__GemServerListener__onUpdate_name);
+}
+
+void
+IceProxy::Gem::GemServerListener::reset(const ::Ice::Context* __ctx)
+{
+    ::IceInternal::Outgoing __og(this, __Gem__GemServerListener__reset_name, ::Ice::Normal, __ctx);
+    __og.writeEmptyParams();
+    __invoke(__og);
+}
+
+::Ice::AsyncResultPtr
+IceProxy::Gem::GemServerListener::begin_reset(const ::Ice::Context* __ctx, const ::IceInternal::CallbackBasePtr& __del, const ::Ice::LocalObjectPtr& __cookie)
+{
+    ::IceInternal::OutgoingAsyncPtr __result = new ::IceInternal::OutgoingAsync(this, __Gem__GemServerListener__reset_name, __del, __cookie);
+    try
+    {
+        __result->prepare(__Gem__GemServerListener__reset_name, ::Ice::Normal, __ctx);
+        __result->writeEmptyParams();
+        __result->invoke();
+    }
+    catch(const ::Ice::Exception& __ex)
+    {
+        __result->abort(__ex);
+    }
+    return __result;
+}
+
+void
+IceProxy::Gem::GemServerListener::end_reset(const ::Ice::AsyncResultPtr& __result)
+{
+    __end(__result, __Gem__GemServerListener__reset_name);
 }
 
 const ::std::string&
@@ -1413,6 +1461,27 @@ Gem::GemServerListener::___onUpdate(::IceInternal::Incoming& __inS, const ::Ice:
     return ::Ice::DispatchAsync;
 }
 
+::Ice::DispatchStatus
+Gem::GemServerListener::___reset(::IceInternal::Incoming& __inS, const ::Ice::Current& __current)
+{
+    __checkMode(::Ice::Normal, __current.mode);
+    __inS.readEmptyParams();
+    ::Gem::AMD_GemServerListener_resetPtr __cb = new IceAsync::Gem::AMD_GemServerListener_reset(__inS);
+    try
+    {
+        reset_async(__cb, __current);
+    }
+    catch(const ::std::exception& __ex)
+    {
+        __cb->ice_exception(__ex);
+    }
+    catch(...)
+    {
+        __cb->ice_exception();
+    }
+    return ::Ice::DispatchAsync;
+}
+
 namespace
 {
 const ::std::string __Gem__GemServerListener_all[] =
@@ -1422,7 +1491,8 @@ const ::std::string __Gem__GemServerListener_all[] =
     "ice_isA",
     "ice_ping",
     "onImage",
-    "onUpdate"
+    "onUpdate",
+    "reset"
 };
 
 }
@@ -1430,7 +1500,7 @@ const ::std::string __Gem__GemServerListener_all[] =
 ::Ice::DispatchStatus
 Gem::GemServerListener::__dispatch(::IceInternal::Incoming& in, const ::Ice::Current& current)
 {
-    ::std::pair< const ::std::string*, const ::std::string*> r = ::std::equal_range(__Gem__GemServerListener_all, __Gem__GemServerListener_all + 6, current.operation);
+    ::std::pair< const ::std::string*, const ::std::string*> r = ::std::equal_range(__Gem__GemServerListener_all, __Gem__GemServerListener_all + 7, current.operation);
     if(r.first == r.second)
     {
         throw ::Ice::OperationNotExistException(__FILE__, __LINE__, current.id, current.facet, current.operation);
@@ -1461,6 +1531,10 @@ Gem::GemServerListener::__dispatch(::IceInternal::Incoming& in, const ::Ice::Cur
         case 5:
         {
             return ___onUpdate(in, current);
+        }
+        case 6:
+        {
+            return ___reset(in, current);
         }
     }
 

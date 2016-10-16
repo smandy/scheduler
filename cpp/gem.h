@@ -609,6 +609,15 @@ public:
 
 typedef ::IceUtil::Handle< ::Gem::AMD_GemServerListener_onUpdate> AMD_GemServerListener_onUpdatePtr;
 
+class AMD_GemServerListener_reset : virtual public ::Ice::AMDCallback
+{
+public:
+
+    virtual void ice_response() = 0;
+};
+
+typedef ::IceUtil::Handle< ::Gem::AMD_GemServerListener_reset> AMD_GemServerListener_resetPtr;
+
 class AMD_GemServer_submitBatch : virtual public ::Ice::AMDCallback
 {
 public:
@@ -743,6 +752,15 @@ public:
     virtual void ice_response();
 };
 
+class AMD_GemServerListener_reset : public ::Gem::AMD_GemServerListener_reset, public ::IceInternal::IncomingAsync
+{
+public:
+
+    AMD_GemServerListener_reset(::IceInternal::Incoming&);
+
+    virtual void ice_response();
+};
+
 class AMD_GemServer_submitBatch : public ::Gem::AMD_GemServer_submitBatch, public ::IceInternal::IncomingAsync
 {
 public:
@@ -866,6 +884,9 @@ typedef ::IceUtil::Handle< Callback_GemServerListener_onImage_Base> Callback_Gem
 
 class Callback_GemServerListener_onUpdate_Base : virtual public ::IceInternal::CallbackBase { };
 typedef ::IceUtil::Handle< Callback_GemServerListener_onUpdate_Base> Callback_GemServerListener_onUpdatePtr;
+
+class Callback_GemServerListener_reset_Base : virtual public ::IceInternal::CallbackBase { };
+typedef ::IceUtil::Handle< Callback_GemServerListener_reset_Base> Callback_GemServerListener_resetPtr;
 
 class Callback_GemServer_submitBatch_Base : virtual public ::IceInternal::CallbackBase { };
 typedef ::IceUtil::Handle< Callback_GemServer_submitBatch_Base> Callback_GemServer_submitBatchPtr;
@@ -1052,6 +1073,76 @@ private:
 
     void onUpdate(const ::Gem::JobSeq&, const ::Ice::Context*);
     ::Ice::AsyncResultPtr begin_onUpdate(const ::Gem::JobSeq&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
+    
+public:
+
+    void reset()
+    {
+        reset(0);
+    }
+    void reset(const ::Ice::Context& __ctx)
+    {
+        reset(&__ctx);
+    }
+#ifdef ICE_CPP11
+    ::Ice::AsyncResultPtr
+    begin_reset(const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    {
+        return begin_reset(0, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent));
+    }
+    ::Ice::AsyncResultPtr
+    begin_reset(const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    {
+        return begin_reset(0, ::Ice::newCallback(__completed, __sent), 0);
+    }
+    ::Ice::AsyncResultPtr
+    begin_reset(const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    {
+        return begin_reset(&__ctx, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent), 0);
+    }
+    ::Ice::AsyncResultPtr
+    begin_reset(const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    {
+        return begin_reset(&__ctx, ::Ice::newCallback(__completed, __sent));
+    }
+#endif
+
+    ::Ice::AsyncResultPtr begin_reset()
+    {
+        return begin_reset(0, ::IceInternal::__dummyCallback, 0);
+    }
+
+    ::Ice::AsyncResultPtr begin_reset(const ::Ice::Context& __ctx)
+    {
+        return begin_reset(&__ctx, ::IceInternal::__dummyCallback, 0);
+    }
+
+    ::Ice::AsyncResultPtr begin_reset(const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_reset(0, __del, __cookie);
+    }
+
+    ::Ice::AsyncResultPtr begin_reset(const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_reset(&__ctx, __del, __cookie);
+    }
+
+    ::Ice::AsyncResultPtr begin_reset(const ::Gem::Callback_GemServerListener_resetPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_reset(0, __del, __cookie);
+    }
+
+    ::Ice::AsyncResultPtr begin_reset(const ::Ice::Context& __ctx, const ::Gem::Callback_GemServerListener_resetPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_reset(&__ctx, __del, __cookie);
+    }
+
+    void end_reset(const ::Ice::AsyncResultPtr&);
+    
+private:
+
+    void reset(const ::Ice::Context*);
+    ::Ice::AsyncResultPtr begin_reset(const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
     
 public:
     
@@ -2170,6 +2261,9 @@ public:
     virtual void onUpdate_async(const ::Gem::AMD_GemServerListener_onUpdatePtr&, const ::Gem::JobSeq&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___onUpdate(::IceInternal::Incoming&, const ::Ice::Current&);
 
+    virtual void reset_async(const ::Gem::AMD_GemServerListener_resetPtr&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    ::Ice::DispatchStatus ___reset(::IceInternal::Incoming&, const ::Ice::Current&);
+
     virtual ::Ice::DispatchStatus __dispatch(::IceInternal::Incoming&, const ::Ice::Current&);
 
 protected:
@@ -2423,6 +2517,88 @@ template<class T, typename CT> Callback_GemServerListener_onUpdatePtr
 newCallback_GemServerListener_onUpdate(T* instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
 {
     return new Callback_GemServerListener_onUpdate<T, CT>(instance, 0, excb, sentcb);
+}
+
+template<class T>
+class CallbackNC_GemServerListener_reset : public Callback_GemServerListener_reset_Base, public ::IceInternal::OnewayCallbackNC<T>
+{
+public:
+
+    typedef IceUtil::Handle<T> TPtr;
+
+    typedef void (T::*Exception)(const ::Ice::Exception&);
+    typedef void (T::*Sent)(bool);
+    typedef void (T::*Response)();
+
+    CallbackNC_GemServerListener_reset(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
+        : ::IceInternal::OnewayCallbackNC<T>(obj, cb, excb, sentcb)
+    {
+    }
+};
+
+template<class T> Callback_GemServerListener_resetPtr
+newCallback_GemServerListener_reset(const IceUtil::Handle<T>& instance, void (T::*cb)(), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServerListener_reset<T>(instance, cb, excb, sentcb);
+}
+
+template<class T> Callback_GemServerListener_resetPtr
+newCallback_GemServerListener_reset(const IceUtil::Handle<T>& instance, void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServerListener_reset<T>(instance, 0, excb, sentcb);
+}
+
+template<class T> Callback_GemServerListener_resetPtr
+newCallback_GemServerListener_reset(T* instance, void (T::*cb)(), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServerListener_reset<T>(instance, cb, excb, sentcb);
+}
+
+template<class T> Callback_GemServerListener_resetPtr
+newCallback_GemServerListener_reset(T* instance, void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServerListener_reset<T>(instance, 0, excb, sentcb);
+}
+
+template<class T, typename CT>
+class Callback_GemServerListener_reset : public Callback_GemServerListener_reset_Base, public ::IceInternal::OnewayCallback<T, CT>
+{
+public:
+
+    typedef IceUtil::Handle<T> TPtr;
+
+    typedef void (T::*Exception)(const ::Ice::Exception& , const CT&);
+    typedef void (T::*Sent)(bool , const CT&);
+    typedef void (T::*Response)(const CT&);
+
+    Callback_GemServerListener_reset(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
+        : ::IceInternal::OnewayCallback<T, CT>(obj, cb, excb, sentcb)
+    {
+    }
+};
+
+template<class T, typename CT> Callback_GemServerListener_resetPtr
+newCallback_GemServerListener_reset(const IceUtil::Handle<T>& instance, void (T::*cb)(const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServerListener_reset<T, CT>(instance, cb, excb, sentcb);
+}
+
+template<class T, typename CT> Callback_GemServerListener_resetPtr
+newCallback_GemServerListener_reset(const IceUtil::Handle<T>& instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServerListener_reset<T, CT>(instance, 0, excb, sentcb);
+}
+
+template<class T, typename CT> Callback_GemServerListener_resetPtr
+newCallback_GemServerListener_reset(T* instance, void (T::*cb)(const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServerListener_reset<T, CT>(instance, cb, excb, sentcb);
+}
+
+template<class T, typename CT> Callback_GemServerListener_resetPtr
+newCallback_GemServerListener_reset(T* instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServerListener_reset<T, CT>(instance, 0, excb, sentcb);
 }
 
 template<class T>
