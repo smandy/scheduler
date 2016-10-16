@@ -3,3 +3,13 @@
 /cpp/.sconsign.dblite
 /cpp/builders.pyc
 /cpp/gemServer
+
+**/#.*#
+#*#
+.#*
+
+/js/bower_components/**
+/js/node_modules/**
+/js/from_repo/**
+/js/.depend/**
+/js/#gemExperiment.js#

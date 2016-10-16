@@ -6,12 +6,7 @@ import sys
 import time
 import subprocess
 from datetime import datetime
-
-Ice.loadSlice( '../slice/gem.ice')
-import Gem
-
-print "Goo"
-print "Foo"
+from gemHelper import Gem
 
 if 'INSIDE_EMACS' in os.environ:
     # Andy Testing
@@ -30,6 +25,7 @@ def checkedProperty(s, p = communicator.getProperties()):
 defaultDir = os.path.expanduser('~/worker')
 if not os.path.isdir(defaultDir):
     os.makedirs(defaultDir)
+    
 i = 0
 while True:
     dirName = "%s/%05d" % (defaultDir, i)
@@ -52,6 +48,7 @@ import exampleBatch
 server.reset()
 batch = exampleBatch.makeBatch()
 server.submitBatch(batch)
+# Cue up a batch - don't use in real world!
 
 class Job(object):
     __slots__= ['job','p']
@@ -86,7 +83,7 @@ while True:
     dirty = False
     newStates = []
     while len(jobs) < maxJobs:
-        newJob = server.getStartableJob( myId )
+        newJob = server.getStartableJob(myId)
         if newJob:
             print "Got job %s" % newJob[0].id
             newJob[0].state = js.STARTED

@@ -32,7 +32,7 @@ public:
         pubToListeners = Gem::GemServerListenerPrx::uncheckedCast(topic->getPublisher());
         std::cout << "Done" << std::endl;
     }
-
+    
     inline Gem::Job* find(const std::string& id) {
         static thread_local Gem::Job finder;
         Gem::Job *ret = nullptr;
@@ -229,7 +229,7 @@ int main(int argc, char *argv[]) {
     auto adapter = communicator->createObjectAdapter("GemServer");
     std::cout << "Add impl to adapter" << std::endl;
     
-    // Liveness ensured by scope of main
+    // Liveness of server ensured by scope of main
     auto prx = adapter->add(server.get(), communicator->stringToIdentity("server"));
     std::cout << "Activate adpater" << std::endl;
     adapter->activate();

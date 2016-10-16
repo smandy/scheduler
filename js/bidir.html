@@ -1,0 +1,45 @@
+<HTML>
+  <BODY>
+    <H1>Woot</H1>
+    <script src="/bower_components/ice/lib/Ice.min.js"></script>
+    <script src="/bower_components/ice/lib/Glacier2.min.js"></script>
+    <script src="/bower_components/ice/lib/IceStorm.min.js"></script>
+    <script src="/bower_components/ice/lib/IceGrid.min.js"></script>
+    <script src="/from_repo/jquery-1.7.min.js"></script>
+    <script src="/from_repo/jquery.event.drag-2.2.js"></script>
+    <script src="/bower_components/slickgrid/slick.core.js"></script>
+    <script src="/bower_components/slickgrid/slick.grid.js"></script>
+    <link rel="stylesheet" href="/bower_components/slickgrid/slick.grid.css" type="text/css"/>
+    <link rel="stylesheet" href="/bower_components/slickgrid/css/smoothness/jquery-ui-1.8.16.custom.css" type="text/css"/>
+    <script src="./Ticker.js"></script>
+
+    <div id="greeting"></div>
+    <div id="symbol"></div>
+    <div id="bid"></div>
+    <div id="ask"></div>
+    <div id="myGrid" style="width:100%;height:500px;"></div>
+
+    <style>
+      .load-medium {
+      color: orange;
+      font-weight: bold;
+      }
+
+      .load-hi {
+      color: red;
+      font-weight: bold;
+      }
+
+      .changed {
+      background: pink;
+      }
+
+      .current-server {
+      border: 1px solid black;
+      background: orange;
+      }
+    </style>
+    <script src="./bidir.js"></script>
+    
+  </BODY>
+</HTML>
