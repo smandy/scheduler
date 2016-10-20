@@ -1,10 +1,11 @@
-#include "gem.h"
+#include <memory>
 #include "Ice/Ice.h"
 #include "IceStorm/IceStorm.h"
 #include <memory>
 #include <unordered_map>
 #include <set>
 #include <iostream>
+#include "gem.h"
 
 // Pointers for getting icestorm up
 // Aha - the trick was exposing IceStorm/TopicManager as a well known object
@@ -84,7 +85,7 @@ public:
             std::cout << "Looping " << job.id << std::endl;
             blockDependenciesOf( job.id );
         }
-        for ( auto& listener : listeners) {
+        for (auto& listener : listeners) {
             listener->begin_onUpdate(batch.jobs,
                                      []() {
                                          std::cout << "Sent new jobs" << std::endl;

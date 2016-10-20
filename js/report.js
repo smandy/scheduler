@@ -1,5 +1,4 @@
 (function () {
-    var grid;
     var data = [];
     var lookup = [];
     var options = {
@@ -8,7 +7,6 @@
         enableCellNavigation: true,
         enableColumnReorder : false
     };
-    
     console.log("Bidir loading");
     var columns = [
         {id : "id", name: "Id", field: "id", width: 50},
@@ -20,22 +18,20 @@
         {id : "env", name: "env", field: "env", width: 180}
     ];
 
-    grid = new Slick.Grid("#myGrid", data, columns, options);
-
+    var grid = new Slick.Grid("#myGrid", data, columns, options);
     var iid = new Ice.InitializationData();
     var props = Ice.createProperties();
-
+    
     props.setProperty('Ice.Default.Locator', 'IceGrid/Locator:ws -h raffles -p 4063');
     iid.properties = props;
     
     var communicator = Ice.initialize( iid );
-
+    
     function clearObject(obj) {
         for (var x in obj) delete obj[x];
     }
-    
     var MyCallBackReceiver = Ice.Class( Gem.GemServerListener, {
-        onImage_async : function( cb, image, current) {
+        onImage_async : function(cb, image, current) {
             console.log("On Image! " + image.jobs.length);
             clearObject(data);
             clearObject(lookup);
@@ -47,7 +43,7 @@
             grid.render();
             cb.ice_response();
         },
-        onUpdate_async : function( cb, jobs, current) {
+        onUpdate_async : function(cb, jobs, current) {
             console.log("On Update! " + jobs.map( function(j) { return j.id; } ));
             for (i = 0;i<jobs.length;++i) {
                 var job = jobs[i];
@@ -67,7 +63,7 @@
             grid.render();
             cb.ice_response();
         },
-        onReset_async : function( cb , current) {
+        onReset_async : function(cb , current) {
             grid.clear();
             clearObject(data);
             clearObject(lookup);

@@ -6,7 +6,7 @@
               <property name="Ice.StdOut" value="/tmp/gem.txt" />
               <property name="Ice.StdErr" value="/tmp/gem.txt" />
               <property name="IceStorm.TopicManager" value="IceStorm/TopicManager" />
-              <property name="Gem.Topic" value="awada.jobs" />
+              <property name="Gem.Topic" value="dev.jobs" />
               <adapter name="GemServer" id="GemServer" endpoints="tcp -h raffles:ws -h raffles"/>
             </server>
         </node>
