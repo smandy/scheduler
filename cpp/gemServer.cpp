@@ -270,13 +270,15 @@ int main(int argc, char *argv[]) {
     std::cout << "Make adapter" << std::endl;
     auto adapter = communicator->createObjectAdapter("GemServer");
     std::cout << "Add impl to adapter" << std::endl;
-    
     // Liveness of server ensured by scope of main
-    auto prx = adapter->add(server.get(), communicator->stringToIdentity("server"));
+    auto prx = adapter->add(server.get(),
+                            communicator->stringToIdentity("server"));
     std::cout << "Activate adpater" << std::endl;
     adapter->activate();
     std::cout << "Wait for shutdown" << std::endl;
     communicator->waitForShutdown();
     std::cout << "Shutdown - exiting" << std::endl;
+    adapter->deactivate();
+    communicator->destroy();
 };
     
