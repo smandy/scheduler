@@ -363,6 +363,7 @@ struct Batch
 struct Image
 {
     ::Gem::JobSeq jobs;
+    ::std::string currentImage;
 };
 
 class JobNotFound : public ::Ice::UserException
@@ -558,7 +559,7 @@ template<>
 struct StreamableTraits< ::Gem::Image>
 {
     static const StreamHelperCategory helper = StreamHelperCategoryStruct;
-    static const int minWireSize = 1;
+    static const int minWireSize = 2;
     static const bool fixedLength = false;
 };
 
@@ -568,6 +569,7 @@ struct StreamWriter< ::Gem::Image, S>
     static void write(S* __os, const ::Gem::Image& v)
     {
         __os->write(v.jobs);
+        __os->write(v.currentImage);
     }
 };
 
@@ -577,6 +579,7 @@ struct StreamReader< ::Gem::Image, S>
     static void read(S* __is, ::Gem::Image& v)
     {
         __is->read(v.jobs);
+        __is->read(v.currentImage);
     }
 };
 
@@ -609,14 +612,23 @@ public:
 
 typedef ::IceUtil::Handle< ::Gem::AMD_GemServerListener_onUpdate> AMD_GemServerListener_onUpdatePtr;
 
-class AMD_GemServerListener_reset : virtual public ::Ice::AMDCallback
+class AMD_GemServerListener_onImageReady : virtual public ::Ice::AMDCallback
 {
 public:
 
     virtual void ice_response() = 0;
 };
 
-typedef ::IceUtil::Handle< ::Gem::AMD_GemServerListener_reset> AMD_GemServerListener_resetPtr;
+typedef ::IceUtil::Handle< ::Gem::AMD_GemServerListener_onImageReady> AMD_GemServerListener_onImageReadyPtr;
+
+class AMD_GemServerListener_onReset : virtual public ::Ice::AMDCallback
+{
+public:
+
+    virtual void ice_response() = 0;
+};
+
+typedef ::IceUtil::Handle< ::Gem::AMD_GemServerListener_onReset> AMD_GemServerListener_onResetPtr;
 
 class AMD_GemServer_submitBatch : virtual public ::Ice::AMDCallback
 {
@@ -726,6 +738,15 @@ public:
 
 typedef ::IceUtil::Handle< ::Gem::AMD_GemServer_onWorkerStates> AMD_GemServer_onWorkerStatesPtr;
 
+class AMD_GemServer_imageReady : virtual public ::Ice::AMDCallback
+{
+public:
+
+    virtual void ice_response() = 0;
+};
+
+typedef ::IceUtil::Handle< ::Gem::AMD_GemServer_imageReady> AMD_GemServer_imageReadyPtr;
+
 }
 
 namespace IceAsync
@@ -752,11 +773,20 @@ public:
     virtual void ice_response();
 };
 
-class AMD_GemServerListener_reset : public ::Gem::AMD_GemServerListener_reset, public ::IceInternal::IncomingAsync
+class AMD_GemServerListener_onImageReady : public ::Gem::AMD_GemServerListener_onImageReady, public ::IceInternal::IncomingAsync
 {
 public:
 
-    AMD_GemServerListener_reset(::IceInternal::Incoming&);
+    AMD_GemServerListener_onImageReady(::IceInternal::Incoming&);
+
+    virtual void ice_response();
+};
+
+class AMD_GemServerListener_onReset : public ::Gem::AMD_GemServerListener_onReset, public ::IceInternal::IncomingAsync
+{
+public:
+
+    AMD_GemServerListener_onReset(::IceInternal::Incoming&);
 
     virtual void ice_response();
 };
@@ -872,6 +902,15 @@ public:
     virtual void ice_response();
 };
 
+class AMD_GemServer_imageReady : public ::Gem::AMD_GemServer_imageReady, public ::IceInternal::IncomingAsync
+{
+public:
+
+    AMD_GemServer_imageReady(::IceInternal::Incoming&);
+
+    virtual void ice_response();
+};
+
 }
 
 }
@@ -885,8 +924,11 @@ typedef ::IceUtil::Handle< Callback_GemServerListener_onImage_Base> Callback_Gem
 class Callback_GemServerListener_onUpdate_Base : virtual public ::IceInternal::CallbackBase { };
 typedef ::IceUtil::Handle< Callback_GemServerListener_onUpdate_Base> Callback_GemServerListener_onUpdatePtr;
 
-class Callback_GemServerListener_reset_Base : virtual public ::IceInternal::CallbackBase { };
-typedef ::IceUtil::Handle< Callback_GemServerListener_reset_Base> Callback_GemServerListener_resetPtr;
+class Callback_GemServerListener_onImageReady_Base : virtual public ::IceInternal::CallbackBase { };
+typedef ::IceUtil::Handle< Callback_GemServerListener_onImageReady_Base> Callback_GemServerListener_onImageReadyPtr;
+
+class Callback_GemServerListener_onReset_Base : virtual public ::IceInternal::CallbackBase { };
+typedef ::IceUtil::Handle< Callback_GemServerListener_onReset_Base> Callback_GemServerListener_onResetPtr;
 
 class Callback_GemServer_submitBatch_Base : virtual public ::IceInternal::CallbackBase { };
 typedef ::IceUtil::Handle< Callback_GemServer_submitBatch_Base> Callback_GemServer_submitBatchPtr;
@@ -923,6 +965,9 @@ typedef ::IceUtil::Handle< Callback_GemServer_addListenerWithIdent_Base> Callbac
 
 class Callback_GemServer_onWorkerStates_Base : virtual public ::IceInternal::CallbackBase { };
 typedef ::IceUtil::Handle< Callback_GemServer_onWorkerStates_Base> Callback_GemServer_onWorkerStatesPtr;
+
+class Callback_GemServer_imageReady_Base : virtual public ::IceInternal::CallbackBase { };
+typedef ::IceUtil::Handle< Callback_GemServer_imageReady_Base> Callback_GemServer_imageReadyPtr;
 
 }
 
@@ -1076,73 +1121,143 @@ private:
     
 public:
 
-    void reset()
+    void onImageReady(const ::std::string& __p_imgId)
     {
-        reset(0);
+        onImageReady(__p_imgId, 0);
     }
-    void reset(const ::Ice::Context& __ctx)
+    void onImageReady(const ::std::string& __p_imgId, const ::Ice::Context& __ctx)
     {
-        reset(&__ctx);
+        onImageReady(__p_imgId, &__ctx);
     }
 #ifdef ICE_CPP11
     ::Ice::AsyncResultPtr
-    begin_reset(const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_onImageReady(const ::std::string& __p_imgId, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
-        return begin_reset(0, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent));
+        return begin_onImageReady(__p_imgId, 0, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent));
     }
     ::Ice::AsyncResultPtr
-    begin_reset(const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    begin_onImageReady(const ::std::string& __p_imgId, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
     {
-        return begin_reset(0, ::Ice::newCallback(__completed, __sent), 0);
+        return begin_onImageReady(__p_imgId, 0, ::Ice::newCallback(__completed, __sent), 0);
     }
     ::Ice::AsyncResultPtr
-    begin_reset(const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_onImageReady(const ::std::string& __p_imgId, const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
-        return begin_reset(&__ctx, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent), 0);
+        return begin_onImageReady(__p_imgId, &__ctx, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent), 0);
     }
     ::Ice::AsyncResultPtr
-    begin_reset(const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    begin_onImageReady(const ::std::string& __p_imgId, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
     {
-        return begin_reset(&__ctx, ::Ice::newCallback(__completed, __sent));
+        return begin_onImageReady(__p_imgId, &__ctx, ::Ice::newCallback(__completed, __sent));
     }
 #endif
 
-    ::Ice::AsyncResultPtr begin_reset()
+    ::Ice::AsyncResultPtr begin_onImageReady(const ::std::string& __p_imgId)
     {
-        return begin_reset(0, ::IceInternal::__dummyCallback, 0);
+        return begin_onImageReady(__p_imgId, 0, ::IceInternal::__dummyCallback, 0);
     }
 
-    ::Ice::AsyncResultPtr begin_reset(const ::Ice::Context& __ctx)
+    ::Ice::AsyncResultPtr begin_onImageReady(const ::std::string& __p_imgId, const ::Ice::Context& __ctx)
     {
-        return begin_reset(&__ctx, ::IceInternal::__dummyCallback, 0);
+        return begin_onImageReady(__p_imgId, &__ctx, ::IceInternal::__dummyCallback, 0);
     }
 
-    ::Ice::AsyncResultPtr begin_reset(const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_onImageReady(const ::std::string& __p_imgId, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
-        return begin_reset(0, __del, __cookie);
+        return begin_onImageReady(__p_imgId, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_reset(const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_onImageReady(const ::std::string& __p_imgId, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
-        return begin_reset(&__ctx, __del, __cookie);
+        return begin_onImageReady(__p_imgId, &__ctx, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_reset(const ::Gem::Callback_GemServerListener_resetPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_onImageReady(const ::std::string& __p_imgId, const ::Gem::Callback_GemServerListener_onImageReadyPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
-        return begin_reset(0, __del, __cookie);
+        return begin_onImageReady(__p_imgId, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_reset(const ::Ice::Context& __ctx, const ::Gem::Callback_GemServerListener_resetPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_onImageReady(const ::std::string& __p_imgId, const ::Ice::Context& __ctx, const ::Gem::Callback_GemServerListener_onImageReadyPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
-        return begin_reset(&__ctx, __del, __cookie);
+        return begin_onImageReady(__p_imgId, &__ctx, __del, __cookie);
     }
 
-    void end_reset(const ::Ice::AsyncResultPtr&);
+    void end_onImageReady(const ::Ice::AsyncResultPtr&);
     
 private:
 
-    void reset(const ::Ice::Context*);
-    ::Ice::AsyncResultPtr begin_reset(const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
+    void onImageReady(const ::std::string&, const ::Ice::Context*);
+    ::Ice::AsyncResultPtr begin_onImageReady(const ::std::string&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
+    
+public:
+
+    void onReset()
+    {
+        onReset(0);
+    }
+    void onReset(const ::Ice::Context& __ctx)
+    {
+        onReset(&__ctx);
+    }
+#ifdef ICE_CPP11
+    ::Ice::AsyncResultPtr
+    begin_onReset(const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    {
+        return begin_onReset(0, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent));
+    }
+    ::Ice::AsyncResultPtr
+    begin_onReset(const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    {
+        return begin_onReset(0, ::Ice::newCallback(__completed, __sent), 0);
+    }
+    ::Ice::AsyncResultPtr
+    begin_onReset(const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    {
+        return begin_onReset(&__ctx, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent), 0);
+    }
+    ::Ice::AsyncResultPtr
+    begin_onReset(const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    {
+        return begin_onReset(&__ctx, ::Ice::newCallback(__completed, __sent));
+    }
+#endif
+
+    ::Ice::AsyncResultPtr begin_onReset()
+    {
+        return begin_onReset(0, ::IceInternal::__dummyCallback, 0);
+    }
+
+    ::Ice::AsyncResultPtr begin_onReset(const ::Ice::Context& __ctx)
+    {
+        return begin_onReset(&__ctx, ::IceInternal::__dummyCallback, 0);
+    }
+
+    ::Ice::AsyncResultPtr begin_onReset(const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_onReset(0, __del, __cookie);
+    }
+
+    ::Ice::AsyncResultPtr begin_onReset(const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_onReset(&__ctx, __del, __cookie);
+    }
+
+    ::Ice::AsyncResultPtr begin_onReset(const ::Gem::Callback_GemServerListener_onResetPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_onReset(0, __del, __cookie);
+    }
+
+    ::Ice::AsyncResultPtr begin_onReset(const ::Ice::Context& __ctx, const ::Gem::Callback_GemServerListener_onResetPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_onReset(&__ctx, __del, __cookie);
+    }
+
+    void end_onReset(const ::Ice::AsyncResultPtr&);
+    
+private:
+
+    void onReset(const ::Ice::Context*);
+    ::Ice::AsyncResultPtr begin_onReset(const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
     
 public:
     
@@ -2124,6 +2239,76 @@ private:
     ::Ice::AsyncResultPtr begin_onWorkerStates(const ::Gem::JobWorkerStateSeq&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
     
 public:
+
+    void imageReady(const ::std::string& __p_imgId)
+    {
+        imageReady(__p_imgId, 0);
+    }
+    void imageReady(const ::std::string& __p_imgId, const ::Ice::Context& __ctx)
+    {
+        imageReady(__p_imgId, &__ctx);
+    }
+#ifdef ICE_CPP11
+    ::Ice::AsyncResultPtr
+    begin_imageReady(const ::std::string& __p_imgId, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    {
+        return begin_imageReady(__p_imgId, 0, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent));
+    }
+    ::Ice::AsyncResultPtr
+    begin_imageReady(const ::std::string& __p_imgId, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    {
+        return begin_imageReady(__p_imgId, 0, ::Ice::newCallback(__completed, __sent), 0);
+    }
+    ::Ice::AsyncResultPtr
+    begin_imageReady(const ::std::string& __p_imgId, const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    {
+        return begin_imageReady(__p_imgId, &__ctx, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent), 0);
+    }
+    ::Ice::AsyncResultPtr
+    begin_imageReady(const ::std::string& __p_imgId, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    {
+        return begin_imageReady(__p_imgId, &__ctx, ::Ice::newCallback(__completed, __sent));
+    }
+#endif
+
+    ::Ice::AsyncResultPtr begin_imageReady(const ::std::string& __p_imgId)
+    {
+        return begin_imageReady(__p_imgId, 0, ::IceInternal::__dummyCallback, 0);
+    }
+
+    ::Ice::AsyncResultPtr begin_imageReady(const ::std::string& __p_imgId, const ::Ice::Context& __ctx)
+    {
+        return begin_imageReady(__p_imgId, &__ctx, ::IceInternal::__dummyCallback, 0);
+    }
+
+    ::Ice::AsyncResultPtr begin_imageReady(const ::std::string& __p_imgId, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_imageReady(__p_imgId, 0, __del, __cookie);
+    }
+
+    ::Ice::AsyncResultPtr begin_imageReady(const ::std::string& __p_imgId, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_imageReady(__p_imgId, &__ctx, __del, __cookie);
+    }
+
+    ::Ice::AsyncResultPtr begin_imageReady(const ::std::string& __p_imgId, const ::Gem::Callback_GemServer_imageReadyPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_imageReady(__p_imgId, 0, __del, __cookie);
+    }
+
+    ::Ice::AsyncResultPtr begin_imageReady(const ::std::string& __p_imgId, const ::Ice::Context& __ctx, const ::Gem::Callback_GemServer_imageReadyPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    {
+        return begin_imageReady(__p_imgId, &__ctx, __del, __cookie);
+    }
+
+    void end_imageReady(const ::Ice::AsyncResultPtr&);
+    
+private:
+
+    void imageReady(const ::std::string&, const ::Ice::Context*);
+    ::Ice::AsyncResultPtr begin_imageReady(const ::std::string&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
+    
+public:
     
     ::IceInternal::ProxyHandle<GemServer> ice_context(const ::Ice::Context& __context) const
     {
@@ -2261,8 +2446,11 @@ public:
     virtual void onUpdate_async(const ::Gem::AMD_GemServerListener_onUpdatePtr&, const ::Gem::JobSeq&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___onUpdate(::IceInternal::Incoming&, const ::Ice::Current&);
 
-    virtual void reset_async(const ::Gem::AMD_GemServerListener_resetPtr&, const ::Ice::Current& = ::Ice::Current()) = 0;
-    ::Ice::DispatchStatus ___reset(::IceInternal::Incoming&, const ::Ice::Current&);
+    virtual void onImageReady_async(const ::Gem::AMD_GemServerListener_onImageReadyPtr&, const ::std::string&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    ::Ice::DispatchStatus ___onImageReady(::IceInternal::Incoming&, const ::Ice::Current&);
+
+    virtual void onReset_async(const ::Gem::AMD_GemServerListener_onResetPtr&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    ::Ice::DispatchStatus ___onReset(::IceInternal::Incoming&, const ::Ice::Current&);
 
     virtual ::Ice::DispatchStatus __dispatch(::IceInternal::Incoming&, const ::Ice::Current&);
 
@@ -2330,6 +2518,9 @@ public:
 
     virtual void onWorkerStates_async(const ::Gem::AMD_GemServer_onWorkerStatesPtr&, const ::Gem::JobWorkerStateSeq&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___onWorkerStates(::IceInternal::Incoming&, const ::Ice::Current&);
+
+    virtual void imageReady_async(const ::Gem::AMD_GemServer_imageReadyPtr&, const ::std::string&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    ::Ice::DispatchStatus ___imageReady(::IceInternal::Incoming&, const ::Ice::Current&);
 
     virtual ::Ice::DispatchStatus __dispatch(::IceInternal::Incoming&, const ::Ice::Current&);
 
@@ -2520,7 +2711,7 @@ newCallback_GemServerListener_onUpdate(T* instance, void (T::*excb)(const ::Ice:
 }
 
 template<class T>
-class CallbackNC_GemServerListener_reset : public Callback_GemServerListener_reset_Base, public ::IceInternal::OnewayCallbackNC<T>
+class CallbackNC_GemServerListener_onImageReady : public Callback_GemServerListener_onImageReady_Base, public ::IceInternal::OnewayCallbackNC<T>
 {
 public:
 
@@ -2530,38 +2721,38 @@ public:
     typedef void (T::*Sent)(bool);
     typedef void (T::*Response)();
 
-    CallbackNC_GemServerListener_reset(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
+    CallbackNC_GemServerListener_onImageReady(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
         : ::IceInternal::OnewayCallbackNC<T>(obj, cb, excb, sentcb)
     {
     }
 };
 
-template<class T> Callback_GemServerListener_resetPtr
-newCallback_GemServerListener_reset(const IceUtil::Handle<T>& instance, void (T::*cb)(), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+template<class T> Callback_GemServerListener_onImageReadyPtr
+newCallback_GemServerListener_onImageReady(const IceUtil::Handle<T>& instance, void (T::*cb)(), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
 {
-    return new CallbackNC_GemServerListener_reset<T>(instance, cb, excb, sentcb);
+    return new CallbackNC_GemServerListener_onImageReady<T>(instance, cb, excb, sentcb);
 }
 
-template<class T> Callback_GemServerListener_resetPtr
-newCallback_GemServerListener_reset(const IceUtil::Handle<T>& instance, void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+template<class T> Callback_GemServerListener_onImageReadyPtr
+newCallback_GemServerListener_onImageReady(const IceUtil::Handle<T>& instance, void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
 {
-    return new CallbackNC_GemServerListener_reset<T>(instance, 0, excb, sentcb);
+    return new CallbackNC_GemServerListener_onImageReady<T>(instance, 0, excb, sentcb);
 }
 
-template<class T> Callback_GemServerListener_resetPtr
-newCallback_GemServerListener_reset(T* instance, void (T::*cb)(), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+template<class T> Callback_GemServerListener_onImageReadyPtr
+newCallback_GemServerListener_onImageReady(T* instance, void (T::*cb)(), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
 {
-    return new CallbackNC_GemServerListener_reset<T>(instance, cb, excb, sentcb);
+    return new CallbackNC_GemServerListener_onImageReady<T>(instance, cb, excb, sentcb);
 }
 
-template<class T> Callback_GemServerListener_resetPtr
-newCallback_GemServerListener_reset(T* instance, void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+template<class T> Callback_GemServerListener_onImageReadyPtr
+newCallback_GemServerListener_onImageReady(T* instance, void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
 {
-    return new CallbackNC_GemServerListener_reset<T>(instance, 0, excb, sentcb);
+    return new CallbackNC_GemServerListener_onImageReady<T>(instance, 0, excb, sentcb);
 }
 
 template<class T, typename CT>
-class Callback_GemServerListener_reset : public Callback_GemServerListener_reset_Base, public ::IceInternal::OnewayCallback<T, CT>
+class Callback_GemServerListener_onImageReady : public Callback_GemServerListener_onImageReady_Base, public ::IceInternal::OnewayCallback<T, CT>
 {
 public:
 
@@ -2571,34 +2762,116 @@ public:
     typedef void (T::*Sent)(bool , const CT&);
     typedef void (T::*Response)(const CT&);
 
-    Callback_GemServerListener_reset(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
+    Callback_GemServerListener_onImageReady(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
         : ::IceInternal::OnewayCallback<T, CT>(obj, cb, excb, sentcb)
     {
     }
 };
 
-template<class T, typename CT> Callback_GemServerListener_resetPtr
-newCallback_GemServerListener_reset(const IceUtil::Handle<T>& instance, void (T::*cb)(const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+template<class T, typename CT> Callback_GemServerListener_onImageReadyPtr
+newCallback_GemServerListener_onImageReady(const IceUtil::Handle<T>& instance, void (T::*cb)(const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
 {
-    return new Callback_GemServerListener_reset<T, CT>(instance, cb, excb, sentcb);
+    return new Callback_GemServerListener_onImageReady<T, CT>(instance, cb, excb, sentcb);
 }
 
-template<class T, typename CT> Callback_GemServerListener_resetPtr
-newCallback_GemServerListener_reset(const IceUtil::Handle<T>& instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+template<class T, typename CT> Callback_GemServerListener_onImageReadyPtr
+newCallback_GemServerListener_onImageReady(const IceUtil::Handle<T>& instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
 {
-    return new Callback_GemServerListener_reset<T, CT>(instance, 0, excb, sentcb);
+    return new Callback_GemServerListener_onImageReady<T, CT>(instance, 0, excb, sentcb);
 }
 
-template<class T, typename CT> Callback_GemServerListener_resetPtr
-newCallback_GemServerListener_reset(T* instance, void (T::*cb)(const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+template<class T, typename CT> Callback_GemServerListener_onImageReadyPtr
+newCallback_GemServerListener_onImageReady(T* instance, void (T::*cb)(const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
 {
-    return new Callback_GemServerListener_reset<T, CT>(instance, cb, excb, sentcb);
+    return new Callback_GemServerListener_onImageReady<T, CT>(instance, cb, excb, sentcb);
 }
 
-template<class T, typename CT> Callback_GemServerListener_resetPtr
-newCallback_GemServerListener_reset(T* instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+template<class T, typename CT> Callback_GemServerListener_onImageReadyPtr
+newCallback_GemServerListener_onImageReady(T* instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
 {
-    return new Callback_GemServerListener_reset<T, CT>(instance, 0, excb, sentcb);
+    return new Callback_GemServerListener_onImageReady<T, CT>(instance, 0, excb, sentcb);
+}
+
+template<class T>
+class CallbackNC_GemServerListener_onReset : public Callback_GemServerListener_onReset_Base, public ::IceInternal::OnewayCallbackNC<T>
+{
+public:
+
+    typedef IceUtil::Handle<T> TPtr;
+
+    typedef void (T::*Exception)(const ::Ice::Exception&);
+    typedef void (T::*Sent)(bool);
+    typedef void (T::*Response)();
+
+    CallbackNC_GemServerListener_onReset(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
+        : ::IceInternal::OnewayCallbackNC<T>(obj, cb, excb, sentcb)
+    {
+    }
+};
+
+template<class T> Callback_GemServerListener_onResetPtr
+newCallback_GemServerListener_onReset(const IceUtil::Handle<T>& instance, void (T::*cb)(), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServerListener_onReset<T>(instance, cb, excb, sentcb);
+}
+
+template<class T> Callback_GemServerListener_onResetPtr
+newCallback_GemServerListener_onReset(const IceUtil::Handle<T>& instance, void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServerListener_onReset<T>(instance, 0, excb, sentcb);
+}
+
+template<class T> Callback_GemServerListener_onResetPtr
+newCallback_GemServerListener_onReset(T* instance, void (T::*cb)(), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServerListener_onReset<T>(instance, cb, excb, sentcb);
+}
+
+template<class T> Callback_GemServerListener_onResetPtr
+newCallback_GemServerListener_onReset(T* instance, void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServerListener_onReset<T>(instance, 0, excb, sentcb);
+}
+
+template<class T, typename CT>
+class Callback_GemServerListener_onReset : public Callback_GemServerListener_onReset_Base, public ::IceInternal::OnewayCallback<T, CT>
+{
+public:
+
+    typedef IceUtil::Handle<T> TPtr;
+
+    typedef void (T::*Exception)(const ::Ice::Exception& , const CT&);
+    typedef void (T::*Sent)(bool , const CT&);
+    typedef void (T::*Response)(const CT&);
+
+    Callback_GemServerListener_onReset(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
+        : ::IceInternal::OnewayCallback<T, CT>(obj, cb, excb, sentcb)
+    {
+    }
+};
+
+template<class T, typename CT> Callback_GemServerListener_onResetPtr
+newCallback_GemServerListener_onReset(const IceUtil::Handle<T>& instance, void (T::*cb)(const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServerListener_onReset<T, CT>(instance, cb, excb, sentcb);
+}
+
+template<class T, typename CT> Callback_GemServerListener_onResetPtr
+newCallback_GemServerListener_onReset(const IceUtil::Handle<T>& instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServerListener_onReset<T, CT>(instance, 0, excb, sentcb);
+}
+
+template<class T, typename CT> Callback_GemServerListener_onResetPtr
+newCallback_GemServerListener_onReset(T* instance, void (T::*cb)(const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServerListener_onReset<T, CT>(instance, cb, excb, sentcb);
+}
+
+template<class T, typename CT> Callback_GemServerListener_onResetPtr
+newCallback_GemServerListener_onReset(T* instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServerListener_onReset<T, CT>(instance, 0, excb, sentcb);
 }
 
 template<class T>
@@ -3671,6 +3944,88 @@ template<class T, typename CT> Callback_GemServer_onWorkerStatesPtr
 newCallback_GemServer_onWorkerStates(T* instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
 {
     return new Callback_GemServer_onWorkerStates<T, CT>(instance, 0, excb, sentcb);
+}
+
+template<class T>
+class CallbackNC_GemServer_imageReady : public Callback_GemServer_imageReady_Base, public ::IceInternal::OnewayCallbackNC<T>
+{
+public:
+
+    typedef IceUtil::Handle<T> TPtr;
+
+    typedef void (T::*Exception)(const ::Ice::Exception&);
+    typedef void (T::*Sent)(bool);
+    typedef void (T::*Response)();
+
+    CallbackNC_GemServer_imageReady(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
+        : ::IceInternal::OnewayCallbackNC<T>(obj, cb, excb, sentcb)
+    {
+    }
+};
+
+template<class T> Callback_GemServer_imageReadyPtr
+newCallback_GemServer_imageReady(const IceUtil::Handle<T>& instance, void (T::*cb)(), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServer_imageReady<T>(instance, cb, excb, sentcb);
+}
+
+template<class T> Callback_GemServer_imageReadyPtr
+newCallback_GemServer_imageReady(const IceUtil::Handle<T>& instance, void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServer_imageReady<T>(instance, 0, excb, sentcb);
+}
+
+template<class T> Callback_GemServer_imageReadyPtr
+newCallback_GemServer_imageReady(T* instance, void (T::*cb)(), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServer_imageReady<T>(instance, cb, excb, sentcb);
+}
+
+template<class T> Callback_GemServer_imageReadyPtr
+newCallback_GemServer_imageReady(T* instance, void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+{
+    return new CallbackNC_GemServer_imageReady<T>(instance, 0, excb, sentcb);
+}
+
+template<class T, typename CT>
+class Callback_GemServer_imageReady : public Callback_GemServer_imageReady_Base, public ::IceInternal::OnewayCallback<T, CT>
+{
+public:
+
+    typedef IceUtil::Handle<T> TPtr;
+
+    typedef void (T::*Exception)(const ::Ice::Exception& , const CT&);
+    typedef void (T::*Sent)(bool , const CT&);
+    typedef void (T::*Response)(const CT&);
+
+    Callback_GemServer_imageReady(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
+        : ::IceInternal::OnewayCallback<T, CT>(obj, cb, excb, sentcb)
+    {
+    }
+};
+
+template<class T, typename CT> Callback_GemServer_imageReadyPtr
+newCallback_GemServer_imageReady(const IceUtil::Handle<T>& instance, void (T::*cb)(const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServer_imageReady<T, CT>(instance, cb, excb, sentcb);
+}
+
+template<class T, typename CT> Callback_GemServer_imageReadyPtr
+newCallback_GemServer_imageReady(const IceUtil::Handle<T>& instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServer_imageReady<T, CT>(instance, 0, excb, sentcb);
+}
+
+template<class T, typename CT> Callback_GemServer_imageReadyPtr
+newCallback_GemServer_imageReady(T* instance, void (T::*cb)(const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServer_imageReady<T, CT>(instance, cb, excb, sentcb);
+}
+
+template<class T, typename CT> Callback_GemServer_imageReadyPtr
+newCallback_GemServer_imageReady(T* instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+{
+    return new Callback_GemServer_imageReady<T, CT>(instance, 0, excb, sentcb);
 }
 
 }

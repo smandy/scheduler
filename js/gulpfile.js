@@ -16,6 +16,8 @@ var iceBuilder  = require("gulp-ice-builder");
 var uglify      = require("gulp-uglify");
 var HttpServer  = require("./HttpServer");
 var genDir = 'generated';
+
+
 gulp.task( 'buildGem', [], function() {
     return gulp.src('../slice/*.ice')
         .pipe(iceBuilder.compile( { dest : genDir} ))

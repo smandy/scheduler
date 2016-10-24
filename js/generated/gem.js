@@ -155,20 +155,23 @@
         false);
 
     Gem.Image = Slice.defineStruct(
-        function(jobs)
+        function(jobs, currentImage)
         {
             this.jobs = jobs !== undefined ? jobs : null;
+            this.currentImage = currentImage !== undefined ? currentImage : "";
         },
         false,
         function(__os)
         {
             Gem.JobSeqHelper.write(__os, this.jobs);
+            __os.writeString(this.currentImage);
         },
         function(__is)
         {
             this.jobs = Gem.JobSeqHelper.read(__is);
+            this.currentImage = __is.readString();
         },
-        1, 
+        2, 
         false);
 
     Gem.GemServerListener = Slice.defineObject(
@@ -186,7 +189,8 @@
     {
         "onImage": [, , , 1, , , [[Gem.Image]], , , , ],
         "onUpdate": [, , , 1, , , [["Gem.JobSeqHelper"]], , , , ],
-        "reset": [, , , 1, , , , , , , ]
+        "onImageReady": [, , , 1, , , [[7]], , , , ],
+        "onReset": [, , , 1, , , , , , , ]
     });
 
     Gem.JobNotFound = Slice.defineUserException(
@@ -235,7 +239,8 @@
         ], , ],
         "addListener": [, , , 1, , , [["Gem.GemServerListenerPrx"]], , , , ],
         "addListenerWithIdent": [, , , 1, , , [[Ice.Identity]], , , , ],
-        "onWorkerStates": [, , , 1, , , [["Gem.JobWorkerStateSeqHelper"]], , , , ]
+        "onWorkerStates": [, , , 1, , , [["Gem.JobWorkerStateSeqHelper"]], , , , ],
+        "imageReady": [, , , 1, , , [[7]], , , , ]
     });
     exports.Gem = Gem;
 }

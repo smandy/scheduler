@@ -18,6 +18,7 @@ class GemServerImpl : public Gem::GemServer {
     IceStorm::TopicPrx topic;
     std::unordered_map<std::string, std::vector<std::string> > dependants;
     std::set<Gem::GemServerListenerPrx> listeners;
+    std::string currentImage;
 public:
     GemServerImpl(Ice::CommunicatorPtr communicator) {
         std::cout << "Get Topic" << std::endl;
@@ -63,6 +64,28 @@ public:
             depJob->state = Gem::JobState::BLOCKED;
         }
     }
+
+
+     virtual void imageReady_async(const ::Gem::AMD_GemServer_imageReadyPtr& cb,
+                                   const ::std::string& s,
+                                   const ::Ice::Current& = ::Ice::Current()) {
+
+         currentImage = s;
+         for (auto& listener : listeners) {
+             listener->begin_onImageReady(s,
+                                          [s]() {
+                                              std::cout << "Sent image ready" << s << std::endl;
+                                          },
+                                          [&](const Ice::Exception& ex) {
+                                              std::cout << "Bad listener" << ex << std::endl;
+                                              auto it = listeners.find(listener);
+                                              if ( it != std::end(listeners)) {
+                                                  std::cout << "Expunging" << std::endl;
+                                                  listeners.erase( it );
+                                              }
+                                          });
+         }
+     };
     
     virtual void submitBatch_async(const ::Gem::AMD_GemServer_submitBatchPtr& cb,
                                    const ::Gem::Batch& batch,
@@ -127,6 +150,18 @@ public:
                              const ::Ice::Current& = ::Ice::Current()) {
         jobs.clear();
         dependants.clear();
+        currentImage = "";
+        for (auto& listener : listeners) {
+            listener->begin_onReset([]() {},
+                                    [&](const Ice::Exception& ex) {
+                                        std::cout << "Bad listener" << ex << std::endl;
+                                        auto it = listeners.find(listener);
+                                        if ( it != std::end(listeners)) {
+                                            std::cout << "Expunging" << std::endl;
+                                            listeners.erase( it );
+                                        }
+                                    });
+        }
         cb->ice_response();
     }
     
@@ -223,7 +258,7 @@ public:
                                             const ::Ice::Current& current = ::Ice::Current()) {
         std::cout << "Addlistener with ident" << std::endl;
         ::Gem::GemServerListenerPrx client = Gem::GemServerListenerPrx::uncheckedCast(current.con->createProxy(ident));
-        Gem::Image img { jobs };
+        Gem::Image img { jobs, currentImage };
         //std::cout << "Made image " << std::endl;
         client->begin_onImage( img ,
                                [this,client]() {
@@ -247,7 +282,7 @@ public:
                                               [this,cb](const Ice::ObjectPrx &response) {
                                                   //std::cout << " Got publisher " << response << std::endl;
                                                   auto p = Gem::GemServerListenerPrx::uncheckedCast(response);
-                                                  Gem::Image img { jobs };
+                                                  Gem::Image img { jobs, currentImage };
                                                   //std::cout << "Made image " << std::endl;
                                                   p->begin_onImage( img ,
                                                                     []() {

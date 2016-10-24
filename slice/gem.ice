@@ -56,15 +56,16 @@ module Gem {
         JobSeq jobs;
     };
 
-
     struct Image {
         JobSeq jobs;
+        string currentImage;
     };
     
     interface GemServerListener {
-        ["amd"] void onImage( Image image);
-        ["amd"] void onUpdate( JobSeq jobs);
-        ["amd"] void reset( );
+        ["amd"] void onImage( Image image );
+        ["amd"] void onUpdate( JobSeq jobs );
+        ["amd"] void onImageReady(string imgId);
+        ["amd"] void onReset();
     };
 
     exception JobNotFound {
@@ -84,5 +85,6 @@ module Gem {
         ["amd"] void addListener( GemServerListener *listener);
 ["amd"] void addListenerWithIdent( Ice::Identity ident);
         ["amd"] void onWorkerStates( JobWorkerStateSeq xs);
+        ["amd"] void imageReady(string imgId);
     };
 };

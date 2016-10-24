@@ -16,7 +16,6 @@ print "Sending"
 server.submitBatch( batch )
 print "sent"
 
-
 wid = Gem.WorkerId("worker1")
 
 if 0:

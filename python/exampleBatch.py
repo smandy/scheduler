@@ -1,4 +1,5 @@
 import Ice
+
 from gemHelper import Gem
 
 def makeBatch():
