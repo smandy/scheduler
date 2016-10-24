@@ -109,8 +109,20 @@ public:
             std::cout << "Looping " << job.id << std::endl;
             blockDependenciesOf( job.id );
         }
+
+        // Ug - we've blocked our copies so we need to go and fetch
+        // them back from the graph. Noticed when developing the web
+        // gui too much stuff was reporting itself as 'startable' :-(
+        Gem::JobSeq ret;
+        for( auto& j : batch.jobs) {
+            std::cout << "Looking for " << j.id << std::endl;
+            ret.push_back( *find(j.id) );
+        };
+
+        std::cout << "Have " << ret.size() << " items to return" << std::endl;
+        
         for (auto& listener : listeners) {
-            listener->begin_onUpdate(batch.jobs,
+            listener->begin_onUpdate(ret,
                                      []() {
                                          std::cout << "Sent new jobs" << std::endl;
                                      },

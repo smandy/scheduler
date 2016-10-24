@@ -8,14 +8,14 @@ var props = Ice.createProperties();
 
 var CallbackReceiver = Ice.Class( Gem.GemServerListener, {
     onImage_async      : function(cb, image, current) { this.parent.onImage_async(cb, image, current); },
-    onReset_async      : function(cb , current) { this.parent.onReset_async( cb, current); },
-    onImageReady_async : function(cb, s, current) { this.parent.onImageReady_async( cb,s,current); },
-    onUpdate_async     : function(cb, jobs, current) { this.parent.onUpdate_async( cb, jobs, current ); }
-} );
+    onReset_async      : function(cb, current)        { this.parent.onReset_async( cb, current); },
+    onImageReady_async : function(cb, s, current)     { this.parent.onImageReady_async( cb,s,current); },
+    onUpdate_async     : function(cb, jobs, current)  { this.parent.onUpdate_async( cb, jobs, current ); }
+});
 
 props.setProperty('Ice.Default.Locator', 'IceGrid/Locator:ws -h raffles -p 4063');
 iid.properties = props;
-var communicator = Ice.initialize( iid );
+var communicator = Ice.initialize(iid);
 var proxy = communicator.stringToProxy("server@GemServer").ice_timeout(1000);
 console.log("About to ping " + proxy );
 
@@ -27,16 +27,17 @@ var Job = React.createClass( {
     }
 });
 
-var RenderedImage = React.createClass( {
+var RenderedImage = React.createClass( {onClick
     render : function() {
-        return ( <img src={this.props.image + "?dt=" + new Date().getTime()} />);
+        return ( <img width={this.props.gridVisible ? "1200" : "1600"}
+                             height={this.props.gridVisible ? "500" : "600"} src={this.props.image + "?dt=" + new Date().getTime()} />);
     }
 });
 
 
 var StateFormatter = React.createClass({
     render:function() {
-        console.log( "State is " + this.props.value + " p=" + this.props);
+        //console.log( "State is " + this.props.value + " p=" + this.props);
         return ( <div>{this.props.value.name}</div>);
     }
     });
@@ -47,7 +48,9 @@ var IceGridListener = React.createClass( {
         return {
             data : [],
             lookup : [],
-            image : ''
+            image : '',
+            gridVisible : true,
+            graphVisible : true
         };
     },
     getParent : function() {
@@ -136,6 +139,17 @@ var IceGridListener = React.createClass( {
     rowGetter : function(i) {
         return this.state.data[i];
     },
+
+    onGridVisible : function(x) {
+        console.log("OnGridVisible : " + x );
+        this.state.gridVisible = ! this.state.gridVisible;
+        this.setState(this.state);
+    },
+    onGraphVisible : function(x) {
+        console.log("OnGraphVisible  : " + x );
+        this.state.graphVisible = ! this.state.graphVisible;
+        this.setState(this.state);
+    },
     render : function() {
         // var ret = (<div>{this.state.data.length}</div>);
         // console.log( "State is " + this.state.data.map( (x) => { return x.id;} ));
@@ -151,18 +165,21 @@ var IceGridListener = React.createClass( {
                 { key : 'state',
                     name : 'state',
                     formatter : StateFormatter} ];
-        //console.log("ReactDataGrid is " + ReactDataGrid);
-        var ret = ( <div><ReactDataGrid
-            columns={columns}
-            rowGetter={this.rowGetter}
-            rowsCount={this.state.data.length}
-            minHeight={300}/>
-            <RenderedImage image={this.state.image}/>
-        </div>);
-        
+        var grid = this.state.gridVisible ? <ReactDataGrid
+        columns={columns}
+        rowGetter={this.rowGetter}
+        rowsCount={this.state.data.length}
+        minHeight={this.state.graphVisible ? 200 : 900}/> : null;
+        var graph = this.state.graphVisible ? <RenderedImage gridVisible={this.state.gridVisible} image={this.state.image}/> : null;
+        var ret = ( <div>
+            <input type="checkbox" checked={this.state.gridVisible} onChange={this.onGridVisible}/>
+            <input type="checkbox" checked={this.state.graphVisible} onChange={this.onGraphVisible}/>
+            {grid}
+            <br/>
+            {graph}
+            </div>);
         console.log("Ret is " + ret);
         return ret;
-        
     }
 });
 
