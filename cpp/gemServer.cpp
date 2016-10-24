@@ -83,6 +83,7 @@ public:
                                                   std::cout << "Expunging" << std::endl;
                                                   listeners.erase( it );
                                               }
+                                              std::cout << "Done expunge" << std::endl;
                                           });
          }
      };
