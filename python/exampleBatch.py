@@ -2,6 +2,8 @@ import Ice
 
 from gemHelper import Gem
 
+# An example batch.
+
 def makeBatch():
     job1 = Gem.Job( 'id1', [], Gem.JobState.STARTABLE , 5)
     job2 = Gem.Job( 'id2', ['id1'], Gem.JobState.STARTABLE , 2)
