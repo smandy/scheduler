@@ -108,7 +108,7 @@ while True:
         else:
             newJobs.append(job)
     if newStates:
-        server.onWorkerStates( newStates )
+        server.begin_onWorkerStates( newStates )
     jobs = newJobs
     if dirty:
         print datetime.now().isoformat(), len(jobs), [x.id for x in jobs ]
