@@ -6,12 +6,15 @@
 #include <set>
 #include <iostream>
 #include "gem.h"
+#include <spdlog/spdlog.h>
 
 // Pointers for getting icestorm up
 // Aha - the trick was exposing IceStorm/TopicManager as a well known object
 // https://github.com/SintefRaufossManufacturing/icehms/blob/master/icecfg/icebox.xml
 //typedef std::shared_ptr<Gem::Job> JobPtr;
 // http://git.asterisk.org/gitweb/?p=asterisk-scf/release/techdemo.git;a=commitdiff_plain;h=89b836724135902a7d628cc08bd8ddd786b82240
+
+using loggerType = std::shared_ptr<spdlog::logger>;
 
 class GemServerImpl : public Gem::GemServer {
     std::vector<Gem::Job> jobs;
@@ -20,19 +23,21 @@ class GemServerImpl : public Gem::GemServer {
     std::set<Gem::GemServerListenerPrx> listeners;
     std::string currentImage;
 public:
+    static loggerType log;
     GemServerImpl(Ice::CommunicatorPtr communicator) {
-        std::cout << "Get Topic" << std::endl;
+        log = spdlog::get("log");
+        log->info("Get Topic");
         auto topicPrx = IceStorm::TopicManagerPrx::checkedCast( communicator->propertyToProxy("IceStorm.TopicManager"));
-        std::cout << "Get Subject" << std::endl;
+        log->info("Get Subject");
         auto subject = communicator->getProperties()->getProperty("Gem.Topic");
-        std::cout << "Subject is " << subject << std::endl;
+        log->info("Subject is {}",subject);
         try {
             topic = topicPrx->retrieve(subject);
         } catch( IceStorm::NoSuchTopic &) {
             topic = topicPrx->create(subject);
         }
         listeners.insert(Gem::GemServerListenerPrx::uncheckedCast(topic->getPublisher()));
-        std::cout << "Done" << std::endl;
+        log->info("Done");
     }
     
     inline Gem::Job* find(const std::string& id) {
@@ -74,16 +79,16 @@ public:
          for (auto& listener : listeners) {
              listener->begin_onImageReady(s,
                                           [s]() {
-                                              std::cout << "Sent image ready" << s << std::endl;
+                                              log->info("Sent image ready {}", s);
                                           },
                                           [&](const Ice::Exception& ex) {
-                                              std::cout << "Bad listener" << ex << std::endl;
+                                              log->error("Bad listener {}", ex.what());
                                               auto it = listeners.find(listener);
                                               if ( it != std::end(listeners)) {
-                                                  std::cout << "Expunging" << std::endl;
+                                                  log->info("Expunging {}", *it);
                                                   listeners.erase( it );
                                               }
-                                              std::cout << "Done expunge" << std::endl;
+                                              log->info("Done expunge");
                                           });
          }
      };
@@ -91,7 +96,7 @@ public:
     virtual void submitBatch_async(const ::Gem::AMD_GemServer_submitBatchPtr& cb,
                                    const ::Gem::Batch& batch,
                                    const ::Ice::Current& = ::Ice::Current()) {
-        std::cout << "Submitbatch" << std::endl;
+        log->info("Submitbatch");
         for ( auto &job : batch.jobs) {
             if ( !job.dependencies.empty()) {
                 for ( auto &depId : job.dependencies) {
@@ -99,14 +104,14 @@ public:
                 }
             }
         }
-        std::cout << "Inserting" << std::endl;
+        log->info("Inserting");
         jobs.insert(jobs.end(), begin(batch.jobs), end(batch.jobs));
-        std::cout << "Sorting" << std::endl;
+        log->info("Sorting");
         std::sort(begin(jobs), end(jobs), [&]( auto &a, auto &b) {
                 return a.id < b.id;
             });
         for(auto& job : batch.jobs) {
-            std::cout << "Looping " << job.id << std::endl;
+            log->info("Looping");
             blockDependenciesOf( job.id );
         }
 
@@ -115,22 +120,21 @@ public:
         // gui too much stuff was reporting itself as 'startable' :-(
         Gem::JobSeq ret;
         for( auto& j : batch.jobs) {
-            std::cout << "Looking for " << j.id << std::endl;
+            log->info("Looking for ");
             ret.push_back( *find(j.id) );
         };
-
-        std::cout << "Have " << ret.size() << " items to return" << std::endl;
+        log->info("Have {} items to return" , ret.size());
         
         for (auto& listener : listeners) {
             listener->begin_onUpdate(ret,
                                      []() {
-                                         std::cout << "Sent new jobs" << std::endl;
+                                         log->info("Sent new jobs");
                                      },
                                      [&](const Ice::Exception& ex) {
-                                         std::cout << "Bad listener" << std::endl;
+                                         log->info("Bad listener");
                                          auto it = listeners.find(listener);
                                          if ( it != std::end(listeners)) {
-                                             std::cout << "Expunging" << std::endl;
+                                             log->info("Expunging");
                                              listeners.erase( it );
                                          }
                                      });
@@ -141,21 +145,21 @@ public:
     virtual void startJob_async(const ::Gem::AMD_GemServer_startJobPtr& cb,
                                 const ::std::string& id,
                                 const ::Ice::Current& = ::Ice::Current()) {
-        std::cout << "startJob" << std::endl;
+        log->info("startJob");
         cb->ice_response();
     }
     
     virtual void stopJob_async(const ::Gem::AMD_GemServer_stopJobPtr& cb,
                                const ::std::string&,
                                const ::Ice::Current& = ::Ice::Current()) {
-        std::cout << "stopJob" << std::endl;
+        log->info("stopJob");
         cb->ice_response();
     }
     
     virtual void invalidate_async(const ::Gem::AMD_GemServer_invalidatePtr& cb,
                                   const ::std::string&,
                                   const ::Ice::Current& = ::Ice::Current()) {
-        std::cout << "invalidate" << std::endl;
+        log->info("invalidate");
         cb->ice_response();
     }
 
@@ -167,10 +171,10 @@ public:
         for (auto& listener : listeners) {
             listener->begin_onReset([]() {},
                                     [&](const Ice::Exception& ex) {
-                                        std::cout << "Bad listener" << ex << std::endl;
+                                        log->info("Bad listener");
                                         auto it = listeners.find(listener);
                                         if ( it != std::end(listeners)) {
-                                            std::cout << "Expunging" << std::endl;
+                                            log->info("Expunging");
                                             listeners.erase( it );
                                         }
                                     });
@@ -218,7 +222,7 @@ public:
                 updated.push_back(*job);
             }
             for ( auto dep : dependants[job->id]) {
-                std::cout << "Check startable " << dep << std::endl;
+                log->info("Check startable");
                 checkIsStartable( dep, updated);
             }
         }
@@ -227,10 +231,10 @@ public:
             for ( auto& listener : listeners) {
                 listener->begin_onUpdate(updated,
                                          []() {
-                                             std::cout << "Sent new jobs" << std::endl;
+                                             log->info("Sent new jobs");
                                          },
                                          [&](const Ice::Exception& ex) {
-                                             std::cout << "Bad listener" << std::endl;
+                                             log->info("Bad listener");
                                              auto it = listeners.find(listener);
                                              if ( it != end(listeners) ) {
                                                  listeners.erase( it );
@@ -252,7 +256,7 @@ public:
                     break;
                 };
             }
-            std::cout << "job is " << id << " startable is " << (isStartable ? "true" : "false") << std::endl;
+            log->info("job is {} startable={}" , id ,isStartable);
             if (isStartable) {
                 job->state = Gem::JobState::STARTABLE;
                 updatedSink.push_back( *job);
@@ -269,17 +273,17 @@ public:
     virtual void addListenerWithIdent_async(const ::Gem::AMD_GemServer_addListenerWithIdentPtr& cb,
                                             const ::Ice::Identity& ident,
                                             const ::Ice::Current& current = ::Ice::Current()) {
-        std::cout << "Addlistener with ident" << std::endl;
+        log->info("Addlistener with ident {} {}", ident.name, ident.category);
         ::Gem::GemServerListenerPrx client = Gem::GemServerListenerPrx::uncheckedCast(current.con->createProxy(ident));
         Gem::Image img { jobs, currentImage };
         //std::cout << "Made image " << std::endl;
         client->begin_onImage( img ,
                                [this,client]() {
-                                   std::cout << "Success with image" << std::endl;
+                                   log->debug("Success with image");
                                    listeners.insert(client);
                                },
                                [](const Ice::Exception& ex) {
-                                   std::cout << "Failed to send to listener - sod him " << ex.what() << std::endl;
+                                   log->error("Failed to send to listener - sod him {}", ex.what());
                                });
         cb->ice_response();
     };
@@ -287,9 +291,8 @@ public:
     virtual void addListener_async(const ::Gem::AMD_GemServer_addListenerPtr& cb,
                                    const ::Gem::GemServerListenerPrx& prx,
                                    const ::Ice::Current& = ::Ice::Current()) {
-        std::cout << "Add listener " << std::endl;
+        log->info("Add listener {}", prx);
         static const IceStorm::QoS theQos;
-        std::cout << "Add listener " << std::endl;
         topic->begin_subscribeAndGetPublisher(theQos,
                                               prx,
                                               [this,cb](const Ice::ObjectPrx &response) {
@@ -299,34 +302,44 @@ public:
                                                   //std::cout << "Made image " << std::endl;
                                                   p->begin_onImage( img ,
                                                                     []() {
-                                                                        std::cout << "Success with image" << std::endl;
+                                                                        log->debug("Success with image");
                                                                     });
                                                   //std::cout << "Called image " << cb << std::endl;
                                                   // Hmmm ... should this be in side the lambda above maybe?
                                                   cb->ice_response();
                                                   //std::cout << "Called response " << std::endl;
                                               } );
-        std::cout << "End method" << std::endl;
+        log->debug("End method");
     }
 };
 
 int main(int argc, char *argv[]) {
-    std::cout << "Make communicator" << std::endl;
+
+    spdlog::set_async_mode(4096, spdlog::async_overflow_policy::block_retry,
+                           nullptr,
+                           std::chrono::seconds(2));
+    auto log = spdlog::rotating_logger_mt("log", "/tmp/gem", 1048576 * 5, 3);
+    log->info("Make communicator");
     auto communicator = Ice::initialize(argc, argv);
-    std::cout << "Make server" << std::endl;
+    log->info("Make server");
     auto server = std::make_unique<GemServerImpl>(communicator);
-    std::cout << "Make adapter" << std::endl;
+    log->info("Make adapter");
     auto adapter = communicator->createObjectAdapter("GemServer");
-    std::cout << "Add impl to adapter" << std::endl;
+    log->info("Add impl to adapter");
     // Liveness of server ensured by scope of main
     auto prx = adapter->add(server.get(),
                             communicator->stringToIdentity("server"));
-    std::cout << "Activate adpater" << std::endl;
+    log->info("Activate adpater");
     adapter->activate();
-    std::cout << "Wait for shutdown" << std::endl;
+    log->info("Wait for shutdown");
     communicator->waitForShutdown();
-    std::cout << "Shutdown - exiting" << std::endl;
+    log->info("Shutdown - exiting");
+    log->flush();
     adapter->deactivate();
+    log->info("Adapter deactivated");
     communicator->destroy();
+    log->info("Communicator destroyed. Game over");
+    log->flush();
 };
     
+loggerType GemServerImpl::log {};

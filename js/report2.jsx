@@ -27,7 +27,7 @@ var Job = React.createClass( {
     }
 });
 
-var RenderedImage = React.createClass( {onClick
+var RenderedImage = React.createClass( {
     render : function() {
         return ( <img width={this.props.gridVisible ? "1200" : "1600"}
                              height={this.props.gridVisible ? "500" : "600"} src={this.props.image + "?dt=" + new Date().getTime()} />);
