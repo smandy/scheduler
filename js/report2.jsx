@@ -34,7 +34,6 @@ var RenderedImage = React.createClass( {
     }
 });
 
-
 var StateFormatter = React.createClass({
     render:function() {
         //console.log( "State is " + this.props.value + " p=" + this.props);
@@ -160,10 +159,10 @@ var IceGridListener = React.createClass( {
         var columns = [
             { key : 'id',
                 name : 'ID' },
-                        { key : 'pwd',
-                            name : 'PWD' },
-                { key : 'state',
-                    name : 'state',
+                { key : 'pwd',
+                    name : 'PWD' },
+                    { key : 'state',
+                        name : 'state',
                     formatter : StateFormatter} ];
         var grid = this.state.gridVisible ? <ReactDataGrid
         columns={columns}
