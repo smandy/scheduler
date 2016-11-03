@@ -4,8 +4,11 @@
 
 module Gem {
     sequence<string> StringSeq;
-    
+
     dictionary<string, string> StringStringDict;
+    
+    const string POJONAME = "POJO";
+    const string POJO2NAME = "POJO2";
 
     enum JobState {
         BLOCKED,
@@ -83,8 +86,20 @@ module Gem {
         ["amd"] JobSeq getStartableJob( WorkerId worker );
         ["amd"] Job getJob( string id ) throws JobNotFound;
         ["amd"] void addListener( GemServerListener *listener);
-["amd"] void addListenerWithIdent( Ice::Identity ident);
+        ["amd"] void addListenerWithIdent( Ice::Identity ident);
         ["amd"] void onWorkerStates( JobWorkerStateSeq xs);
         ["amd"] void imageReady(string imgId);
+    };
+
+    struct POJO {
+        string type = POJONAME;
+        int x;
+        int y;
+    };
+
+    struct POJO2 {
+        string type = POJO2NAME;
+        string first;
+        string last;
     };
 };

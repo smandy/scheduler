@@ -97,6 +97,10 @@ typedef ::std::vector< ::std::string> StringSeq;
 
 typedef ::std::map< ::std::string, ::std::string> StringStringDict;
 
+const ::std::string POJONAME = "POJO";
+
+const ::std::string POJO2NAME = "POJO2";
+
 enum JobState
 {
     BLOCKED,
@@ -389,6 +393,188 @@ protected:
 
 static JobNotFound __JobNotFound_init;
 
+struct POJO
+{
+    POJO() :
+        type(::Gem::POJONAME)
+    {
+    }
+    
+    POJO(const ::std::string& __ice_type, ::Ice::Int __ice_x, ::Ice::Int __ice_y) :
+        type(__ice_type),
+        x(__ice_x),
+        y(__ice_y)
+    {
+    }
+    
+
+    ::std::string type;
+    ::Ice::Int x;
+    ::Ice::Int y;
+
+    bool operator==(const POJO& __rhs) const
+    {
+        if(this == &__rhs)
+        {
+            return true;
+        }
+        if(type != __rhs.type)
+        {
+            return false;
+        }
+        if(x != __rhs.x)
+        {
+            return false;
+        }
+        if(y != __rhs.y)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    bool operator<(const POJO& __rhs) const
+    {
+        if(this == &__rhs)
+        {
+            return false;
+        }
+        if(type < __rhs.type)
+        {
+            return true;
+        }
+        else if(__rhs.type < type)
+        {
+            return false;
+        }
+        if(x < __rhs.x)
+        {
+            return true;
+        }
+        else if(__rhs.x < x)
+        {
+            return false;
+        }
+        if(y < __rhs.y)
+        {
+            return true;
+        }
+        else if(__rhs.y < y)
+        {
+            return false;
+        }
+        return false;
+    }
+
+    bool operator!=(const POJO& __rhs) const
+    {
+        return !operator==(__rhs);
+    }
+    bool operator<=(const POJO& __rhs) const
+    {
+        return operator<(__rhs) || operator==(__rhs);
+    }
+    bool operator>(const POJO& __rhs) const
+    {
+        return !operator<(__rhs) && !operator==(__rhs);
+    }
+    bool operator>=(const POJO& __rhs) const
+    {
+        return !operator<(__rhs);
+    }
+};
+
+struct POJO2
+{
+    POJO2() :
+        type(::Gem::POJO2NAME)
+    {
+    }
+    
+    POJO2(const ::std::string& __ice_type, const ::std::string& __ice_first, const ::std::string& __ice_last) :
+        type(__ice_type),
+        first(__ice_first),
+        last(__ice_last)
+    {
+    }
+    
+
+    ::std::string type;
+    ::std::string first;
+    ::std::string last;
+
+    bool operator==(const POJO2& __rhs) const
+    {
+        if(this == &__rhs)
+        {
+            return true;
+        }
+        if(type != __rhs.type)
+        {
+            return false;
+        }
+        if(first != __rhs.first)
+        {
+            return false;
+        }
+        if(last != __rhs.last)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    bool operator<(const POJO2& __rhs) const
+    {
+        if(this == &__rhs)
+        {
+            return false;
+        }
+        if(type < __rhs.type)
+        {
+            return true;
+        }
+        else if(__rhs.type < type)
+        {
+            return false;
+        }
+        if(first < __rhs.first)
+        {
+            return true;
+        }
+        else if(__rhs.first < first)
+        {
+            return false;
+        }
+        if(last < __rhs.last)
+        {
+            return true;
+        }
+        else if(__rhs.last < last)
+        {
+            return false;
+        }
+        return false;
+    }
+
+    bool operator!=(const POJO2& __rhs) const
+    {
+        return !operator==(__rhs);
+    }
+    bool operator<=(const POJO2& __rhs) const
+    {
+        return operator<(__rhs) || operator==(__rhs);
+    }
+    bool operator>(const POJO2& __rhs) const
+    {
+        return !operator<(__rhs) && !operator==(__rhs);
+    }
+    bool operator>=(const POJO2& __rhs) const
+    {
+        return !operator<(__rhs);
+    }
+};
+
 }
 
 namespace Ice
@@ -587,6 +773,66 @@ template<>
 struct StreamableTraits< ::Gem::JobNotFound>
 {
     static const StreamHelperCategory helper = StreamHelperCategoryUserException;
+};
+
+template<>
+struct StreamableTraits< ::Gem::POJO>
+{
+    static const StreamHelperCategory helper = StreamHelperCategoryStruct;
+    static const int minWireSize = 9;
+    static const bool fixedLength = false;
+};
+
+template<class S>
+struct StreamWriter< ::Gem::POJO, S>
+{
+    static void write(S* __os, const ::Gem::POJO& v)
+    {
+        __os->write(v.type);
+        __os->write(v.x);
+        __os->write(v.y);
+    }
+};
+
+template<class S>
+struct StreamReader< ::Gem::POJO, S>
+{
+    static void read(S* __is, ::Gem::POJO& v)
+    {
+        __is->read(v.type);
+        __is->read(v.x);
+        __is->read(v.y);
+    }
+};
+
+template<>
+struct StreamableTraits< ::Gem::POJO2>
+{
+    static const StreamHelperCategory helper = StreamHelperCategoryStruct;
+    static const int minWireSize = 3;
+    static const bool fixedLength = false;
+};
+
+template<class S>
+struct StreamWriter< ::Gem::POJO2, S>
+{
+    static void write(S* __os, const ::Gem::POJO2& v)
+    {
+        __os->write(v.type);
+        __os->write(v.first);
+        __os->write(v.last);
+    }
+};
+
+template<class S>
+struct StreamReader< ::Gem::POJO2, S>
+{
+    static void read(S* __is, ::Gem::POJO2& v)
+    {
+        __is->read(v.type);
+        __is->read(v.first);
+        __is->read(v.last);
+    }
 };
 
 }

@@ -1,8 +1,6 @@
-#include <memory>
 #include "Ice/Ice.h"
 #include "IceStorm/IceStorm.h"
 #include <memory>
-#include <unordered_map>
 #include <set>
 #include <iostream>
 #include "gem.h"
@@ -124,17 +122,16 @@ public:
             ret.push_back( *find(j.id) );
         };
         log->info("Have {} items to return" , ret.size());
-        
         for (auto& listener : listeners) {
             listener->begin_onUpdate(ret,
                                      []() {
-                                         log->info("Sent new jobs");
+                                         log->debug("Sent new jobs");
                                      },
                                      [&](const Ice::Exception& ex) {
-                                         log->info("Bad listener");
+                                         log->error("Bad listener : \n{}\n", ex.what());
                                          auto it = listeners.find(listener);
                                          if ( it != std::end(listeners)) {
-                                             log->info("Expunging");
+                                             log->error("Expunging");
                                              listeners.erase( it );
                                          }
                                      });
@@ -145,21 +142,21 @@ public:
     virtual void startJob_async(const ::Gem::AMD_GemServer_startJobPtr& cb,
                                 const ::std::string& id,
                                 const ::Ice::Current& = ::Ice::Current()) {
-        log->info("startJob");
+        log->info("startJob {}, id");
         cb->ice_response();
     }
     
     virtual void stopJob_async(const ::Gem::AMD_GemServer_stopJobPtr& cb,
-                               const ::std::string&,
+                               const ::std::string& id,
                                const ::Ice::Current& = ::Ice::Current()) {
-        log->info("stopJob");
+        log->info("stopJob {}", id);
         cb->ice_response();
     }
     
     virtual void invalidate_async(const ::Gem::AMD_GemServer_invalidatePtr& cb,
-                                  const ::std::string&,
+                                  const ::std::string& id,
                                   const ::Ice::Current& = ::Ice::Current()) {
-        log->info("invalidate");
+        log->info("invalidate {}", id);
         cb->ice_response();
     }
 
