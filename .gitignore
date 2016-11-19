@@ -14,3 +14,4 @@
 /js/.depend/**
 /js/#gemExperiment.js#
 js/images
+*.pyc
