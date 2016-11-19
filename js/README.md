@@ -1,6 +1,5 @@
 # Starting up #
 
-
 ## Processes to Start ##
 
 ### Startup Grid ###
@@ -11,12 +10,12 @@ Startup Gemserver.
 
 `andy@raffles:~/repos/tiger$ icegridnode --Ice.Config=config/icegrid/raffles.config`
 
-
-### STartup Webserver ###
+### Startup Webserver ###
 
 Vanilla HTTP Server is okay.
 
-Web server serves up static content then it goes directly to the C++ websocket.
+Web server serves up static content then it goes directly to the C++
+websocket.
 
 No Node required! React on the client side.
 
@@ -26,7 +25,7 @@ No Node required! React on the client side.
 
 This guys responsibility is to listen to icestorm and render pictures
 when the graph is updated. He leans on the server at the moment. An
-optimization would be to have him maintain state of his own ( not that
+optimization would be to have him maintain state of his own (not that
 big a deal, just a case of maintaining a dictionary and updating it by
 key as new values come in).
 
@@ -36,7 +35,7 @@ key as new values come in).
 
 The man doing the work.
 
-`andy@raffles:/mnt/hdd/andy/repos/gem/python$ python gemListener.py`
+`andy@raffles:/mnt/hdd/andy/repos/gem/python$ python worker.py --Ice.Config=../config/worker.config`
 
 ## Further TOODs ##
 
