@@ -7,9 +7,6 @@ module Gem {
 
     dictionary<string, string> StringStringDict;
     
-    const string POJONAME = "POJO";
-    const string POJO2NAME = "POJO2";
-
     enum JobState {
         BLOCKED,
         STARTABLE,
@@ -33,6 +30,8 @@ module Gem {
         string id;
     };
 
+    sequence<WorkerId> WorkerIdSeq;
+
     struct JobWorkerState {
         WorkerId worker;
         string id;
@@ -44,12 +43,26 @@ module Gem {
     struct Job {
         string    id;
         StringSeq dependencies;
-        JobState  state = STARTABLE;
         int       priority;
         string    pwd;
         StringSeq cmdLine;
         StringStringDict env;
         string    batchId;
+    };
+
+    exception DuplicateJob {
+        string id;
+    };
+
+    exception JobNotExist {
+        string id;
+    };
+
+    
+    struct JobDescription {
+        Job job;
+        JobState state = STARTABLE;
+        WorkerIdSeq currentWorker;
     };
 
     sequence<Job> JobSeq;
@@ -76,7 +89,7 @@ module Gem {
     };
 
     interface GemServer {
-        ["amd"] void submitBatch( Batch batch );
+        ["amd"] void submitBatch( Batch batch ) throws DuplicateJob;
         ["amd"] void startJob( string id );
         ["amd"] void stopJob( string id );
         ["amd"] void invalidate( string id);
@@ -84,22 +97,10 @@ module Gem {
         ["amd"] string dumpStatus();
         ["amd"] JobSeq getJobs();
         ["amd"] JobSeq getStartableJob( WorkerId worker );
-        ["amd"] Job getJob( string id ) throws JobNotFound;
+        ["amd"] Job getJob( string id ) throws JobNotExist;
         ["amd"] void addListener( GemServerListener *listener);
         ["amd"] void addListenerWithIdent( Ice::Identity ident);
         ["amd"] void onWorkerStates( JobWorkerStateSeq xs);
         ["amd"] void imageReady(string imgId);
-    };
-
-    struct POJO {
-        string type = POJONAME;
-        int x;
-        int y;
-    };
-
-    struct POJO2 {
-        string type = POJO2NAME;
-        string first;
-        string last;
     };
 };
