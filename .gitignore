@@ -15,3 +15,5 @@
 /js/#gemExperiment.js#
 js/images
 *.pyc
+
+/javaSlice/target/**

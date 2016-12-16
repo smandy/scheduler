@@ -1,0 +1,84 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>bam</groupId>
+  <artifactId>gem-slice</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+  <name>gemslice</name>
+  <url>http://maven.apache.org</url>
+  <properties>
+    <scala.version>2.11.0</scala.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    
+  </properties>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>andy-add-source</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>target/generated-sources</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      
+      <plugin>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <version>1.8</version>
+        <executions>
+          <execution>
+            <id>generate</id>
+            <phase>generate-sources</phase>
+            <configuration>
+              <target>
+                <taskdef name="slice2java" classname="Slice2JavaTask" classpathref="maven.compile.classpath"/>
+                <mkdir dir="${project.build.directory}/generated-sources" />
+                <slice2java outputdir="${project.build.directory}/generated-sources">
+                  <fileset dir="${basedir}/../slice" includes="gem.ice"/>
+                  <includepath>
+                    <pathelement location="/usr/share/Ice-3.6.1/slice"/>
+                  </includepath>
+                </slice2java>
+              </target>
+            </configuration>
+            <goals>
+              <goal>run</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+  <dependencies>
+    <dependency>
+      <groupId>com.zeroc</groupId>
+      <artifactId>ant-ice</artifactId>
+      <version>4.0.0</version>
+      <scope>compile</scope>
+    </dependency>
+      <dependency>
+        <groupId>com.zeroc</groupId>
+        <artifactId>ice</artifactId>
+        <version>3.6.0</version>
+      </dependency>
+  </dependencies>
+  <repositories>
+    <repository>
+      <id>zeroc</id>
+      <name>Zeroc's hosted repo</name>
+      <url>https://repo.zeroc.com/nexus/content/repositories/releases</url>
+    </repository>
+  </repositories>
+</project>
