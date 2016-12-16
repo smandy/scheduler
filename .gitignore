@@ -23,3 +23,5 @@ java/.idea/**
 
 
 /java/target/**
+/java/gui/target/**
+/java/gui/.idea/**
