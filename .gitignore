@@ -17,3 +17,6 @@ js/images
 *.pyc
 
 /javaSlice/target/**
+/java/.idea/**
+java/core/target/**
+java/.idea/**
