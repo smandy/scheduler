@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- This file was written by IceGrid Admin -->
+<icegrid>
+   <application name="GemJava">
+      <node name="raffles">
+         <server id="GemJava" activation="manual" exe="java" pwd="/mnt/hdd/andy/repos/gem/java/core/target">
+            <description>Java implementation of the GEM Job Scheduler.</description>
+            <option>-cp</option>
+            <option>core-0.1.0-SNAPSHOT-jar-with-dependencies.jar</option>
+            <option>bamma.Runner</option>
+            <properties>
+               <property name="Ice.StdOut" value="/tmp/gemJava.txt"/>
+               <property name="Ice.StdErr" value="/tmp/gemJava.txt"/>
+               <property name="IceStorm.TopicManager" value="IceStorm/TopicManager"/>
+               <property name="Gem.Topic" value="dev.jobs"/>
+               <property name="adapterName" value="GemJava"/>
+               <property name="objectIdentity" value="server"/>
+            </properties>
+            <adapter name="GemJava" endpoints="tcp -h raffles:ws -h raffles" id="GemJava"/>
+         </server>
+      </node>
+   </application>
+</icegrid>
