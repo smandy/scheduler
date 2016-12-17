@@ -9,6 +9,7 @@ module Gem {
     
     enum JobState {
         BLOCKED,
+        DORMANT,
         STARTABLE,
         SCHEDULED,
         STARTED,
@@ -57,11 +58,15 @@ module Gem {
     exception JobNotExist {
         string id;
     };
+    
+    exception JobNotStartable {
+        string id;
+    };
 
     
     struct JobDescription {
         Job job;
-        JobState state = STARTABLE;
+        JobState state = DORMANT;
         WorkerIdSeq currentWorker;
     };
 
@@ -90,8 +95,10 @@ module Gem {
 
     interface GemServer {
         ["amd"] void submitBatch( Batch batch ) throws DuplicateJob;
-        ["amd"] void startJob( string id );
+        
+        ["amd"] void startJob( string id ) throws JobNotExist, JobNotStartable;
         ["amd"] void stopJob( string id );
+        
         ["amd"] void invalidate( string id);
         ["amd"] void reset();
         ["amd"] string dumpStatus();

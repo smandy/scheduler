@@ -25,3 +25,5 @@ java/.idea/**
 /java/target/**
 /java/gui/target/**
 /java/gui/.idea/**
+/java/core/core.iml
+/java/gui/gui.iml

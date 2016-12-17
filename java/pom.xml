@@ -123,6 +123,11 @@
       <id>zeroc</id>
       <name>Zeroc's hosted repo</name>
       <url>https://repo.zeroc.com/nexus/content/repositories/releases</url>
+      <snapshots>
+        <enabled>
+          false
+        </enabled>
+      </snapshots>
     </repository>
   </repositories>
 </project>

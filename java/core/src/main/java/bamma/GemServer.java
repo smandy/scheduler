@@ -1,24 +1,6 @@
 package bamma;
 
-import Gem.AMD_GemServer_addListener;
-import Gem.AMD_GemServer_addListenerWithIdent;
-import Gem.AMD_GemServer_dumpStatus;
-import Gem.AMD_GemServer_getJob;
-import Gem.AMD_GemServer_getJobs;
-import Gem.AMD_GemServer_getStartableJob;
-import Gem.AMD_GemServer_imageReady;
-import Gem.AMD_GemServer_invalidate;
-import Gem.AMD_GemServer_onWorkerStates;
-import Gem.AMD_GemServer_reset;
-import Gem.AMD_GemServer_startJob;
-import Gem.AMD_GemServer_stopJob;
-import Gem.AMD_GemServer_submitBatch;
-import Gem.Batch;
-import Gem.GemServerListenerPrx;
-import Gem.JobNotFound;
-import Gem.JobWorkerState;
-import Gem.WorkerId;
-import Gem._GemServerDisp;
+import Gem.*;
 import Ice.Current;
 import Ice.Identity;
 
@@ -62,12 +44,10 @@ public class GemServer extends _GemServerDisp {
 
     @Override
     public void getStartableJob_async(AMD_GemServer_getStartableJob amd_gemServer_getStartableJob, WorkerId workerId, Current current) {
-
     }
 
     @Override
-    public void getJob_async(AMD_GemServer_getJob amd_gemServer_getJob, String s, Current current) throws JobNotFound {
-
+    public void getJob_async(AMD_GemServer_getJob amd_gemServer_getJob, String s, Current current) throws JobNotExist {
     }
 
     @Override
