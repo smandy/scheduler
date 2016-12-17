@@ -9,6 +9,8 @@ class ScalaGemServer(val executor: ScheduledExecutorService) extends _GemServerD
   var jobs = Map[String, WrappedJob]()
   var workers = Map[WorkerId, WorkerState]()
 
+  var listeners = Set[GemServerListenerPrx]()
+
   /// XXXAS - check worker states.
   def runOnExecutor(f: => Unit) = executor.submit(new Runnable() {
     override def run(): Unit = {
@@ -83,9 +85,18 @@ class ScalaGemServer(val executor: ScheduledExecutorService) extends _GemServerD
 
   override def invalidate_async(amd_gemServer_invalidate: AMD_GemServer_invalidate, s: String, current: Current): Unit = ???
 
-  override def addListener_async(amd_gemServer_addListener: AMD_GemServer_addListener,
-                                 gemServerListenerPrx: GemServerListenerPrx, current: Current): Unit = runOnExecutor {
+  def r( f : => Unit) : Runnable = new Runnable() { override def run() = { f }}
 
+  override def addListener_async(cb : AMD_GemServer_addListener,
+                                 gemServerListenerPrx: GemServerListenerPrx,
+                                 current: Current): Unit = runOnExecutor {
+    listeners += gemServerListenerPrx
+    //gemServerListenerPrx.begin_onImage(makeImage(), () => ice_response() , (ex) => {} ) //, r { cb.ice_response() })
+  }
+
+  def makeImage() : Image = {
+    val  tmpJobs= jobs.values.map(_.jd.job).toArray[Job]
+    new Image( tmpJobs, "")
   }
 
   override def addListenerWithIdent_async(amd_gemServer_addListenerWithIdent: AMD_GemServer_addListenerWithIdent, identity: Identity, current: Current): Unit = ???
