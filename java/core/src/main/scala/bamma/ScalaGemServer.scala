@@ -3,27 +3,34 @@ package bamma
 import java.util.concurrent.{Callable, ScheduledExecutorService}
 
 import Gem._
-import Ice.{AMDCallback, Current, Identity}
+import Ice._
+import IceStorm.{NoSuchTopic, TopicManagerPrxHelper, TopicManagerPrx}
 
-class ScalaGemServer(val executor: ScheduledExecutorService) extends _GemServerDisp {
+class ScalaGemServer(val communicator : Communicator,
+                     val executor: ScheduledExecutorService) extends _GemServerDisp {
   var jobs = Map[String, WrappedJob]()
   var workers = Map[WorkerId, WorkerState]()
 
   var listeners = Set[GemServerListenerPrx]()
 
-  /// XXXAS - check worker states.
-  def runOnExecutor(f: => Unit) = executor.submit(new Runnable() {
-    override def run(): Unit = {
-      f
+  val topic = {
+    val topicPrx = TopicManagerPrxHelper.checkedCast(communicator.propertyToProxy("icestorm.topicManager"))
+    val subject = communicator.getProperties().getProperty("gem.topic")
+    try {
+      topicPrx.retrieve(topic)
+    } catch {
+      case (nst: NoSuchTopic) => topicPrx.create(topic)
     }
-  })
+  }
 
-  def runOnExecutorAndWait[T](f: => T): T = {
-    val c = new Callable[T]() {
-      override def call(): T = {
-        f
-      }
-    }
+  /// XXXAS - check worker states.
+  def runOnExecutor(f: => Unit) = {
+    val x : Runnable = () => { f }
+    executor.submit( x )
+  }
+
+  def runOnExecutorAndWait[T](f: => T) : T = {
+    val c : Callable[T] = () => f
     val fut = executor.submit(c)
     fut.get()
   }
@@ -85,23 +92,38 @@ class ScalaGemServer(val executor: ScheduledExecutorService) extends _GemServerD
 
   override def invalidate_async(amd_gemServer_invalidate: AMD_GemServer_invalidate, s: String, current: Current): Unit = ???
 
-  def r( f : => Unit) : Runnable = new Runnable() { override def run() = { f }}
+  //def r( f : => Unit) : Runnable = () => { f }
 
   override def addListener_async(cb : AMD_GemServer_addListener,
-                                 gemServerListenerPrx: GemServerListenerPrx,
+                                 listener : GemServerListenerPrx,
                                  current: Current): Unit = runOnExecutor {
-    listeners += gemServerListenerPrx
-    //gemServerListenerPrx.begin_onImage(makeImage(), () => ice_response() , (ex) => {} ) //, r { cb.ice_response() })
+    listeners += listener
+    val qos = new java.util.HashMap[String,String]()
+    topic.begin_subscribeAndGetPublisher(qos,
+      listener,
+      (rawPrx) => {
+        println(s"Got proxy $rawPrx")
+        val prx = GemServerListenerPrxHelper.uncheckedCast(rawPrx)
+        val image = makeImage()
+        prx.begin_onImage(
+          image,
+          () => println("Success"),
+          (ex) => println("Failed"))
+      },
+      (ex : UserException) => {},
+      (ex : Exception) => {} )
   }
 
   def makeImage() : Image = {
-    val  tmpJobs= jobs.values.map(_.jd.job).toArray[Job]
+    val tmpJobs = jobs.values.map(_.jd.job).toArray[Job]
     new Image( tmpJobs, "")
   }
 
   override def addListenerWithIdent_async(amd_gemServer_addListenerWithIdent: AMD_GemServer_addListenerWithIdent, identity: Identity, current: Current): Unit = ???
 
-  override def stopJob_async(cb: AMD_GemServer_stopJob, s: String, current: Current): Unit = {
+  override def stopJob_async(cb: AMD_GemServer_stopJob,
+                             s: String,
+                             current: Current): Unit = {
     withJobOnExecutor(s, cb, (wj) => {
       if (wj.state == JobState.STARTED ) {
         wj.state = JobState.STOPPED

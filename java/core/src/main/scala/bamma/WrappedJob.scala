@@ -16,8 +16,7 @@ object WrappedJob {
   }
 }
 
-class WrappedJob(val jd : JobDescription) {
-
+class WrappedJob(val job : Job, val state : JobState) {
   def state = jd.state
 
   def state_=( s : JobState) : Unit = {

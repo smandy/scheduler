@@ -20,5 +20,10 @@
             <artifactId>ice</artifactId>
             <version>3.6.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.zeroc</groupId>
+            <artifactId>icestorm</artifactId>
+            <version>3.6.0</version>
+        </dependency>
     </dependencies>
 </project>

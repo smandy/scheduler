@@ -2,21 +2,34 @@
 
 #include "Ice/Identity.ice"
 
-module Gem {
+module scheduler {
     sequence<string> StringSeq;
 
     dictionary<string, string> StringStringDict;
+
+    module EnumJobState {
     
-    enum JobState {
-        BLOCKED,
-        DORMANT,
-        STARTABLE,
-        SCHEDULED,
-        STARTED,
-        STOPPED,
-        FAILED,
-        WAIVERED,
-        COMPLETED
+        enum State {
+            BLOCKED,
+            DORMANT,
+            STARTABLE,
+            SCHEDULED,
+            STARTED,
+            STOPPED,
+            FAILED,
+            WAIVERED,
+            COMPLETED
+        };
+    };
+
+    // The state a worker thinks a job is in
+    namespace  EnumWorkerJobState {
+        enum State {
+            STARTED,
+            FAILED,
+            CANCELLING,
+            CANCELED
+        }
     };
 
     struct JobUpdate {
@@ -32,13 +45,27 @@ module Gem {
     };
 
     sequence<WorkerId> WorkerIdSeq;
-
-    struct JobWorkerState {
+    
+    // A workers perspective on a job.
+    // ALl he really knows if he's started it and if it's complete
+    struct WorkerStateDescription {
+        string jobId;
         WorkerId worker;
-        string id;
-        JobState state;
+        ::scheduler::EnumWorkerJobState::State state;
     };
-
+    
+    // What a job declares its status to be
+    // Richer object. The job can report status messgaes/completion etc.
+    struct JobStateDescription {
+        string jobId;
+        long startTime;
+        long updateTime;
+        string statusMsg;
+        int pctComplete;
+    };
+    
+    sequence<JobStateDescription> JobStateDescriptionSeq;
+    
     sequence<JobWorkerState> JobWorkerStateSeq;
 
     struct Job {
@@ -50,6 +77,17 @@ module Gem {
         StringStringDict env;
         string    batchId;
     };
+
+
+
+    struct JobState {
+        string jobId;
+        JobState state = DORMANT;
+        WorkerIdSeq currentWorker;
+        JobWorkerStateSeq claimedJobStatus;
+        
+    };
+
 
     exception DuplicateJob {
         string id;
@@ -63,14 +101,8 @@ module Gem {
         string id;
     };
 
-    
-    struct JobDescription {
-        Job job;
-        JobState state = DORMANT;
-        WorkerIdSeq currentWorker;
-    };
-
     sequence<Job> JobSeq;
+    sequence<JobState> JobStateSeq;
     dictionary<string,Job> JobDict;
 
     struct Batch {
@@ -78,13 +110,14 @@ module Gem {
     };
 
     struct Image {
-        JobSeq jobs;
+        JobSeq      jobs;
+        JobStateSeq states;
         string currentImage;
     };
     
     interface GemServerListener {
         ["amd"] void onImage( Image image );
-        ["amd"] void onUpdate( JobSeq jobs );
+        ["amd"] void onUpdate( JobStateSeq jobs );
         ["amd"] void onImageReady(string imgId);
         ["amd"] void onReset();
     };
