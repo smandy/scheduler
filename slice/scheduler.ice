@@ -7,8 +7,12 @@ module scheduler {
 
     dictionary<string, string> StringStringDict;
 
+    struct JobId {
+        string id;
+        string batch;
+    };
+
     module EnumJobState {
-    
         enum State {
             BLOCKED,
             DORMANT,
@@ -23,17 +27,17 @@ module scheduler {
     };
 
     // The state a worker thinks a job is in
-    namespace  EnumWorkerJobState {
+    module EnumWorkerJobState {
         enum State {
             STARTED,
             FAILED,
             CANCELLING,
             CANCELED
-        }
+        };
     };
 
     struct JobUpdate {
-        string id;
+        JobId  id;
         int    pctComplete;
         string status;
     };
@@ -49,15 +53,21 @@ module scheduler {
     // A workers perspective on a job.
     // ALl he really knows if he's started it and if it's complete
     struct WorkerStateDescription {
-        string jobId;
-        WorkerId worker;
+        JobId id;
         ::scheduler::EnumWorkerJobState::State state;
+    };
+
+    sequence<WorkerStateDescription> WorkerStateDescriptionSeq;
+
+    struct WorkerUpdate {
+        WorkerId id;
+        WorkerStateDescriptionSeq updates;
     };
     
     // What a job declares its status to be
     // Richer object. The job can report status messgaes/completion etc.
     struct JobStateDescription {
-        string jobId;
+        JobId id;
         long startTime;
         long updateTime;
         string statusMsg;
@@ -66,28 +76,25 @@ module scheduler {
     
     sequence<JobStateDescription> JobStateDescriptionSeq;
     
-    sequence<JobWorkerState> JobWorkerStateSeq;
-
     struct Job {
-        string    id;
+        JobId id;
         StringSeq dependencies;
         int       priority;
         string    pwd;
         StringSeq cmdLine;
         StringStringDict env;
-        string    batchId;
     };
 
 
-
+    /* The 'stateful part of a job detached from the immutable
+       description of a job. Separation of concerns etc. */
+    
     struct JobState {
         string jobId;
-        JobState state = DORMANT;
+        EnumJobState::State state = EnumJobState::DORMANT;
         WorkerIdSeq currentWorker;
-        JobWorkerStateSeq claimedJobStatus;
-        
+        JobStateDescriptionSeq jobStatus;
     };
-
 
     exception DuplicateJob {
         string id;
@@ -140,7 +147,7 @@ module scheduler {
         ["amd"] Job getJob( string id ) throws JobNotExist;
         ["amd"] void addListener( SchedulerServerListener *listener);
         ["amd"] void addListenerWithIdent( Ice::Identity ident);
-        ["amd"] void onWorkerStates( JobWorkerStateSeq xs);
+        ["amd"] void onWorkerUpdate( WorkerUpdate x);
         ["amd"] void imageReady(string imgId);
     };
 };
