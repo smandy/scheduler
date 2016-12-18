@@ -2,7 +2,7 @@ package bamma
 
 import java.util.concurrent.{Callable, ScheduledExecutorService}
 
-import Scheduler._
+import scheduler._
 import Ice._
 import IceStorm.{NoSuchTopic, TopicManagerPrxHelper, TopicManagerPrx}
 
@@ -138,7 +138,7 @@ class ScalaSchedulerServer(val communicator : Communicator,
 
   override def getJob_async(cb: AMD_SchedulerServer_getJob, s: String, current: Current): Unit = {
     withJobOnExecutor(s, cb, (wj) => {
-      => cb.ice_response(wj.jd.job)
+      cb.ice_response(wj.jd.job)
     })
   }
 }
