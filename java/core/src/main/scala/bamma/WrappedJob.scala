@@ -1,11 +1,11 @@
 package bamma
 
-import Gem.{Job, JobState, WorkerId, JobDescription}
+import Scheduler.{Job, JobState, WorkerId, JobDescription}
 
 object WrappedJob {
   def forJob( j : Job) = new JobDescription(j, JobState.STARTABLE, Array.empty[WorkerId])
 
-  import Gem.JobState._
+  import Scheduler.JobState._
 
   val startableStates = {
     Set(STARTABLE)

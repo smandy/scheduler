@@ -1,6 +1,6 @@
 package bamma
 
-import Gem.{JobState, WorkerId}
+import Scheduler.{JobState, WorkerId}
 
 class WorkerState(val workerId : WorkerId) {
   var jobStates = Set[JobState]()

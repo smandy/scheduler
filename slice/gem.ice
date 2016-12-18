@@ -115,7 +115,7 @@ module scheduler {
         string currentImage;
     };
     
-    interface GemServerListener {
+    interface SchedulerServerListener {
         ["amd"] void onImage( Image image );
         ["amd"] void onUpdate( JobStateSeq jobs );
         ["amd"] void onImageReady(string imgId);
@@ -126,7 +126,7 @@ module scheduler {
         string id;
     };
 
-    interface GemServer {
+    interface SchedulerServer {
         ["amd"] void submitBatch( Batch batch ) throws DuplicateJob;
         
         ["amd"] void startJob( string id ) throws JobNotExist, JobNotStartable;
@@ -138,7 +138,7 @@ module scheduler {
         ["amd"] JobSeq getJobs();
         ["amd"] JobSeq getStartableJob( WorkerId worker );
         ["amd"] Job getJob( string id ) throws JobNotExist;
-        ["amd"] void addListener( GemServerListener *listener);
+        ["amd"] void addListener( SchedulerServerListener *listener);
         ["amd"] void addListenerWithIdent( Ice::Identity ident);
         ["amd"] void onWorkerStates( JobWorkerStateSeq xs);
         ["amd"] void imageReady(string imgId);

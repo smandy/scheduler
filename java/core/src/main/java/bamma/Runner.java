@@ -18,7 +18,7 @@ public class Runner {
         System.out.println("adapterName = " + adapterName);
 
         ObjectAdapter adapter = communicator.createObjectAdapter(adapterName);
-        GemServer server = new GemServer();
+        SchedulerServer server = new SchedulerServer();
 
         System.out.println("server = " + server);
         adapter.add(server, communicator.stringToIdentity(objectIdentity));

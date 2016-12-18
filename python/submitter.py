@@ -1,11 +1,11 @@
 import Ice
 
-from gemHelper import Gem
+from schedulerHelper import Scheduler
 from graphGenerator import doGraph
 
 communicator = Ice.initialize(['--Ice.Config=../config/client.config'])
-prx = communicator.propertyToProxy("GemServer.Proxy")
-server = Gem.GemServerPrx.checkedCast( prx )
+prx = communicator.propertyToProxy("SchedulerServer.Proxy")
+server = Scheduler.SchedulerServerPrx.checkedCast( prx )
 
 from exampleBatch import makeBatch
 

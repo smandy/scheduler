@@ -2,23 +2,23 @@ var Ice      = require('ice').Ice;
 var Glacier2 = require('ice').Glacier2;
 var IceStorm = require('ice').IceStorm;
 var IceGrid  = require('ice').IceGrid;
-var Gem      = require('./generated/gem').Gem;
+var Scheduler      = require('./generated/scheduler').Scheduler;
 var iid = new Ice.InitializationData();
 var props = Ice.createProperties();
 
 //props.setProperty('Ice.Default.Locator', 'IceGrid/Locator:tcp -h raffles -p 4061:ws -h raffles -p 4063');
 
 props.setProperty('Ice.Default.Locator', 'IceGrid/Locator:ws -h raffles -p 4063');
-props.setProperty( 'GemServer.Proxy' , 'server@GemServer');
+props.setProperty( 'SchedulerServer.Proxy' , 'server@SchedulerServer');
 iid.properties = props;
 
 var communicaator = Ice.initialize( iid );
-console.log("P is " + communicator.getProperties().getProperty("GemServer.Proxy"));
+console.log("P is " + communicator.getProperties().getProperty("SchedulerServer.Proxy"));
 
-var proxy = communicator.stringToProxy("server@GemServer").ice_timeout(1000);
+var proxy = communicator.stringToProxy("server@SchedulerServer").ice_timeout(1000);
 
 var server;
-Gem.GemServerPrx.checkedCast( proxy ).then( function(prx) {
+Scheduler.SchedulerServerPrx.checkedCast( proxy ).then( function(prx) {
     server = prx;
 });
 

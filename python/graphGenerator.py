@@ -1,7 +1,7 @@
-from gemHelper import Gem
+from schedulerHelper import Scheduler
 import os
 
-js = Gem.JobState
+js = Scheduler.JobState
 
 template = """\
 digraph G2 {

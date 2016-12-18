@@ -3,10 +3,10 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>bamma</groupId>
-  <artifactId>gem-slice</artifactId>
+  <artifactId>scheduler-slice</artifactId>
   <version>0.1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
-  <name>gemslice</name>
+  <name>schedulerslice</name>
   <url>http://maven.apache.org</url>
   <properties>
     <scala.version>2.11.0</scala.version>
@@ -46,7 +46,7 @@
                 <taskdef name="slice2java" classname="Slice2JavaTask" classpathref="maven.compile.classpath"/>
                 <mkdir dir="${project.build.directory}/generated-sources" />
                 <slice2java outputdir="${project.build.directory}/generated-sources">
-                  <fileset dir="${basedir}/../slice" includes="gem.ice"/>
+                  <fileset dir="${basedir}/../slice" includes="scheduler.ice"/>
                   <includepath>
                     <pathelement location="/usr/share/Ice-3.6.1/slice"/>
                   </includepath>

@@ -6,7 +6,7 @@ import sys
 import time
 import subprocess
 from datetime import datetime
-from gemHelper import Gem
+from schedulerHelper import Scheduler
 
 if 'INSIDE_EMACS' in os.environ:
     # Andy Testing
@@ -35,11 +35,11 @@ while True:
     i += 1
 print "Dirname is %s" % dirName
 
-prx = communicator.propertyToProxy("GemServer.Proxy").ice_timeout(1000)
-server = Gem.GemServerPrx.checkedCast( prx )
+prx = communicator.propertyToProxy("SchedulerServer.Proxy").ice_timeout(1000)
+server = Scheduler.SchedulerServerPrx.checkedCast( prx )
 print server
 
-myId    = Gem.WorkerId( checkedProperty('Worker.ID'))
+myId    = Scheduler.WorkerId( checkedProperty('Worker.ID'))
 maxJobs = int( checkedProperty('Worker.MaxJobs' ))
 jobs = []
 
@@ -78,7 +78,7 @@ class Job(object):
     def __str__(self):
         return str(self.job)
 
-js = Gem.JobState
+js = Scheduler.JobState
 while True:
     dirty = False
     newStates = []
@@ -88,7 +88,7 @@ while True:
             print "Got job %s" % newJob[0].id
             newJob[0].state = js.STARTED
             jobs.append( Job(newJob[0]))
-            newStates.append( Gem.JobWorkerState(myId, newJob[0].id, js.STARTED))
+            newStates.append( Scheduler.JobWorkerState(myId, newJob[0].id, js.STARTED))
             dirty = True
             break
         else:
@@ -102,7 +102,7 @@ while True:
             else:
                 state = js.FAILED
             print "Job %s %s" % (job.id, state)
-            s = Gem.JobWorkerState(myId, job.id, state)
+            s = Scheduler.JobWorkerState(myId, job.id, state)
             newStates.append(s)
             dirty = True
         else:

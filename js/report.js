@@ -22,7 +22,7 @@
     function clearObject(obj) {
         for (var x in obj) delete obj[x];
     }
-    var MyCallBackReceiver = Ice.Class( Gem.GemServerListener, {
+    var MyCallBackReceiver = Ice.Class( Scheduler.SchedulerServerListener, {
         onImage_async : function(cb, image, current) {
             console.log("On Image! " + image.jobs.length + " " + image.currentImage);
             clearObject(data);
@@ -91,9 +91,9 @@
     iid.properties = props;
     var communicator = Ice.initialize( iid );
     
-    var proxy = communicator.stringToProxy("server@GemServer").ice_timeout(1000);
+    var proxy = communicator.stringToProxy("server@SchedulerServer").ice_timeout(1000);
     console.log("About to ping " + proxy);
-    Gem.GemServerPrx.checkedCast( proxy ).then( function(server) {
+    Scheduler.SchedulerServerPrx.checkedCast( proxy ).then( function(server) {
         return communicator.createObjectAdapter("").then(
             function(adapter)
             {

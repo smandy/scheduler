@@ -6,7 +6,7 @@ function clearObject(obj) {
 var iid = new Ice.InitializationData();
 var props = Ice.createProperties();
 
-var CallbackReceiver = Ice.Class( Gem.GemServerListener, {
+var CallbackReceiver = Ice.Class( Scheduler.SchedulerServerListener, {
     onImage_async      : function(cb, image, current) { this.parent.onImage_async(cb, image, current); },
     onReset_async      : function(cb, current)        { this.parent.onReset_async( cb, current); },
     onImageReady_async : function(cb, s, current)     { this.parent.onImageReady_async( cb,s,current); },
@@ -16,7 +16,7 @@ var CallbackReceiver = Ice.Class( Gem.GemServerListener, {
 props.setProperty('Ice.Default.Locator', 'IceGrid/Locator:ws -h raffles -p 4063');
 iid.properties = props;
 var communicator = Ice.initialize(iid);
-var proxy = communicator.stringToProxy("server@GemServer").ice_timeout(1000);
+var proxy = communicator.stringToProxy("server@SchedulerServer").ice_timeout(1000);
 console.log("About to ping " + proxy );
 
 var Job = React.createClass( {
@@ -109,7 +109,7 @@ var IceGridListener = React.createClass( {
     componentDidMount : function() {
         console.log("Did mount");
         var outer = this;
-        Gem.GemServerPrx.checkedCast( proxy ).then( function(server) {
+        Scheduler.SchedulerServerPrx.checkedCast( proxy ).then( function(server) {
             console.log("Checked cast : " + server);
             return communicator.createObjectAdapter("").then(
                 function(adapter)

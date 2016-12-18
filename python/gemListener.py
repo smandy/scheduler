@@ -1,21 +1,21 @@
 import uuid
 import Ice
 
-from gemHelper import Gem
+from schedulerHelper import Scheduler
 from graphGenerator import doGraphFromJobs
 import os
 from datetime import datetime
 
-#communicator = Ice.initialize(['--Ice.Config=../config/gemserver.config'])
+#communicator = Ice.initialize(['--Ice.Config=../config/schedulerserver.config'])
 communicator = Ice.initialize(['--Ice.Config=../config/client.config'])
-prx = communicator.propertyToProxy("GemServer.Proxy")
-server = Gem.GemServerPrx.checkedCast( prx )
-imageDir = os.path.expanduser( communicator.getProperties().getProperty('GemListener.ImageDir'))
+prx = communicator.propertyToProxy("SchedulerServer.Proxy")
+server = Scheduler.SchedulerServerPrx.checkedCast( prx )
+imageDir = os.path.expanduser( communicator.getProperties().getProperty('SchedulerListener.ImageDir'))
 
 def onFail(self, ex, current):
     print "Failed %s" % ex
     
-class MyListener(Gem.GemServerListener):
+class MyListener(Scheduler.SchedulerServerListener):
     def __init__(self):
         self.imgCounter = 0
 
@@ -50,7 +50,7 @@ myListener = MyListener()
 myPrx = adapter.addWithUUID( myListener )
 
 print "MyPrx is %s" % myPrx
-listenerPrx = Gem.GemServerListenerPrx.uncheckedCast(myPrx)
+listenerPrx = Scheduler.SchedulerServerListenerPrx.uncheckedCast(myPrx)
 
 server.addListener(listenerPrx)
 communicator.waitForShutdown()

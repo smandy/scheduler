@@ -3,44 +3,44 @@
 #include <memory>
 #include <set>
 #include <iostream>
-#include "gem.h"
+#include "scheduler.h"
 #include <spdlog/spdlog.h>
 
 // Pointers for getting icestorm up
 // Aha - the trick was exposing IceStorm/TopicManager as a well known object
 // https://github.com/SintefRaufossManufacturing/icehms/blob/master/icecfg/icebox.xml
-//typedef std::shared_ptr<Gem::Job> JobPtr;
+//typedef std::shared_ptr<Scheduler::Job> JobPtr;
 // http://git.asterisk.org/gitweb/?p=asterisk-scf/release/techdemo.git;a=commitdiff_plain;h=89b836724135902a7d628cc08bd8ddd786b82240
 
 using loggerType = std::shared_ptr<spdlog::logger>;
 
-class GemServerImpl : public Gem::GemServer {
-    std::vector<Gem::Job> jobs;
+class SchedulerServerImpl : public Scheduler::SchedulerServer {
+    std::vector<Scheduler::Job> jobs;
     IceStorm::TopicPrx topic;
     std::unordered_map<std::string, std::vector<std::string> > dependants;
-    std::set<Gem::GemServerListenerPrx> listeners;
+    std::set<Scheduler::SchedulerServerListenerPrx> listeners;
     std::string currentImage;
 public:
     static loggerType log;
-    GemServerImpl(Ice::CommunicatorPtr communicator) {
+    SchedulerServerImpl(Ice::CommunicatorPtr communicator) {
         log = spdlog::get("log");
         log->info("Get Topic");
         auto topicPrx = IceStorm::TopicManagerPrx::checkedCast( communicator->propertyToProxy("IceStorm.TopicManager"));
         log->info("Get Subject");
-        auto subject = communicator->getProperties()->getProperty("Gem.Topic");
+        auto subject = communicator->getProperties()->getProperty("Scheduler.Topic");
         log->info("Subject is {}",subject);
         try {
             topic = topicPrx->retrieve(subject);
         } catch( IceStorm::NoSuchTopic &) {
             topic = topicPrx->create(subject);
         }
-        listeners.insert(Gem::GemServerListenerPrx::uncheckedCast(topic->getPublisher()));
+        listeners.insert(Scheduler::SchedulerServerListenerPrx::uncheckedCast(topic->getPublisher()));
         log->info("Done");
     }
     
-    inline Gem::Job* find(const std::string& id) {
-        static thread_local Gem::Job finder;
-        Gem::Job *ret = nullptr;
+    inline Scheduler::Job* find(const std::string& id) {
+        static thread_local Scheduler::Job finder;
+        Scheduler::Job *ret = nullptr;
         finder.id = id;
         auto x = std::lower_bound( begin(jobs),
                                    end(jobs),
@@ -51,11 +51,11 @@ public:
         if (x != end(jobs) && x->id==id) {
             return &(*x);
         } else {
-            throw Gem::JobNotFound(id);
+            throw Scheduler::JobNotFound(id);
         }
     }
 
-    virtual void getJob_async(const ::Gem::AMD_GemServer_getJobPtr& cb,
+    virtual void getJob_async(const ::Scheduler::AMD_SchedulerServer_getJobPtr& cb,
                               const ::std::string& id,
                               const ::Ice::Current& = ::Ice::Current()) {
         cb->ice_response(*find(id));
@@ -64,12 +64,12 @@ public:
     void blockDependenciesOf(const std::string &id ) {
         for ( auto& depId : dependants[id]) {
             auto depJob = find(depId);
-            depJob->state = Gem::JobState::BLOCKED;
+            depJob->state = Scheduler::JobState::BLOCKED;
         }
     }
 
 
-     virtual void imageReady_async(const ::Gem::AMD_GemServer_imageReadyPtr& cb,
+     virtual void imageReady_async(const ::Scheduler::AMD_SchedulerServer_imageReadyPtr& cb,
                                    const ::std::string& s,
                                    const ::Ice::Current& = ::Ice::Current()) {
 
@@ -91,8 +91,8 @@ public:
          }
      };
     
-    virtual void submitBatch_async(const ::Gem::AMD_GemServer_submitBatchPtr& cb,
-                                   const ::Gem::Batch& batch,
+    virtual void submitBatch_async(const ::Scheduler::AMD_SchedulerServer_submitBatchPtr& cb,
+                                   const ::Scheduler::Batch& batch,
                                    const ::Ice::Current& = ::Ice::Current()) {
         log->info("Submitbatch");
         for ( auto &job : batch.jobs) {
@@ -116,7 +116,7 @@ public:
         // Ug - we've blocked our copies so we need to go and fetch
         // them back from the graph. Noticed when developing the web
         // gui too much stuff was reporting itself as 'startable' :-(
-        Gem::JobSeq ret;
+        Scheduler::JobSeq ret;
         for( auto& j : batch.jobs) {
             log->info("Looking for ");
             ret.push_back( *find(j.id) );
@@ -139,28 +139,28 @@ public:
         cb->ice_response();
     }
     
-    virtual void startJob_async(const ::Gem::AMD_GemServer_startJobPtr& cb,
+    virtual void startJob_async(const ::Scheduler::AMD_SchedulerServer_startJobPtr& cb,
                                 const ::std::string& id,
                                 const ::Ice::Current& = ::Ice::Current()) {
         log->info("startJob {}, id");
         cb->ice_response();
     }
     
-    virtual void stopJob_async(const ::Gem::AMD_GemServer_stopJobPtr& cb,
+    virtual void stopJob_async(const ::Scheduler::AMD_SchedulerServer_stopJobPtr& cb,
                                const ::std::string& id,
                                const ::Ice::Current& = ::Ice::Current()) {
         log->info("stopJob {}", id);
         cb->ice_response();
     }
     
-    virtual void invalidate_async(const ::Gem::AMD_GemServer_invalidatePtr& cb,
+    virtual void invalidate_async(const ::Scheduler::AMD_SchedulerServer_invalidatePtr& cb,
                                   const ::std::string& id,
                                   const ::Ice::Current& = ::Ice::Current()) {
         log->info("invalidate {}", id);
         cb->ice_response();
     }
 
-    virtual void reset_async(const ::Gem::AMD_GemServer_resetPtr& cb,
+    virtual void reset_async(const ::Scheduler::AMD_SchedulerServer_resetPtr& cb,
                              const ::Ice::Current& = ::Ice::Current()) {
         jobs.clear();
         dependants.clear();
@@ -179,39 +179,39 @@ public:
         cb->ice_response();
     }
     
-    virtual void getStartableJob_async(const ::Gem::AMD_GemServer_getStartableJobPtr& cb,
-                                       const ::Gem::WorkerId&,
+    virtual void getStartableJob_async(const ::Scheduler::AMD_SchedulerServer_getStartableJobPtr& cb,
+                                       const ::Scheduler::WorkerId&,
                                        const ::Ice::Current& = ::Ice::Current()) {
-        Gem::JobSeq ret;
-        Gem::Job *selected = nullptr;
+        Scheduler::JobSeq ret;
+        Scheduler::Job *selected = nullptr;
         for (auto &job : jobs) {
-            if (job.state == Gem::JobState::STARTABLE ) {
+            if (job.state == Scheduler::JobState::STARTABLE ) {
                 if (!selected || job.priority < selected->priority) {
                     selected = &job;
                 }
             }
         }
         if (selected) {
-            selected->state = Gem::JobState::SCHEDULED;
+            selected->state = Scheduler::JobState::SCHEDULED;
             ret.push_back(*selected);
         }
         cb->ice_response( ret );
     }
 
-    virtual void dumpStatus_async(const ::Gem::AMD_GemServer_dumpStatusPtr& cb,
+    virtual void dumpStatus_async(const ::Scheduler::AMD_SchedulerServer_dumpStatusPtr& cb,
                                   const ::Ice::Current& = ::Ice::Current()) {
         cb->ice_response("Unimplemented");
     }
     
-    virtual void getJobs_async(const ::Gem::AMD_GemServer_getJobsPtr& cb,
+    virtual void getJobs_async(const ::Scheduler::AMD_SchedulerServer_getJobsPtr& cb,
                                const ::Ice::Current& = ::Ice::Current()) {
         cb->ice_response( jobs );
     }
 
-    virtual void onWorkerStates_async(const ::Gem::AMD_GemServer_onWorkerStatesPtr& cb,
-                                      const ::Gem::JobWorkerStateSeq& jwss,
+    virtual void onWorkerStates_async(const ::Scheduler::AMD_SchedulerServer_onWorkerStatesPtr& cb,
+                                      const ::Scheduler::JobWorkerStateSeq& jwss,
                                       const ::Ice::Current& = ::Ice::Current()) {
-        std::vector<Gem::Job> updated;
+        std::vector<Scheduler::Job> updated;
         for(auto &jws : jwss) {
             auto job = find( jws.id );
             if ( job->state != jws.state) {
@@ -243,9 +243,9 @@ public:
     }
 
     void checkIsStartable( const std::string& id,
-                           std::vector<Gem::Job>& updatedSink) {
+                           std::vector<Scheduler::Job>& updatedSink) {
         auto job = find( id );
-        if (job->state == Gem::JobState::BLOCKED) {
+        if (job->state == Scheduler::JobState::BLOCKED) {
             bool isStartable = true;
             for ( auto& id : job->dependencies) {
                 if (causesBlockage(id)) {
@@ -255,7 +255,7 @@ public:
             }
             log->info("job is {} startable={}" , id ,isStartable);
             if (isStartable) {
-                job->state = Gem::JobState::STARTABLE;
+                job->state = Scheduler::JobState::STARTABLE;
                 updatedSink.push_back( *job);
             }
         }
@@ -263,16 +263,16 @@ public:
 
     bool causesBlockage( const std::string id ) {
         auto job = find(id);
-        return job->state != Gem::JobState::WAIVERED &&
-            job->state != Gem::JobState::COMPLETED;
+        return job->state != Scheduler::JobState::WAIVERED &&
+            job->state != Scheduler::JobState::COMPLETED;
     }
 
-    virtual void addListenerWithIdent_async(const ::Gem::AMD_GemServer_addListenerWithIdentPtr& cb,
+    virtual void addListenerWithIdent_async(const ::Scheduler::AMD_SchedulerServer_addListenerWithIdentPtr& cb,
                                             const ::Ice::Identity& ident,
                                             const ::Ice::Current& current = ::Ice::Current()) {
         log->info("Addlistener with ident {} {}", ident.name, ident.category);
-        ::Gem::GemServerListenerPrx client = Gem::GemServerListenerPrx::uncheckedCast(current.con->createProxy(ident));
-        Gem::Image img { jobs, currentImage };
+        ::Scheduler::SchedulerServerListenerPrx client = Scheduler::SchedulerServerListenerPrx::uncheckedCast(current.con->createProxy(ident));
+        Scheduler::Image img { jobs, currentImage };
         //std::cout << "Made image " << std::endl;
         client->begin_onImage( img ,
                                [this,client]() {
@@ -285,8 +285,8 @@ public:
         cb->ice_response();
     };
     
-    virtual void addListener_async(const ::Gem::AMD_GemServer_addListenerPtr& cb,
-                                   const ::Gem::GemServerListenerPrx& prx,
+    virtual void addListener_async(const ::Scheduler::AMD_SchedulerServer_addListenerPtr& cb,
+                                   const ::Scheduler::SchedulerServerListenerPrx& prx,
                                    const ::Ice::Current& = ::Ice::Current()) {
         log->info("Add listener {}", prx);
         static const IceStorm::QoS theQos;
@@ -294,8 +294,8 @@ public:
                                               prx,
                                               [this,cb](const Ice::ObjectPrx &response) {
                                                   //std::cout << " Got publisher " << response << std::endl;
-                                                  auto p = Gem::GemServerListenerPrx::uncheckedCast(response);
-                                                  Gem::Image img { jobs, currentImage };
+                                                  auto p = Scheduler::SchedulerServerListenerPrx::uncheckedCast(response);
+                                                  Scheduler::Image img { jobs, currentImage };
                                                   //std::cout << "Made image " << std::endl;
                                                   p->begin_onImage( img ,
                                                                     []() {
@@ -315,13 +315,13 @@ int main(int argc, char *argv[]) {
     spdlog::set_async_mode(4096, spdlog::async_overflow_policy::block_retry,
                            nullptr,
                            std::chrono::seconds(2));
-    auto log = spdlog::rotating_logger_mt("log", "/tmp/gem", 1048576 * 5, 3);
+    auto log = spdlog::rotating_logger_mt("log", "/tmp/scheduler", 1048576 * 5, 3);
     log->info("Make communicator");
     auto communicator = Ice::initialize(argc, argv);
     log->info("Make server");
-    auto server = std::make_unique<GemServerImpl>(communicator);
+    auto server = std::make_unique<SchedulerServerImpl>(communicator);
     log->info("Make adapter");
-    auto adapter = communicator->createObjectAdapter("GemServer");
+    auto adapter = communicator->createObjectAdapter("SchedulerServer");
     log->info("Add impl to adapter");
     // Liveness of server ensured by scope of main
     auto prx = adapter->add(server.get(),
@@ -339,4 +339,4 @@ int main(int argc, char *argv[]) {
     log->flush();
 };
     
-loggerType GemServerImpl::log {};
+loggerType SchedulerServerImpl::log {};

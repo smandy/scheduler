@@ -6,7 +6,7 @@
 
 User Tiger instructions for starting grid.
 
-Startup Gemserver.
+Startup Schedulerserver.
 
 `andy@raffles:~/repos/tiger$ icegridnode --Ice.Config=config/icegrid/raffles.config`
 
@@ -19,7 +19,7 @@ websocket.
 
 No Node required! React on the client side.
 
-`andy@raffles:/mnt/hdd/andy/repos/gem/js$ python -m SimpleHTTPServer`
+`andy@raffles:/mnt/hdd/andy/repos/scheduler/js$ python -m SimpleHTTPServer`
 
 ### Startup Weblistener ###
 
@@ -29,13 +29,13 @@ optimization would be to have him maintain state of his own (not that
 big a deal, just a case of maintaining a dictionary and updating it by
 key as new values come in).
 
-`andy@raffles:/mnt/hdd/andy/repos/gem/python$ python gemListener.py`
+`andy@raffles:/mnt/hdd/andy/repos/scheduler/python$ python schedulerListener.py`
 
 ### Startup Worker ###
 
 The man doing the work.
 
-`andy@raffles:/mnt/hdd/andy/repos/gem/python$ python worker.py --Ice.Config=../config/worker.config`
+`andy@raffles:/mnt/hdd/andy/repos/scheduler/python$ python worker.py --Ice.Config=../config/worker.config`
 
 ## Further TOODs ##
 

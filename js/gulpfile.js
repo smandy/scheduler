@@ -18,7 +18,7 @@ var HttpServer  = require("./HttpServer");
 var genDir = 'generated';
 
 
-gulp.task( 'buildGem', [], function() {
+gulp.task( 'buildScheduler', [], function() {
     return gulp.src('../slice/*.ice')
         .pipe(iceBuilder.compile( { dest : genDir} ))
         .pipe( gulp.dest(genDir));

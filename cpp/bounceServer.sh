@@ -1,3 +1,3 @@
 
-icegridadmin -u andy -p pandy -e 'server stop GemServer'
-icegridadmin -u andy -p pandy -e 'server start GemServer'
+icegridadmin -u andy -p pandy -e 'server stop SchedulerServer'
+icegridadmin -u andy -p pandy -e 'server start SchedulerServer'
