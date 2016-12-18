@@ -1,14 +1,13 @@
-package bamma
+package scheduler
 
 import java.util.concurrent.{Callable, ScheduledExecutorService}
 
-import scheduler._
 import Ice._
-import IceStorm.{NoSuchTopic, TopicManagerPrxHelper, TopicManagerPrx}
+import IceStorm.{NoSuchTopic, TopicManagerPrxHelper}
 
 class ScalaSchedulerServer(val communicator : Communicator,
                      val executor: ScheduledExecutorService) extends _SchedulerServerDisp {
-  var jobs = Map[String, WrappedJob]()
+  var jobs = Map[JobId, WrappedJob]()
   var workers = Map[WorkerId, WorkerState]()
 
   var listeners = Set[SchedulerServerListenerPrx]()
@@ -17,9 +16,9 @@ class ScalaSchedulerServer(val communicator : Communicator,
     val topicPrx = TopicManagerPrxHelper.checkedCast(communicator.propertyToProxy("icestorm.topicManager"))
     val subject = communicator.getProperties().getProperty("scheduler.topic")
     try {
-      topicPrx.retrieve(topic)
+      topicPrx.retrieve(subject)
     } catch {
-      case (nst: NoSuchTopic) => topicPrx.create(topic)
+      case (nst: NoSuchTopic) => topicPrx.create(subject)
     }
   }
 
@@ -37,13 +36,10 @@ class ScalaSchedulerServer(val communicator : Communicator,
 
   override def reset_async(amd_schedulerServer_reset: AMD_SchedulerServer_reset, current: Current): Unit = ???
 
-  override def onWorkerStates_async(amd_schedulerServer_onWorkerStates: AMD_SchedulerServer_onWorkerStates, jobWorkerStates: Array[JobWorkerState], current: Current): Unit = ???
-
   override def submitBatch_async(amd_schedulerServer_submitBatch: AMD_SchedulerServer_submitBatch, batch: Batch, current: Current) = {
     runOnExecutor {
       for {job <- batch.jobs} {
-        JobHolder
-        jobs += (job.id -> WrappedJob.forJob(job))
+        jobs += (job.id -> new WrappedJob(job))
       }
     }
   }
@@ -52,11 +48,11 @@ class ScalaSchedulerServer(val communicator : Communicator,
     runOnExecutor {
       jobs.values.filter(_.isStartable).toArray.sortBy(_.priority).headOption match {
         case Some(x) => {
-          x.jd.currentWorker = Array(workerId)
-          x.jd.state = JobState.SCHEDULED
-          Array(x.jd.job)
+          x.jobState.currentWorker = Array(workerId)
+          x.jobState.state = EnumJobState.State.SCHEDULED
+          Array(x.job)
         }
-        case None => Array.empty[JobDescription]
+        case None => Array.empty[Job]
       }
     }
   }
@@ -65,32 +61,32 @@ class ScalaSchedulerServer(val communicator : Communicator,
                                 current: Current): Unit = ???
 
 
-  def withJobOnExecutor[T <: AMDCallback](s : String, cb : T, f : (WrappedJob) => Unit ) = runOnExecutor {
-    jobs.get(s) match {
+  def withJobOnExecutor[T <: AMDCallback](jid : JobId, cb : T, f : (WrappedJob) => Unit ) = runOnExecutor {
+    jobs.get(jid) match {
       case Some(wj) => {
         f(wj)
       }
       case None => {
-        cb.ice_exception(new JobNotExist(s))
+        cb.ice_exception(new JobNotExist(jid))
       }
     }
   }
 
-  override def startJob_async(cb : AMD_SchedulerServer_startJob, s: String, current: Current) : Unit = {
-    withJobOnExecutor(s, cb, (wj) =>
-      if (wj.state == JobState.DORMANT) {
-        wj.state = JobState.SCHEDULED
+  override def startJob_async(cb : AMD_SchedulerServer_startJob, jid : JobId, current: Current) : Unit = {
+    withJobOnExecutor(jid, cb, (wj) =>
+      if (wj.state == EnumJobState.State.DORMANT) {
+        wj.state = EnumJobState.State.STARTABLE
         cb.ice_response()
       } else {
-        cb.ice_exception(new JobNotStartable(s))
+        cb.ice_exception(new JobNotStartable(jid))
       })
   }
 
   override def getJobs_async(cb: AMD_SchedulerServer_getJobs, current: Current): Unit = {
-    cb.ice_response(jobs.values.map(_.jd.job).toArray[Job])
+    cb.ice_response(jobs.values.map(_.job).toArray[Job])
   }
 
-  override def invalidate_async(amd_schedulerServer_invalidate: AMD_SchedulerServer_invalidate, s: String, current: Current): Unit = ???
+  override def invalidate_async(amd_schedulerServer_invalidate: AMD_SchedulerServer_invalidate, jid : JobId, current: Current): Unit = ???
 
   //def r( f : => Unit) : Runnable = () => { f }
 
@@ -115,30 +111,33 @@ class ScalaSchedulerServer(val communicator : Communicator,
   }
 
   def makeImage() : Image = {
-    val tmpJobs = jobs.values.map(_.jd.job).toArray[Job]
-    new Image( tmpJobs, "")
+    val tmpJobs   = jobs.values.map(_.job).toArray[Job]
+    val tmpStates = jobs.values.map(_.jobState).toArray[JobState]
+    new Image( tmpJobs, tmpStates, "")
   }
 
   override def addListenerWithIdent_async(amd_schedulerServer_addListenerWithIdent: AMD_SchedulerServer_addListenerWithIdent, identity: Identity, current: Current): Unit = ???
 
   override def stopJob_async(cb: AMD_SchedulerServer_stopJob,
-                             s: String,
+                             jid: JobId,
                              current: Current): Unit = {
-    withJobOnExecutor(s, cb, (wj) => {
-      if (wj.state == JobState.STARTED ) {
-        wj.state = JobState.STOPPED
+    withJobOnExecutor(jid , cb, (wj) => {
+      if (wj.state == EnumJobState.State.STARTED ) {
+        wj.state = EnumJobState.State.STOPPED
         cb.ice_response()
       } else {
-        cb.ice_exception( new JobNotStartable(s))
+        cb.ice_exception( new JobNotStartable(jid))
       }
     })
   }
 
   override def imageReady_async(amd_schedulerServer_imageReady: AMD_SchedulerServer_imageReady, s: String, current: Current): Unit = ???
 
-  override def getJob_async(cb: AMD_SchedulerServer_getJob, s: String, current: Current): Unit = {
-    withJobOnExecutor(s, cb, (wj) => {
-      cb.ice_response(wj.jd.job)
+  override def getJob_async(cb: AMD_SchedulerServer_getJob, jid : JobId, current: Current): Unit = {
+    withJobOnExecutor(jid, cb, (wj) => {
+      cb.ice_response(wj.job)
     })
   }
+
+  override def onWorkerUpdate_async(__cb: AMD_SchedulerServer_onWorkerUpdate, x: WorkerUpdate, __current: Current): Unit = ???
 }

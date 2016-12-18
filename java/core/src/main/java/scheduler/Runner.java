@@ -1,9 +1,12 @@
-package bamma;
+package scheduler;
 
 import Ice.Communicator;
 import Ice.ObjectAdapter;
 import Ice.Properties;
 import Ice.Util;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 public class Runner {
     public static void main(String[] args) {
@@ -18,7 +21,10 @@ public class Runner {
         System.out.println("adapterName = " + adapterName);
 
         ObjectAdapter adapter = communicator.createObjectAdapter(adapterName);
-        SchedulerServer server = new SchedulerServer();
+
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+
+        ScalaSchedulerServer server = new ScalaSchedulerServer(communicator, executor);
 
         System.out.println("server = " + server);
         adapter.add(server, communicator.stringToIdentity(objectIdentity));

@@ -97,15 +97,15 @@ module scheduler {
     };
 
     exception DuplicateJob {
-        string id;
+        JobId id;
     };
 
     exception JobNotExist {
-        string id;
+        JobId id;
     };
     
     exception JobNotStartable {
-        string id;
+        JobId id;
     };
 
     sequence<Job> JobSeq;
@@ -117,8 +117,8 @@ module scheduler {
     };
 
     struct Image {
-        JobSeq      jobs;
-        JobStateSeq states;
+        JobSeq jobs;
+        JobStateSeq jobStates;
         string currentImage;
     };
     
@@ -136,15 +136,15 @@ module scheduler {
     interface SchedulerServer {
         ["amd"] void submitBatch( Batch batch ) throws DuplicateJob;
         
-        ["amd"] void startJob( string id ) throws JobNotExist, JobNotStartable;
-        ["amd"] void stopJob( string id );
+        ["amd"] void startJob( JobId id ) throws JobNotExist, JobNotStartable;
+        ["amd"] void stopJob( JobId id );
         
-        ["amd"] void invalidate( string id);
+        ["amd"] void invalidate( JobId id);
         ["amd"] void reset();
         ["amd"] string dumpStatus();
         ["amd"] JobSeq getJobs();
         ["amd"] JobSeq getStartableJob( WorkerId worker );
-        ["amd"] Job getJob( string id ) throws JobNotExist;
+        ["amd"] Job getJob( JobId id ) throws JobNotExist;
         ["amd"] void addListener( SchedulerServerListener *listener);
         ["amd"] void addListenerWithIdent( Ice::Identity ident);
         ["amd"] void onWorkerUpdate( WorkerUpdate x);
