@@ -10,9 +10,9 @@ env = Environment(CPPFLAGS = ['-DICE_CPP11_MAPPING', '--std=c++14', '-I.', spdlo
 #env.Slice2cpp(target = 'Security', source = 'slice/Security.ice')
 builders.addSlice2cppBuilder(env)
 
-env.Slice2cpp(target = 'gem.cpp',
-              source = '../slice/gem.ice')
+env.Slice2cpp(target = 'scheduler.cpp',
+              source = '../slice/scheduler.ice')
 
-gem = env.Object(source = 'gem.cpp')
+scheduler = env.Object(source = 'scheduler.cpp')
 
-env.Program('gemServer.cpp', LIBS = [gem, 'Ice', 'IceUtil', 'IceStorm','pthread'])
+env.Program('schedulerServer.cpp', LIBS = [scheduler, 'Ice', 'IceUtil', 'IceStorm','pthread'])

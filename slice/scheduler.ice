@@ -2,15 +2,22 @@
 
 #include "Ice/Identity.ice"
 
+[["cpp:include:unordered_map"]]
+
 module scheduler {
     sequence<string> StringSeq;
 
     dictionary<string, string> StringStringDict;
 
-    struct JobId {
+    
+    ["cpp:comparable"] struct JobId {
         string id;
         string batch;
     };
+
+    
+    ["cpp:type:std::unordered_map<JobId, JobId>"] dictionary<JobId,JobId> tmpJobId;
+
 
     module EnumJobState {
         enum State {
@@ -129,9 +136,6 @@ module scheduler {
         ["amd"] void onReset();
     };
 
-    exception JobNotFound {
-        string id;
-    };
 
     interface SchedulerServer {
         ["amd"] void submitBatch( Batch batch ) throws DuplicateJob;

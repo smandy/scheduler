@@ -14,11 +14,11 @@
 
 using loggerType = std::shared_ptr<spdlog::logger>;
 
-class SchedulerServerImpl : public Scheduler::SchedulerServer {
-    std::vector<Scheduler::Job> jobs;
+class SchedulerServerImpl : public scheduler::SchedulerServer {
+    std::vector<scheduler::Job> jobs;
     IceStorm::TopicPrx topic;
-    std::unordered_map<std::string, std::vector<std::string> > dependants;
-    std::set<Scheduler::SchedulerServerListenerPrx> listeners;
+    std::unordered_map<scheduler::JobId, std::vector<scheduler::JobId> > dependants;
+    std::set<scheduler::SchedulerServerListenerPrx> listeners;
     std::string currentImage;
 public:
     static loggerType log;
@@ -34,42 +34,43 @@ public:
         } catch( IceStorm::NoSuchTopic &) {
             topic = topicPrx->create(subject);
         }
-        listeners.insert(Scheduler::SchedulerServerListenerPrx::uncheckedCast(topic->getPublisher()));
+        listeners.insert(scheduler::SchedulerServerListenerPrx::uncheckedCast(topic->getPublisher()));
         log->info("Done");
     }
     
-    inline Scheduler::Job* find(const std::string& id) {
-        static thread_local Scheduler::Job finder;
-        Scheduler::Job *ret = nullptr;
+    inline scheduler::Job* find(const scheduler::JobId id) {
+        static thread_local scheduler::Job finder;
+        scheduler::Job *ret = nullptr;
         finder.id = id;
         auto x = std::lower_bound( begin(jobs),
                                    end(jobs),
                                    finder,
                                    []( auto& a, auto& b) {
-                                       return a.id < b.id;
+                                       return a.id.id < b.id.id ? true :
+                                       (a.id.batch < b.id.batch);
                                    });
         if (x != end(jobs) && x->id==id) {
             return &(*x);
         } else {
-            throw Scheduler::JobNotFound(id);
+            throw scheduler::JobNotExist(id);
         }
     }
 
-    virtual void getJob_async(const ::Scheduler::AMD_SchedulerServer_getJobPtr& cb,
-                              const ::std::string& id,
+    virtual void getJob_async(const ::scheduler::AMD_SchedulerServer_getJobPtr& cb,
+                              const ::scheduler::JobId& id,
                               const ::Ice::Current& = ::Ice::Current()) {
         cb->ice_response(*find(id));
     }
 
-    void blockDependenciesOf(const std::string &id ) {
+    void blockDependenciesOf(const scheduler::JobId &id ) {
         for ( auto& depId : dependants[id]) {
             auto depJob = find(depId);
-            depJob->state = Scheduler::JobState::BLOCKED;
+            depJob->state = scheduler::JobState::BLOCKED;
         }
     }
 
 
-     virtual void imageReady_async(const ::Scheduler::AMD_SchedulerServer_imageReadyPtr& cb,
+     virtual void imageReady_async(const ::scheduler::AMD_SchedulerServer_imageReadyPtr& cb,
                                    const ::std::string& s,
                                    const ::Ice::Current& = ::Ice::Current()) {
 
@@ -91,8 +92,8 @@ public:
          }
      };
     
-    virtual void submitBatch_async(const ::Scheduler::AMD_SchedulerServer_submitBatchPtr& cb,
-                                   const ::Scheduler::Batch& batch,
+    virtual void submitBatch_async(const ::scheduler::AMD_SchedulerServer_submitBatchPtr& cb,
+                                   const ::scheduler::Batch& batch,
                                    const ::Ice::Current& = ::Ice::Current()) {
         log->info("Submitbatch");
         for ( auto &job : batch.jobs) {
@@ -116,7 +117,7 @@ public:
         // Ug - we've blocked our copies so we need to go and fetch
         // them back from the graph. Noticed when developing the web
         // gui too much stuff was reporting itself as 'startable' :-(
-        Scheduler::JobSeq ret;
+        scheduler::JobSeq ret;
         for( auto& j : batch.jobs) {
             log->info("Looking for ");
             ret.push_back( *find(j.id) );
@@ -139,28 +140,28 @@ public:
         cb->ice_response();
     }
     
-    virtual void startJob_async(const ::Scheduler::AMD_SchedulerServer_startJobPtr& cb,
+    virtual void startJob_async(const ::scheduler::AMD_SchedulerServer_startJobPtr& cb,
                                 const ::std::string& id,
                                 const ::Ice::Current& = ::Ice::Current()) {
         log->info("startJob {}, id");
         cb->ice_response();
     }
     
-    virtual void stopJob_async(const ::Scheduler::AMD_SchedulerServer_stopJobPtr& cb,
+    virtual void stopJob_async(const ::scheduler::AMD_SchedulerServer_stopJobPtr& cb,
                                const ::std::string& id,
                                const ::Ice::Current& = ::Ice::Current()) {
         log->info("stopJob {}", id);
         cb->ice_response();
     }
     
-    virtual void invalidate_async(const ::Scheduler::AMD_SchedulerServer_invalidatePtr& cb,
+    virtual void invalidate_async(const ::scheduler::AMD_SchedulerServer_invalidatePtr& cb,
                                   const ::std::string& id,
                                   const ::Ice::Current& = ::Ice::Current()) {
         log->info("invalidate {}", id);
         cb->ice_response();
     }
 
-    virtual void reset_async(const ::Scheduler::AMD_SchedulerServer_resetPtr& cb,
+    virtual void reset_async(const ::scheduler::AMD_SchedulerServer_resetPtr& cb,
                              const ::Ice::Current& = ::Ice::Current()) {
         jobs.clear();
         dependants.clear();
@@ -179,40 +180,40 @@ public:
         cb->ice_response();
     }
     
-    virtual void getStartableJob_async(const ::Scheduler::AMD_SchedulerServer_getStartableJobPtr& cb,
-                                       const ::Scheduler::WorkerId&,
+    virtual void getStartableJob_async(const ::scheduler::AMD_SchedulerServer_getStartableJobPtr& cb,
+                                       const ::scheduler::WorkerId&,
                                        const ::Ice::Current& = ::Ice::Current()) {
-        Scheduler::JobSeq ret;
-        Scheduler::Job *selected = nullptr;
+        scheduler::JobSeq ret;
+        scheduler::Job *selected = nullptr;
         for (auto &job : jobs) {
-            if (job.state == Scheduler::JobState::STARTABLE ) {
+            if (job.state == scheduler::JobState::STARTABLE ) {
                 if (!selected || job.priority < selected->priority) {
                     selected = &job;
                 }
             }
         }
         if (selected) {
-            selected->state = Scheduler::JobState::SCHEDULED;
+            selected->state = scheduler::JobState::SCHEDULED;
             ret.push_back(*selected);
         }
         cb->ice_response( ret );
     }
 
-    virtual void dumpStatus_async(const ::Scheduler::AMD_SchedulerServer_dumpStatusPtr& cb,
+    virtual void dumpStatus_async(const ::scheduler::AMD_SchedulerServer_dumpStatusPtr& cb,
                                   const ::Ice::Current& = ::Ice::Current()) {
         cb->ice_response("Unimplemented");
     }
     
-    virtual void getJobs_async(const ::Scheduler::AMD_SchedulerServer_getJobsPtr& cb,
+    virtual void getJobs_async(const ::scheduler::AMD_SchedulerServer_getJobsPtr& cb,
                                const ::Ice::Current& = ::Ice::Current()) {
         cb->ice_response( jobs );
     }
 
-    virtual void onWorkerStates_async(const ::Scheduler::AMD_SchedulerServer_onWorkerStatesPtr& cb,
-                                      const ::Scheduler::JobWorkerStateSeq& jwss,
+    virtual void onWorkerUpdate_async(const ::scheduler::AMD_SchedulerServer_onWorkerUpdatePtr& cb,
+                                      const ::scheduler::WorkerUpdate& wud,
                                       const ::Ice::Current& = ::Ice::Current()) {
-        std::vector<Scheduler::Job> updated;
-        for(auto &jws : jwss) {
+        std::vector<scheduler::Job> updated;
+        for(auto &update : wud.updates) {
             auto job = find( jws.id );
             if ( job->state != jws.state) {
                 job->state = jws.state;
@@ -243,9 +244,9 @@ public:
     }
 
     void checkIsStartable( const std::string& id,
-                           std::vector<Scheduler::Job>& updatedSink) {
+                           std::vector<scheduler::Job>& updatedSink) {
         auto job = find( id );
-        if (job->state == Scheduler::JobState::BLOCKED) {
+        if (job->state == scheduler::JobState::BLOCKED) {
             bool isStartable = true;
             for ( auto& id : job->dependencies) {
                 if (causesBlockage(id)) {
@@ -255,7 +256,7 @@ public:
             }
             log->info("job is {} startable={}" , id ,isStartable);
             if (isStartable) {
-                job->state = Scheduler::JobState::STARTABLE;
+                job->state = scheduler::JobState::STARTABLE;
                 updatedSink.push_back( *job);
             }
         }
@@ -263,16 +264,16 @@ public:
 
     bool causesBlockage( const std::string id ) {
         auto job = find(id);
-        return job->state != Scheduler::JobState::WAIVERED &&
-            job->state != Scheduler::JobState::COMPLETED;
+        return job->state != scheduler::JobState::WAIVERED &&
+            job->state != scheduler::JobState::COMPLETED;
     }
 
-    virtual void addListenerWithIdent_async(const ::Scheduler::AMD_SchedulerServer_addListenerWithIdentPtr& cb,
+    virtual void addListenerWithIdent_async(const ::scheduler::AMD_SchedulerServer_addListenerWithIdentPtr& cb,
                                             const ::Ice::Identity& ident,
                                             const ::Ice::Current& current = ::Ice::Current()) {
         log->info("Addlistener with ident {} {}", ident.name, ident.category);
-        ::Scheduler::SchedulerServerListenerPrx client = Scheduler::SchedulerServerListenerPrx::uncheckedCast(current.con->createProxy(ident));
-        Scheduler::Image img { jobs, currentImage };
+        ::scheduler::SchedulerServerListenerPrx client = scheduler::SchedulerServerListenerPrx::uncheckedCast(current.con->createProxy(ident));
+        scheduler::Image img { jobs, currentImage };
         //std::cout << "Made image " << std::endl;
         client->begin_onImage( img ,
                                [this,client]() {
@@ -285,8 +286,8 @@ public:
         cb->ice_response();
     };
     
-    virtual void addListener_async(const ::Scheduler::AMD_SchedulerServer_addListenerPtr& cb,
-                                   const ::Scheduler::SchedulerServerListenerPrx& prx,
+    virtual void addListener_async(const ::scheduler::AMD_SchedulerServer_addListenerPtr& cb,
+                                   const ::scheduler::SchedulerServerListenerPrx& prx,
                                    const ::Ice::Current& = ::Ice::Current()) {
         log->info("Add listener {}", prx);
         static const IceStorm::QoS theQos;
@@ -294,8 +295,8 @@ public:
                                               prx,
                                               [this,cb](const Ice::ObjectPrx &response) {
                                                   //std::cout << " Got publisher " << response << std::endl;
-                                                  auto p = Scheduler::SchedulerServerListenerPrx::uncheckedCast(response);
-                                                  Scheduler::Image img { jobs, currentImage };
+                                                  auto p = scheduler::SchedulerServerListenerPrx::uncheckedCast(response);
+                                                  scheduler::Image img { jobs, currentImage };
                                                   //std::cout << "Made image " << std::endl;
                                                   p->begin_onImage( img ,
                                                                     []() {

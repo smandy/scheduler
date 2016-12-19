@@ -38,6 +38,7 @@
 #include <Ice/StreamF.h>
 #include <Ice/Identity.h>
 #include <IceUtil/UndefSysMacros.h>
+#include <unordered_map>
 
 #ifndef ICE_IGNORE_VERSION
 #   if ICE_INT_VERSION / 100 != 306
@@ -54,56 +55,123 @@
 namespace IceProxy
 {
 
-namespace Scheduler
+namespace scheduler
 {
 
 class SchedulerServerListener;
-void __read(::IceInternal::BasicStream*, ::IceInternal::ProxyHandle< ::IceProxy::Scheduler::SchedulerServerListener>&);
-::IceProxy::Ice::Object* upCast(::IceProxy::Scheduler::SchedulerServerListener*);
+void __read(::IceInternal::BasicStream*, ::IceInternal::ProxyHandle< ::IceProxy::scheduler::SchedulerServerListener>&);
+::IceProxy::Ice::Object* upCast(::IceProxy::scheduler::SchedulerServerListener*);
 
 class SchedulerServer;
-void __read(::IceInternal::BasicStream*, ::IceInternal::ProxyHandle< ::IceProxy::Scheduler::SchedulerServer>&);
-::IceProxy::Ice::Object* upCast(::IceProxy::Scheduler::SchedulerServer*);
+void __read(::IceInternal::BasicStream*, ::IceInternal::ProxyHandle< ::IceProxy::scheduler::SchedulerServer>&);
+::IceProxy::Ice::Object* upCast(::IceProxy::scheduler::SchedulerServer*);
 
 }
 
 }
 
-namespace Scheduler
+namespace scheduler
 {
 
 class SchedulerServerListener;
 bool operator==(const SchedulerServerListener&, const SchedulerServerListener&);
 bool operator<(const SchedulerServerListener&, const SchedulerServerListener&);
-::Ice::Object* upCast(::Scheduler::SchedulerServerListener*);
-typedef ::IceInternal::Handle< ::Scheduler::SchedulerServerListener> SchedulerServerListenerPtr;
-typedef ::IceInternal::ProxyHandle< ::IceProxy::Scheduler::SchedulerServerListener> SchedulerServerListenerPrx;
+::Ice::Object* upCast(::scheduler::SchedulerServerListener*);
+typedef ::IceInternal::Handle< ::scheduler::SchedulerServerListener> SchedulerServerListenerPtr;
+typedef ::IceInternal::ProxyHandle< ::IceProxy::scheduler::SchedulerServerListener> SchedulerServerListenerPrx;
 void __patch(SchedulerServerListenerPtr&, const ::Ice::ObjectPtr&);
 
 class SchedulerServer;
 bool operator==(const SchedulerServer&, const SchedulerServer&);
 bool operator<(const SchedulerServer&, const SchedulerServer&);
-::Ice::Object* upCast(::Scheduler::SchedulerServer*);
-typedef ::IceInternal::Handle< ::Scheduler::SchedulerServer> SchedulerServerPtr;
-typedef ::IceInternal::ProxyHandle< ::IceProxy::Scheduler::SchedulerServer> SchedulerServerPrx;
+::Ice::Object* upCast(::scheduler::SchedulerServer*);
+typedef ::IceInternal::Handle< ::scheduler::SchedulerServer> SchedulerServerPtr;
+typedef ::IceInternal::ProxyHandle< ::IceProxy::scheduler::SchedulerServer> SchedulerServerPrx;
 void __patch(SchedulerServerPtr&, const ::Ice::ObjectPtr&);
 
 }
 
-namespace Scheduler
+namespace scheduler
 {
 
 typedef ::std::vector< ::std::string> StringSeq;
 
 typedef ::std::map< ::std::string, ::std::string> StringStringDict;
 
-const ::std::string POJONAME = "POJO";
+struct JobId
+{
+    ::std::string id;
+    ::std::string batch;
 
-const ::std::string POJO2NAME = "POJO2";
+    bool operator==(const JobId& __rhs) const
+    {
+        if(this == &__rhs)
+        {
+            return true;
+        }
+        if(id != __rhs.id)
+        {
+            return false;
+        }
+        if(batch != __rhs.batch)
+        {
+            return false;
+        }
+        return true;
+    }
 
-enum JobState
+    bool operator<(const JobId& __rhs) const
+    {
+        if(this == &__rhs)
+        {
+            return false;
+        }
+        if(id < __rhs.id)
+        {
+            return true;
+        }
+        else if(__rhs.id < id)
+        {
+            return false;
+        }
+        if(batch < __rhs.batch)
+        {
+            return true;
+        }
+        else if(__rhs.batch < batch)
+        {
+            return false;
+        }
+        return false;
+    }
+
+    bool operator!=(const JobId& __rhs) const
+    {
+        return !operator==(__rhs);
+    }
+    bool operator<=(const JobId& __rhs) const
+    {
+        return operator<(__rhs) || operator==(__rhs);
+    }
+    bool operator>(const JobId& __rhs) const
+    {
+        return !operator<(__rhs) && !operator==(__rhs);
+    }
+    bool operator>=(const JobId& __rhs) const
+    {
+        return !operator<(__rhs);
+    }
+};
+
+typedef std::unordered_map<JobId, JobId> tmpJobId;
+
+namespace EnumJobState
+{
+
+enum State
 {
     BLOCKED,
+    DORMANT,
     STARTABLE,
     SCHEDULED,
     STARTED,
@@ -113,9 +181,24 @@ enum JobState
     COMPLETED
 };
 
+}
+
+namespace EnumWorkerJobState
+{
+
+enum State
+{
+    STARTED,
+    FAILED,
+    CANCELLING,
+    CANCELED
+};
+
+}
+
 struct JobUpdate
 {
-    ::std::string id;
+    ::scheduler::JobId id;
     ::Ice::Int pctComplete;
     ::std::string status;
 
@@ -191,7 +274,7 @@ struct JobUpdate
     }
 };
 
-typedef ::std::vector< ::Scheduler::JobUpdate> JobUpdateSeq;
+typedef ::std::vector< ::scheduler::JobUpdate> JobUpdateSeq;
 
 struct WorkerId
 {
@@ -245,21 +328,18 @@ struct WorkerId
     }
 };
 
-struct JobWorkerState
-{
-    ::Scheduler::WorkerId worker;
-    ::std::string id;
-    ::Scheduler::JobState state;
+typedef ::std::vector< ::scheduler::WorkerId> WorkerIdSeq;
 
-    bool operator==(const JobWorkerState& __rhs) const
+struct WorkerStateDescription
+{
+    ::scheduler::JobId id;
+    ::scheduler::EnumWorkerJobState::State state;
+
+    bool operator==(const WorkerStateDescription& __rhs) const
     {
         if(this == &__rhs)
         {
             return true;
-        }
-        if(worker != __rhs.worker)
-        {
-            return false;
         }
         if(id != __rhs.id)
         {
@@ -272,17 +352,9 @@ struct JobWorkerState
         return true;
     }
 
-    bool operator<(const JobWorkerState& __rhs) const
+    bool operator<(const WorkerStateDescription& __rhs) const
     {
         if(this == &__rhs)
-        {
-            return false;
-        }
-        if(worker < __rhs.worker)
-        {
-            return true;
-        }
-        else if(__rhs.worker < worker)
         {
             return false;
         }
@@ -305,84 +377,183 @@ struct JobWorkerState
         return false;
     }
 
-    bool operator!=(const JobWorkerState& __rhs) const
+    bool operator!=(const WorkerStateDescription& __rhs) const
     {
         return !operator==(__rhs);
     }
-    bool operator<=(const JobWorkerState& __rhs) const
+    bool operator<=(const WorkerStateDescription& __rhs) const
     {
         return operator<(__rhs) || operator==(__rhs);
     }
-    bool operator>(const JobWorkerState& __rhs) const
+    bool operator>(const WorkerStateDescription& __rhs) const
     {
         return !operator<(__rhs) && !operator==(__rhs);
     }
-    bool operator>=(const JobWorkerState& __rhs) const
+    bool operator>=(const WorkerStateDescription& __rhs) const
     {
         return !operator<(__rhs);
     }
 };
 
-typedef ::std::vector< ::Scheduler::JobWorkerState> JobWorkerStateSeq;
+typedef ::std::vector< ::scheduler::WorkerStateDescription> WorkerStateDescriptionSeq;
+
+struct WorkerUpdate
+{
+    ::scheduler::WorkerId id;
+    ::scheduler::WorkerStateDescriptionSeq updates;
+};
+
+struct JobStateDescription
+{
+    ::scheduler::JobId id;
+    ::Ice::Long startTime;
+    ::Ice::Long updateTime;
+    ::std::string statusMsg;
+    ::Ice::Int pctComplete;
+
+    bool operator==(const JobStateDescription& __rhs) const
+    {
+        if(this == &__rhs)
+        {
+            return true;
+        }
+        if(id != __rhs.id)
+        {
+            return false;
+        }
+        if(startTime != __rhs.startTime)
+        {
+            return false;
+        }
+        if(updateTime != __rhs.updateTime)
+        {
+            return false;
+        }
+        if(statusMsg != __rhs.statusMsg)
+        {
+            return false;
+        }
+        if(pctComplete != __rhs.pctComplete)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    bool operator<(const JobStateDescription& __rhs) const
+    {
+        if(this == &__rhs)
+        {
+            return false;
+        }
+        if(id < __rhs.id)
+        {
+            return true;
+        }
+        else if(__rhs.id < id)
+        {
+            return false;
+        }
+        if(startTime < __rhs.startTime)
+        {
+            return true;
+        }
+        else if(__rhs.startTime < startTime)
+        {
+            return false;
+        }
+        if(updateTime < __rhs.updateTime)
+        {
+            return true;
+        }
+        else if(__rhs.updateTime < updateTime)
+        {
+            return false;
+        }
+        if(statusMsg < __rhs.statusMsg)
+        {
+            return true;
+        }
+        else if(__rhs.statusMsg < statusMsg)
+        {
+            return false;
+        }
+        if(pctComplete < __rhs.pctComplete)
+        {
+            return true;
+        }
+        else if(__rhs.pctComplete < pctComplete)
+        {
+            return false;
+        }
+        return false;
+    }
+
+    bool operator!=(const JobStateDescription& __rhs) const
+    {
+        return !operator==(__rhs);
+    }
+    bool operator<=(const JobStateDescription& __rhs) const
+    {
+        return operator<(__rhs) || operator==(__rhs);
+    }
+    bool operator>(const JobStateDescription& __rhs) const
+    {
+        return !operator<(__rhs) && !operator==(__rhs);
+    }
+    bool operator>=(const JobStateDescription& __rhs) const
+    {
+        return !operator<(__rhs);
+    }
+};
+
+typedef ::std::vector< ::scheduler::JobStateDescription> JobStateDescriptionSeq;
 
 struct Job
 {
-    Job() :
-        state(STARTABLE)
-    {
-    }
-    
-    Job(const ::std::string& __ice_id, const ::Scheduler::StringSeq& __ice_dependencies, ::Scheduler::JobState __ice_state, ::Ice::Int __ice_priority, const ::std::string& __ice_pwd, const ::Scheduler::StringSeq& __ice_cmdLine, const ::Scheduler::StringStringDict& __ice_env, const ::std::string& __ice_batchId) :
-        id(__ice_id),
-        dependencies(__ice_dependencies),
-        state(__ice_state),
-        priority(__ice_priority),
-        pwd(__ice_pwd),
-        cmdLine(__ice_cmdLine),
-        env(__ice_env),
-        batchId(__ice_batchId)
-    {
-    }
-    
-
-    ::std::string id;
-    ::Scheduler::StringSeq dependencies;
-    ::Scheduler::JobState state;
+    ::scheduler::JobId id;
+    ::scheduler::StringSeq dependencies;
     ::Ice::Int priority;
     ::std::string pwd;
-    ::Scheduler::StringSeq cmdLine;
-    ::Scheduler::StringStringDict env;
-    ::std::string batchId;
+    ::scheduler::StringSeq cmdLine;
+    ::scheduler::StringStringDict env;
 };
 
-typedef ::std::vector< ::Scheduler::Job> JobSeq;
-
-typedef ::std::map< ::std::string, ::Scheduler::Job> JobDict;
-
-struct Batch
+struct JobState
 {
-    ::Scheduler::JobSeq jobs;
+    JobState() :
+        state(EnumJobState::DORMANT)
+    {
+    }
+    
+    JobState(const ::std::string& __ice_jobId, ::scheduler::EnumJobState::State __ice_state, const ::scheduler::WorkerIdSeq& __ice_currentWorker, const ::scheduler::JobStateDescriptionSeq& __ice_jobStatus) :
+        jobId(__ice_jobId),
+        state(__ice_state),
+        currentWorker(__ice_currentWorker),
+        jobStatus(__ice_jobStatus)
+    {
+    }
+    
+
+    ::std::string jobId;
+    ::scheduler::EnumJobState::State state;
+    ::scheduler::WorkerIdSeq currentWorker;
+    ::scheduler::JobStateDescriptionSeq jobStatus;
 };
 
-struct Image
-{
-    ::Scheduler::JobSeq jobs;
-    ::std::string currentImage;
-};
-
-class JobNotFound : public ::Ice::UserException
+class DuplicateJob : public ::Ice::UserException
 {
 public:
 
-    JobNotFound() {}
-    explicit JobNotFound(const ::std::string&);
-    virtual ~JobNotFound() throw();
+    DuplicateJob() {}
+    explicit DuplicateJob(const ::scheduler::JobId&);
+    virtual ~DuplicateJob() throw();
 
     virtual ::std::string ice_name() const;
-    virtual JobNotFound* ice_clone() const;
+    virtual DuplicateJob* ice_clone() const;
     virtual void ice_throw() const;
 
-    ::std::string id;
+    ::scheduler::JobId id;
 
 protected:
     virtual void __writeImpl(::IceInternal::BasicStream*) const;
@@ -391,188 +562,66 @@ protected:
     using ::Ice::UserException::__readImpl;
 };
 
-static JobNotFound __JobNotFound_init;
+static DuplicateJob __DuplicateJob_init;
 
-struct POJO
+class JobNotExist : public ::Ice::UserException
 {
-    POJO() :
-        type(::Scheduler::POJONAME)
-    {
-    }
-    
-    POJO(const ::std::string& __ice_type, ::Ice::Int __ice_x, ::Ice::Int __ice_y) :
-        type(__ice_type),
-        x(__ice_x),
-        y(__ice_y)
-    {
-    }
-    
+public:
 
-    ::std::string type;
-    ::Ice::Int x;
-    ::Ice::Int y;
+    JobNotExist() {}
+    explicit JobNotExist(const ::scheduler::JobId&);
+    virtual ~JobNotExist() throw();
 
-    bool operator==(const POJO& __rhs) const
-    {
-        if(this == &__rhs)
-        {
-            return true;
-        }
-        if(type != __rhs.type)
-        {
-            return false;
-        }
-        if(x != __rhs.x)
-        {
-            return false;
-        }
-        if(y != __rhs.y)
-        {
-            return false;
-        }
-        return true;
-    }
+    virtual ::std::string ice_name() const;
+    virtual JobNotExist* ice_clone() const;
+    virtual void ice_throw() const;
 
-    bool operator<(const POJO& __rhs) const
-    {
-        if(this == &__rhs)
-        {
-            return false;
-        }
-        if(type < __rhs.type)
-        {
-            return true;
-        }
-        else if(__rhs.type < type)
-        {
-            return false;
-        }
-        if(x < __rhs.x)
-        {
-            return true;
-        }
-        else if(__rhs.x < x)
-        {
-            return false;
-        }
-        if(y < __rhs.y)
-        {
-            return true;
-        }
-        else if(__rhs.y < y)
-        {
-            return false;
-        }
-        return false;
-    }
+    ::scheduler::JobId id;
 
-    bool operator!=(const POJO& __rhs) const
-    {
-        return !operator==(__rhs);
-    }
-    bool operator<=(const POJO& __rhs) const
-    {
-        return operator<(__rhs) || operator==(__rhs);
-    }
-    bool operator>(const POJO& __rhs) const
-    {
-        return !operator<(__rhs) && !operator==(__rhs);
-    }
-    bool operator>=(const POJO& __rhs) const
-    {
-        return !operator<(__rhs);
-    }
+protected:
+    virtual void __writeImpl(::IceInternal::BasicStream*) const;
+    virtual void __readImpl(::IceInternal::BasicStream*);
+    using ::Ice::UserException::__writeImpl;
+    using ::Ice::UserException::__readImpl;
 };
 
-struct POJO2
+class JobNotStartable : public ::Ice::UserException
 {
-    POJO2() :
-        type(::Scheduler::POJO2NAME)
-    {
-    }
-    
-    POJO2(const ::std::string& __ice_type, const ::std::string& __ice_first, const ::std::string& __ice_last) :
-        type(__ice_type),
-        first(__ice_first),
-        last(__ice_last)
-    {
-    }
-    
+public:
 
-    ::std::string type;
-    ::std::string first;
-    ::std::string last;
+    JobNotStartable() {}
+    explicit JobNotStartable(const ::scheduler::JobId&);
+    virtual ~JobNotStartable() throw();
 
-    bool operator==(const POJO2& __rhs) const
-    {
-        if(this == &__rhs)
-        {
-            return true;
-        }
-        if(type != __rhs.type)
-        {
-            return false;
-        }
-        if(first != __rhs.first)
-        {
-            return false;
-        }
-        if(last != __rhs.last)
-        {
-            return false;
-        }
-        return true;
-    }
+    virtual ::std::string ice_name() const;
+    virtual JobNotStartable* ice_clone() const;
+    virtual void ice_throw() const;
 
-    bool operator<(const POJO2& __rhs) const
-    {
-        if(this == &__rhs)
-        {
-            return false;
-        }
-        if(type < __rhs.type)
-        {
-            return true;
-        }
-        else if(__rhs.type < type)
-        {
-            return false;
-        }
-        if(first < __rhs.first)
-        {
-            return true;
-        }
-        else if(__rhs.first < first)
-        {
-            return false;
-        }
-        if(last < __rhs.last)
-        {
-            return true;
-        }
-        else if(__rhs.last < last)
-        {
-            return false;
-        }
-        return false;
-    }
+    ::scheduler::JobId id;
 
-    bool operator!=(const POJO2& __rhs) const
-    {
-        return !operator==(__rhs);
-    }
-    bool operator<=(const POJO2& __rhs) const
-    {
-        return operator<(__rhs) || operator==(__rhs);
-    }
-    bool operator>(const POJO2& __rhs) const
-    {
-        return !operator<(__rhs) && !operator==(__rhs);
-    }
-    bool operator>=(const POJO2& __rhs) const
-    {
-        return !operator<(__rhs);
-    }
+protected:
+    virtual void __writeImpl(::IceInternal::BasicStream*) const;
+    virtual void __readImpl(::IceInternal::BasicStream*);
+    using ::Ice::UserException::__writeImpl;
+    using ::Ice::UserException::__readImpl;
+};
+
+typedef ::std::vector< ::scheduler::Job> JobSeq;
+
+typedef ::std::vector< ::scheduler::JobState> JobStateSeq;
+
+typedef ::std::map< ::std::string, ::scheduler::Job> JobDict;
+
+struct Batch
+{
+    ::scheduler::JobSeq jobs;
+};
+
+struct Image
+{
+    ::scheduler::JobSeq jobs;
+    ::scheduler::JobStateSeq jobStates;
+    ::std::string currentImage;
 };
 
 }
@@ -580,27 +629,65 @@ struct POJO2
 namespace Ice
 {
 template<>
-struct StreamableTraits< ::Scheduler::JobState>
+struct StreamableTraits< ::scheduler::JobId>
+{
+    static const StreamHelperCategory helper = StreamHelperCategoryStruct;
+    static const int minWireSize = 2;
+    static const bool fixedLength = false;
+};
+
+template<class S>
+struct StreamWriter< ::scheduler::JobId, S>
+{
+    static void write(S* __os, const ::scheduler::JobId& v)
+    {
+        __os->write(v.id);
+        __os->write(v.batch);
+    }
+};
+
+template<class S>
+struct StreamReader< ::scheduler::JobId, S>
+{
+    static void read(S* __is, ::scheduler::JobId& v)
+    {
+        __is->read(v.id);
+        __is->read(v.batch);
+    }
+};
+
+template<>
+struct StreamableTraits< ::scheduler::EnumJobState::State>
 {
     static const StreamHelperCategory helper = StreamHelperCategoryEnum;
     static const int minValue = 0;
-    static const int maxValue = 7;
+    static const int maxValue = 8;
     static const int minWireSize = 1;
     static const bool fixedLength = false;
 };
 
 template<>
-struct StreamableTraits< ::Scheduler::JobUpdate>
+struct StreamableTraits< ::scheduler::EnumWorkerJobState::State>
+{
+    static const StreamHelperCategory helper = StreamHelperCategoryEnum;
+    static const int minValue = 0;
+    static const int maxValue = 3;
+    static const int minWireSize = 1;
+    static const bool fixedLength = false;
+};
+
+template<>
+struct StreamableTraits< ::scheduler::JobUpdate>
 {
     static const StreamHelperCategory helper = StreamHelperCategoryStruct;
-    static const int minWireSize = 6;
+    static const int minWireSize = 7;
     static const bool fixedLength = false;
 };
 
 template<class S>
-struct StreamWriter< ::Scheduler::JobUpdate, S>
+struct StreamWriter< ::scheduler::JobUpdate, S>
 {
-    static void write(S* __os, const ::Scheduler::JobUpdate& v)
+    static void write(S* __os, const ::scheduler::JobUpdate& v)
     {
         __os->write(v.id);
         __os->write(v.pctComplete);
@@ -609,9 +696,9 @@ struct StreamWriter< ::Scheduler::JobUpdate, S>
 };
 
 template<class S>
-struct StreamReader< ::Scheduler::JobUpdate, S>
+struct StreamReader< ::scheduler::JobUpdate, S>
 {
-    static void read(S* __is, ::Scheduler::JobUpdate& v)
+    static void read(S* __is, ::scheduler::JobUpdate& v)
     {
         __is->read(v.id);
         __is->read(v.pctComplete);
@@ -620,7 +707,7 @@ struct StreamReader< ::Scheduler::JobUpdate, S>
 };
 
 template<>
-struct StreamableTraits< ::Scheduler::WorkerId>
+struct StreamableTraits< ::scheduler::WorkerId>
 {
     static const StreamHelperCategory helper = StreamHelperCategoryStruct;
     static const int minWireSize = 1;
@@ -628,25 +715,25 @@ struct StreamableTraits< ::Scheduler::WorkerId>
 };
 
 template<class S>
-struct StreamWriter< ::Scheduler::WorkerId, S>
+struct StreamWriter< ::scheduler::WorkerId, S>
 {
-    static void write(S* __os, const ::Scheduler::WorkerId& v)
+    static void write(S* __os, const ::scheduler::WorkerId& v)
     {
         __os->write(v.id);
     }
 };
 
 template<class S>
-struct StreamReader< ::Scheduler::WorkerId, S>
+struct StreamReader< ::scheduler::WorkerId, S>
 {
-    static void read(S* __is, ::Scheduler::WorkerId& v)
+    static void read(S* __is, ::scheduler::WorkerId& v)
     {
         __is->read(v.id);
     }
 };
 
 template<>
-struct StreamableTraits< ::Scheduler::JobWorkerState>
+struct StreamableTraits< ::scheduler::WorkerStateDescription>
 {
     static const StreamHelperCategory helper = StreamHelperCategoryStruct;
     static const int minWireSize = 3;
@@ -654,95 +741,27 @@ struct StreamableTraits< ::Scheduler::JobWorkerState>
 };
 
 template<class S>
-struct StreamWriter< ::Scheduler::JobWorkerState, S>
+struct StreamWriter< ::scheduler::WorkerStateDescription, S>
 {
-    static void write(S* __os, const ::Scheduler::JobWorkerState& v)
+    static void write(S* __os, const ::scheduler::WorkerStateDescription& v)
     {
-        __os->write(v.worker);
         __os->write(v.id);
         __os->write(v.state);
     }
 };
 
 template<class S>
-struct StreamReader< ::Scheduler::JobWorkerState, S>
+struct StreamReader< ::scheduler::WorkerStateDescription, S>
 {
-    static void read(S* __is, ::Scheduler::JobWorkerState& v)
+    static void read(S* __is, ::scheduler::WorkerStateDescription& v)
     {
-        __is->read(v.worker);
         __is->read(v.id);
         __is->read(v.state);
     }
 };
 
 template<>
-struct StreamableTraits< ::Scheduler::Job>
-{
-    static const StreamHelperCategory helper = StreamHelperCategoryStruct;
-    static const int minWireSize = 11;
-    static const bool fixedLength = false;
-};
-
-template<class S>
-struct StreamWriter< ::Scheduler::Job, S>
-{
-    static void write(S* __os, const ::Scheduler::Job& v)
-    {
-        __os->write(v.id);
-        __os->write(v.dependencies);
-        __os->write(v.state);
-        __os->write(v.priority);
-        __os->write(v.pwd);
-        __os->write(v.cmdLine);
-        __os->write(v.env);
-        __os->write(v.batchId);
-    }
-};
-
-template<class S>
-struct StreamReader< ::Scheduler::Job, S>
-{
-    static void read(S* __is, ::Scheduler::Job& v)
-    {
-        __is->read(v.id);
-        __is->read(v.dependencies);
-        __is->read(v.state);
-        __is->read(v.priority);
-        __is->read(v.pwd);
-        __is->read(v.cmdLine);
-        __is->read(v.env);
-        __is->read(v.batchId);
-    }
-};
-
-template<>
-struct StreamableTraits< ::Scheduler::Batch>
-{
-    static const StreamHelperCategory helper = StreamHelperCategoryStruct;
-    static const int minWireSize = 1;
-    static const bool fixedLength = false;
-};
-
-template<class S>
-struct StreamWriter< ::Scheduler::Batch, S>
-{
-    static void write(S* __os, const ::Scheduler::Batch& v)
-    {
-        __os->write(v.jobs);
-    }
-};
-
-template<class S>
-struct StreamReader< ::Scheduler::Batch, S>
-{
-    static void read(S* __is, ::Scheduler::Batch& v)
-    {
-        __is->read(v.jobs);
-    }
-};
-
-template<>
-struct StreamableTraits< ::Scheduler::Image>
+struct StreamableTraits< ::scheduler::WorkerUpdate>
 {
     static const StreamHelperCategory helper = StreamHelperCategoryStruct;
     static const int minWireSize = 2;
@@ -750,63 +769,173 @@ struct StreamableTraits< ::Scheduler::Image>
 };
 
 template<class S>
-struct StreamWriter< ::Scheduler::Image, S>
+struct StreamWriter< ::scheduler::WorkerUpdate, S>
 {
-    static void write(S* __os, const ::Scheduler::Image& v)
+    static void write(S* __os, const ::scheduler::WorkerUpdate& v)
     {
-        __os->write(v.jobs);
-        __os->write(v.currentImage);
+        __os->write(v.id);
+        __os->write(v.updates);
     }
 };
 
 template<class S>
-struct StreamReader< ::Scheduler::Image, S>
+struct StreamReader< ::scheduler::WorkerUpdate, S>
 {
-    static void read(S* __is, ::Scheduler::Image& v)
+    static void read(S* __is, ::scheduler::WorkerUpdate& v)
     {
-        __is->read(v.jobs);
-        __is->read(v.currentImage);
+        __is->read(v.id);
+        __is->read(v.updates);
     }
 };
 
 template<>
-struct StreamableTraits< ::Scheduler::JobNotFound>
+struct StreamableTraits< ::scheduler::JobStateDescription>
+{
+    static const StreamHelperCategory helper = StreamHelperCategoryStruct;
+    static const int minWireSize = 23;
+    static const bool fixedLength = false;
+};
+
+template<class S>
+struct StreamWriter< ::scheduler::JobStateDescription, S>
+{
+    static void write(S* __os, const ::scheduler::JobStateDescription& v)
+    {
+        __os->write(v.id);
+        __os->write(v.startTime);
+        __os->write(v.updateTime);
+        __os->write(v.statusMsg);
+        __os->write(v.pctComplete);
+    }
+};
+
+template<class S>
+struct StreamReader< ::scheduler::JobStateDescription, S>
+{
+    static void read(S* __is, ::scheduler::JobStateDescription& v)
+    {
+        __is->read(v.id);
+        __is->read(v.startTime);
+        __is->read(v.updateTime);
+        __is->read(v.statusMsg);
+        __is->read(v.pctComplete);
+    }
+};
+
+template<>
+struct StreamableTraits< ::scheduler::Job>
+{
+    static const StreamHelperCategory helper = StreamHelperCategoryStruct;
+    static const int minWireSize = 10;
+    static const bool fixedLength = false;
+};
+
+template<class S>
+struct StreamWriter< ::scheduler::Job, S>
+{
+    static void write(S* __os, const ::scheduler::Job& v)
+    {
+        __os->write(v.id);
+        __os->write(v.dependencies);
+        __os->write(v.priority);
+        __os->write(v.pwd);
+        __os->write(v.cmdLine);
+        __os->write(v.env);
+    }
+};
+
+template<class S>
+struct StreamReader< ::scheduler::Job, S>
+{
+    static void read(S* __is, ::scheduler::Job& v)
+    {
+        __is->read(v.id);
+        __is->read(v.dependencies);
+        __is->read(v.priority);
+        __is->read(v.pwd);
+        __is->read(v.cmdLine);
+        __is->read(v.env);
+    }
+};
+
+template<>
+struct StreamableTraits< ::scheduler::JobState>
+{
+    static const StreamHelperCategory helper = StreamHelperCategoryStruct;
+    static const int minWireSize = 4;
+    static const bool fixedLength = false;
+};
+
+template<class S>
+struct StreamWriter< ::scheduler::JobState, S>
+{
+    static void write(S* __os, const ::scheduler::JobState& v)
+    {
+        __os->write(v.jobId);
+        __os->write(v.state);
+        __os->write(v.currentWorker);
+        __os->write(v.jobStatus);
+    }
+};
+
+template<class S>
+struct StreamReader< ::scheduler::JobState, S>
+{
+    static void read(S* __is, ::scheduler::JobState& v)
+    {
+        __is->read(v.jobId);
+        __is->read(v.state);
+        __is->read(v.currentWorker);
+        __is->read(v.jobStatus);
+    }
+};
+
+template<>
+struct StreamableTraits< ::scheduler::DuplicateJob>
 {
     static const StreamHelperCategory helper = StreamHelperCategoryUserException;
 };
 
 template<>
-struct StreamableTraits< ::Scheduler::POJO>
+struct StreamableTraits< ::scheduler::JobNotExist>
+{
+    static const StreamHelperCategory helper = StreamHelperCategoryUserException;
+};
+
+template<>
+struct StreamableTraits< ::scheduler::JobNotStartable>
+{
+    static const StreamHelperCategory helper = StreamHelperCategoryUserException;
+};
+
+template<>
+struct StreamableTraits< ::scheduler::Batch>
 {
     static const StreamHelperCategory helper = StreamHelperCategoryStruct;
-    static const int minWireSize = 9;
+    static const int minWireSize = 1;
     static const bool fixedLength = false;
 };
 
 template<class S>
-struct StreamWriter< ::Scheduler::POJO, S>
+struct StreamWriter< ::scheduler::Batch, S>
 {
-    static void write(S* __os, const ::Scheduler::POJO& v)
+    static void write(S* __os, const ::scheduler::Batch& v)
     {
-        __os->write(v.type);
-        __os->write(v.x);
-        __os->write(v.y);
+        __os->write(v.jobs);
     }
 };
 
 template<class S>
-struct StreamReader< ::Scheduler::POJO, S>
+struct StreamReader< ::scheduler::Batch, S>
 {
-    static void read(S* __is, ::Scheduler::POJO& v)
+    static void read(S* __is, ::scheduler::Batch& v)
     {
-        __is->read(v.type);
-        __is->read(v.x);
-        __is->read(v.y);
+        __is->read(v.jobs);
     }
 };
 
 template<>
-struct StreamableTraits< ::Scheduler::POJO2>
+struct StreamableTraits< ::scheduler::Image>
 {
     static const StreamHelperCategory helper = StreamHelperCategoryStruct;
     static const int minWireSize = 3;
@@ -814,30 +943,30 @@ struct StreamableTraits< ::Scheduler::POJO2>
 };
 
 template<class S>
-struct StreamWriter< ::Scheduler::POJO2, S>
+struct StreamWriter< ::scheduler::Image, S>
 {
-    static void write(S* __os, const ::Scheduler::POJO2& v)
+    static void write(S* __os, const ::scheduler::Image& v)
     {
-        __os->write(v.type);
-        __os->write(v.first);
-        __os->write(v.last);
+        __os->write(v.jobs);
+        __os->write(v.jobStates);
+        __os->write(v.currentImage);
     }
 };
 
 template<class S>
-struct StreamReader< ::Scheduler::POJO2, S>
+struct StreamReader< ::scheduler::Image, S>
 {
-    static void read(S* __is, ::Scheduler::POJO2& v)
+    static void read(S* __is, ::scheduler::Image& v)
     {
-        __is->read(v.type);
-        __is->read(v.first);
-        __is->read(v.last);
+        __is->read(v.jobs);
+        __is->read(v.jobStates);
+        __is->read(v.currentImage);
     }
 };
 
 }
 
-namespace Scheduler
+namespace scheduler
 {
 
 class AMD_SchedulerServerListener_onImage : virtual public ::Ice::AMDCallback
@@ -847,7 +976,7 @@ public:
     virtual void ice_response() = 0;
 };
 
-typedef ::IceUtil::Handle< ::Scheduler::AMD_SchedulerServerListener_onImage> AMD_SchedulerServerListener_onImagePtr;
+typedef ::IceUtil::Handle< ::scheduler::AMD_SchedulerServerListener_onImage> AMD_SchedulerServerListener_onImagePtr;
 
 class AMD_SchedulerServerListener_onUpdate : virtual public ::Ice::AMDCallback
 {
@@ -856,7 +985,7 @@ public:
     virtual void ice_response() = 0;
 };
 
-typedef ::IceUtil::Handle< ::Scheduler::AMD_SchedulerServerListener_onUpdate> AMD_SchedulerServerListener_onUpdatePtr;
+typedef ::IceUtil::Handle< ::scheduler::AMD_SchedulerServerListener_onUpdate> AMD_SchedulerServerListener_onUpdatePtr;
 
 class AMD_SchedulerServerListener_onImageReady : virtual public ::Ice::AMDCallback
 {
@@ -865,7 +994,7 @@ public:
     virtual void ice_response() = 0;
 };
 
-typedef ::IceUtil::Handle< ::Scheduler::AMD_SchedulerServerListener_onImageReady> AMD_SchedulerServerListener_onImageReadyPtr;
+typedef ::IceUtil::Handle< ::scheduler::AMD_SchedulerServerListener_onImageReady> AMD_SchedulerServerListener_onImageReadyPtr;
 
 class AMD_SchedulerServerListener_onReset : virtual public ::Ice::AMDCallback
 {
@@ -874,7 +1003,7 @@ public:
     virtual void ice_response() = 0;
 };
 
-typedef ::IceUtil::Handle< ::Scheduler::AMD_SchedulerServerListener_onReset> AMD_SchedulerServerListener_onResetPtr;
+typedef ::IceUtil::Handle< ::scheduler::AMD_SchedulerServerListener_onReset> AMD_SchedulerServerListener_onResetPtr;
 
 class AMD_SchedulerServer_submitBatch : virtual public ::Ice::AMDCallback
 {
@@ -883,7 +1012,7 @@ public:
     virtual void ice_response() = 0;
 };
 
-typedef ::IceUtil::Handle< ::Scheduler::AMD_SchedulerServer_submitBatch> AMD_SchedulerServer_submitBatchPtr;
+typedef ::IceUtil::Handle< ::scheduler::AMD_SchedulerServer_submitBatch> AMD_SchedulerServer_submitBatchPtr;
 
 class AMD_SchedulerServer_startJob : virtual public ::Ice::AMDCallback
 {
@@ -892,7 +1021,7 @@ public:
     virtual void ice_response() = 0;
 };
 
-typedef ::IceUtil::Handle< ::Scheduler::AMD_SchedulerServer_startJob> AMD_SchedulerServer_startJobPtr;
+typedef ::IceUtil::Handle< ::scheduler::AMD_SchedulerServer_startJob> AMD_SchedulerServer_startJobPtr;
 
 class AMD_SchedulerServer_stopJob : virtual public ::Ice::AMDCallback
 {
@@ -901,7 +1030,7 @@ public:
     virtual void ice_response() = 0;
 };
 
-typedef ::IceUtil::Handle< ::Scheduler::AMD_SchedulerServer_stopJob> AMD_SchedulerServer_stopJobPtr;
+typedef ::IceUtil::Handle< ::scheduler::AMD_SchedulerServer_stopJob> AMD_SchedulerServer_stopJobPtr;
 
 class AMD_SchedulerServer_invalidate : virtual public ::Ice::AMDCallback
 {
@@ -910,7 +1039,7 @@ public:
     virtual void ice_response() = 0;
 };
 
-typedef ::IceUtil::Handle< ::Scheduler::AMD_SchedulerServer_invalidate> AMD_SchedulerServer_invalidatePtr;
+typedef ::IceUtil::Handle< ::scheduler::AMD_SchedulerServer_invalidate> AMD_SchedulerServer_invalidatePtr;
 
 class AMD_SchedulerServer_reset : virtual public ::Ice::AMDCallback
 {
@@ -919,7 +1048,7 @@ public:
     virtual void ice_response() = 0;
 };
 
-typedef ::IceUtil::Handle< ::Scheduler::AMD_SchedulerServer_reset> AMD_SchedulerServer_resetPtr;
+typedef ::IceUtil::Handle< ::scheduler::AMD_SchedulerServer_reset> AMD_SchedulerServer_resetPtr;
 
 class AMD_SchedulerServer_dumpStatus : virtual public ::Ice::AMDCallback
 {
@@ -928,34 +1057,34 @@ public:
     virtual void ice_response(const ::std::string&) = 0;
 };
 
-typedef ::IceUtil::Handle< ::Scheduler::AMD_SchedulerServer_dumpStatus> AMD_SchedulerServer_dumpStatusPtr;
+typedef ::IceUtil::Handle< ::scheduler::AMD_SchedulerServer_dumpStatus> AMD_SchedulerServer_dumpStatusPtr;
 
 class AMD_SchedulerServer_getJobs : virtual public ::Ice::AMDCallback
 {
 public:
 
-    virtual void ice_response(const ::Scheduler::JobSeq&) = 0;
+    virtual void ice_response(const ::scheduler::JobSeq&) = 0;
 };
 
-typedef ::IceUtil::Handle< ::Scheduler::AMD_SchedulerServer_getJobs> AMD_SchedulerServer_getJobsPtr;
+typedef ::IceUtil::Handle< ::scheduler::AMD_SchedulerServer_getJobs> AMD_SchedulerServer_getJobsPtr;
 
 class AMD_SchedulerServer_getStartableJob : virtual public ::Ice::AMDCallback
 {
 public:
 
-    virtual void ice_response(const ::Scheduler::JobSeq&) = 0;
+    virtual void ice_response(const ::scheduler::JobSeq&) = 0;
 };
 
-typedef ::IceUtil::Handle< ::Scheduler::AMD_SchedulerServer_getStartableJob> AMD_SchedulerServer_getStartableJobPtr;
+typedef ::IceUtil::Handle< ::scheduler::AMD_SchedulerServer_getStartableJob> AMD_SchedulerServer_getStartableJobPtr;
 
 class AMD_SchedulerServer_getJob : virtual public ::Ice::AMDCallback
 {
 public:
 
-    virtual void ice_response(const ::Scheduler::Job&) = 0;
+    virtual void ice_response(const ::scheduler::Job&) = 0;
 };
 
-typedef ::IceUtil::Handle< ::Scheduler::AMD_SchedulerServer_getJob> AMD_SchedulerServer_getJobPtr;
+typedef ::IceUtil::Handle< ::scheduler::AMD_SchedulerServer_getJob> AMD_SchedulerServer_getJobPtr;
 
 class AMD_SchedulerServer_addListener : virtual public ::Ice::AMDCallback
 {
@@ -964,7 +1093,7 @@ public:
     virtual void ice_response() = 0;
 };
 
-typedef ::IceUtil::Handle< ::Scheduler::AMD_SchedulerServer_addListener> AMD_SchedulerServer_addListenerPtr;
+typedef ::IceUtil::Handle< ::scheduler::AMD_SchedulerServer_addListener> AMD_SchedulerServer_addListenerPtr;
 
 class AMD_SchedulerServer_addListenerWithIdent : virtual public ::Ice::AMDCallback
 {
@@ -973,16 +1102,16 @@ public:
     virtual void ice_response() = 0;
 };
 
-typedef ::IceUtil::Handle< ::Scheduler::AMD_SchedulerServer_addListenerWithIdent> AMD_SchedulerServer_addListenerWithIdentPtr;
+typedef ::IceUtil::Handle< ::scheduler::AMD_SchedulerServer_addListenerWithIdent> AMD_SchedulerServer_addListenerWithIdentPtr;
 
-class AMD_SchedulerServer_onWorkerStates : virtual public ::Ice::AMDCallback
+class AMD_SchedulerServer_onWorkerUpdate : virtual public ::Ice::AMDCallback
 {
 public:
 
     virtual void ice_response() = 0;
 };
 
-typedef ::IceUtil::Handle< ::Scheduler::AMD_SchedulerServer_onWorkerStates> AMD_SchedulerServer_onWorkerStatesPtr;
+typedef ::IceUtil::Handle< ::scheduler::AMD_SchedulerServer_onWorkerUpdate> AMD_SchedulerServer_onWorkerUpdatePtr;
 
 class AMD_SchedulerServer_imageReady : virtual public ::Ice::AMDCallback
 {
@@ -991,17 +1120,17 @@ public:
     virtual void ice_response() = 0;
 };
 
-typedef ::IceUtil::Handle< ::Scheduler::AMD_SchedulerServer_imageReady> AMD_SchedulerServer_imageReadyPtr;
+typedef ::IceUtil::Handle< ::scheduler::AMD_SchedulerServer_imageReady> AMD_SchedulerServer_imageReadyPtr;
 
 }
 
 namespace IceAsync
 {
 
-namespace Scheduler
+namespace scheduler
 {
 
-class AMD_SchedulerServerListener_onImage : public ::Scheduler::AMD_SchedulerServerListener_onImage, public ::IceInternal::IncomingAsync
+class AMD_SchedulerServerListener_onImage : public ::scheduler::AMD_SchedulerServerListener_onImage, public ::IceInternal::IncomingAsync
 {
 public:
 
@@ -1010,7 +1139,7 @@ public:
     virtual void ice_response();
 };
 
-class AMD_SchedulerServerListener_onUpdate : public ::Scheduler::AMD_SchedulerServerListener_onUpdate, public ::IceInternal::IncomingAsync
+class AMD_SchedulerServerListener_onUpdate : public ::scheduler::AMD_SchedulerServerListener_onUpdate, public ::IceInternal::IncomingAsync
 {
 public:
 
@@ -1019,7 +1148,7 @@ public:
     virtual void ice_response();
 };
 
-class AMD_SchedulerServerListener_onImageReady : public ::Scheduler::AMD_SchedulerServerListener_onImageReady, public ::IceInternal::IncomingAsync
+class AMD_SchedulerServerListener_onImageReady : public ::scheduler::AMD_SchedulerServerListener_onImageReady, public ::IceInternal::IncomingAsync
 {
 public:
 
@@ -1028,7 +1157,7 @@ public:
     virtual void ice_response();
 };
 
-class AMD_SchedulerServerListener_onReset : public ::Scheduler::AMD_SchedulerServerListener_onReset, public ::IceInternal::IncomingAsync
+class AMD_SchedulerServerListener_onReset : public ::scheduler::AMD_SchedulerServerListener_onReset, public ::IceInternal::IncomingAsync
 {
 public:
 
@@ -1037,25 +1166,31 @@ public:
     virtual void ice_response();
 };
 
-class AMD_SchedulerServer_submitBatch : public ::Scheduler::AMD_SchedulerServer_submitBatch, public ::IceInternal::IncomingAsync
+class AMD_SchedulerServer_submitBatch : public ::scheduler::AMD_SchedulerServer_submitBatch, public ::IceInternal::IncomingAsync
 {
 public:
 
     AMD_SchedulerServer_submitBatch(::IceInternal::Incoming&);
 
     virtual void ice_response();
+    // COMPILERFIX: The using directive avoid compiler warnings with -Woverloaded-virtual
+    using ::IceInternal::IncomingAsync::ice_exception;
+    virtual void ice_exception(const ::std::exception&);
 };
 
-class AMD_SchedulerServer_startJob : public ::Scheduler::AMD_SchedulerServer_startJob, public ::IceInternal::IncomingAsync
+class AMD_SchedulerServer_startJob : public ::scheduler::AMD_SchedulerServer_startJob, public ::IceInternal::IncomingAsync
 {
 public:
 
     AMD_SchedulerServer_startJob(::IceInternal::Incoming&);
 
     virtual void ice_response();
+    // COMPILERFIX: The using directive avoid compiler warnings with -Woverloaded-virtual
+    using ::IceInternal::IncomingAsync::ice_exception;
+    virtual void ice_exception(const ::std::exception&);
 };
 
-class AMD_SchedulerServer_stopJob : public ::Scheduler::AMD_SchedulerServer_stopJob, public ::IceInternal::IncomingAsync
+class AMD_SchedulerServer_stopJob : public ::scheduler::AMD_SchedulerServer_stopJob, public ::IceInternal::IncomingAsync
 {
 public:
 
@@ -1064,7 +1199,7 @@ public:
     virtual void ice_response();
 };
 
-class AMD_SchedulerServer_invalidate : public ::Scheduler::AMD_SchedulerServer_invalidate, public ::IceInternal::IncomingAsync
+class AMD_SchedulerServer_invalidate : public ::scheduler::AMD_SchedulerServer_invalidate, public ::IceInternal::IncomingAsync
 {
 public:
 
@@ -1073,7 +1208,7 @@ public:
     virtual void ice_response();
 };
 
-class AMD_SchedulerServer_reset : public ::Scheduler::AMD_SchedulerServer_reset, public ::IceInternal::IncomingAsync
+class AMD_SchedulerServer_reset : public ::scheduler::AMD_SchedulerServer_reset, public ::IceInternal::IncomingAsync
 {
 public:
 
@@ -1082,7 +1217,7 @@ public:
     virtual void ice_response();
 };
 
-class AMD_SchedulerServer_dumpStatus : public ::Scheduler::AMD_SchedulerServer_dumpStatus, public ::IceInternal::IncomingAsync
+class AMD_SchedulerServer_dumpStatus : public ::scheduler::AMD_SchedulerServer_dumpStatus, public ::IceInternal::IncomingAsync
 {
 public:
 
@@ -1091,37 +1226,37 @@ public:
     virtual void ice_response(const ::std::string&);
 };
 
-class AMD_SchedulerServer_getJobs : public ::Scheduler::AMD_SchedulerServer_getJobs, public ::IceInternal::IncomingAsync
+class AMD_SchedulerServer_getJobs : public ::scheduler::AMD_SchedulerServer_getJobs, public ::IceInternal::IncomingAsync
 {
 public:
 
     AMD_SchedulerServer_getJobs(::IceInternal::Incoming&);
 
-    virtual void ice_response(const ::Scheduler::JobSeq&);
+    virtual void ice_response(const ::scheduler::JobSeq&);
 };
 
-class AMD_SchedulerServer_getStartableJob : public ::Scheduler::AMD_SchedulerServer_getStartableJob, public ::IceInternal::IncomingAsync
+class AMD_SchedulerServer_getStartableJob : public ::scheduler::AMD_SchedulerServer_getStartableJob, public ::IceInternal::IncomingAsync
 {
 public:
 
     AMD_SchedulerServer_getStartableJob(::IceInternal::Incoming&);
 
-    virtual void ice_response(const ::Scheduler::JobSeq&);
+    virtual void ice_response(const ::scheduler::JobSeq&);
 };
 
-class AMD_SchedulerServer_getJob : public ::Scheduler::AMD_SchedulerServer_getJob, public ::IceInternal::IncomingAsync
+class AMD_SchedulerServer_getJob : public ::scheduler::AMD_SchedulerServer_getJob, public ::IceInternal::IncomingAsync
 {
 public:
 
     AMD_SchedulerServer_getJob(::IceInternal::Incoming&);
 
-    virtual void ice_response(const ::Scheduler::Job&);
+    virtual void ice_response(const ::scheduler::Job&);
     // COMPILERFIX: The using directive avoid compiler warnings with -Woverloaded-virtual
     using ::IceInternal::IncomingAsync::ice_exception;
     virtual void ice_exception(const ::std::exception&);
 };
 
-class AMD_SchedulerServer_addListener : public ::Scheduler::AMD_SchedulerServer_addListener, public ::IceInternal::IncomingAsync
+class AMD_SchedulerServer_addListener : public ::scheduler::AMD_SchedulerServer_addListener, public ::IceInternal::IncomingAsync
 {
 public:
 
@@ -1130,7 +1265,7 @@ public:
     virtual void ice_response();
 };
 
-class AMD_SchedulerServer_addListenerWithIdent : public ::Scheduler::AMD_SchedulerServer_addListenerWithIdent, public ::IceInternal::IncomingAsync
+class AMD_SchedulerServer_addListenerWithIdent : public ::scheduler::AMD_SchedulerServer_addListenerWithIdent, public ::IceInternal::IncomingAsync
 {
 public:
 
@@ -1139,16 +1274,16 @@ public:
     virtual void ice_response();
 };
 
-class AMD_SchedulerServer_onWorkerStates : public ::Scheduler::AMD_SchedulerServer_onWorkerStates, public ::IceInternal::IncomingAsync
+class AMD_SchedulerServer_onWorkerUpdate : public ::scheduler::AMD_SchedulerServer_onWorkerUpdate, public ::IceInternal::IncomingAsync
 {
 public:
 
-    AMD_SchedulerServer_onWorkerStates(::IceInternal::Incoming&);
+    AMD_SchedulerServer_onWorkerUpdate(::IceInternal::Incoming&);
 
     virtual void ice_response();
 };
 
-class AMD_SchedulerServer_imageReady : public ::Scheduler::AMD_SchedulerServer_imageReady, public ::IceInternal::IncomingAsync
+class AMD_SchedulerServer_imageReady : public ::scheduler::AMD_SchedulerServer_imageReady, public ::IceInternal::IncomingAsync
 {
 public:
 
@@ -1161,7 +1296,7 @@ public:
 
 }
 
-namespace Scheduler
+namespace scheduler
 {
 
 class Callback_SchedulerServerListener_onImage_Base : virtual public ::IceInternal::CallbackBase { };
@@ -1209,8 +1344,8 @@ typedef ::IceUtil::Handle< Callback_SchedulerServer_addListener_Base> Callback_S
 class Callback_SchedulerServer_addListenerWithIdent_Base : virtual public ::IceInternal::CallbackBase { };
 typedef ::IceUtil::Handle< Callback_SchedulerServer_addListenerWithIdent_Base> Callback_SchedulerServer_addListenerWithIdentPtr;
 
-class Callback_SchedulerServer_onWorkerStates_Base : virtual public ::IceInternal::CallbackBase { };
-typedef ::IceUtil::Handle< Callback_SchedulerServer_onWorkerStates_Base> Callback_SchedulerServer_onWorkerStatesPtr;
+class Callback_SchedulerServer_onWorkerUpdate_Base : virtual public ::IceInternal::CallbackBase { };
+typedef ::IceUtil::Handle< Callback_SchedulerServer_onWorkerUpdate_Base> Callback_SchedulerServer_onWorkerUpdatePtr;
 
 class Callback_SchedulerServer_imageReady_Base : virtual public ::IceInternal::CallbackBase { };
 typedef ::IceUtil::Handle< Callback_SchedulerServer_imageReady_Base> Callback_SchedulerServer_imageReadyPtr;
@@ -1220,70 +1355,70 @@ typedef ::IceUtil::Handle< Callback_SchedulerServer_imageReady_Base> Callback_Sc
 namespace IceProxy
 {
 
-namespace Scheduler
+namespace scheduler
 {
 
 class SchedulerServerListener : virtual public ::IceProxy::Ice::Object
 {
 public:
 
-    void onImage(const ::Scheduler::Image& __p_image)
+    void onImage(const ::scheduler::Image& __p_image)
     {
         onImage(__p_image, 0);
     }
-    void onImage(const ::Scheduler::Image& __p_image, const ::Ice::Context& __ctx)
+    void onImage(const ::scheduler::Image& __p_image, const ::Ice::Context& __ctx)
     {
         onImage(__p_image, &__ctx);
     }
 #ifdef ICE_CPP11
     ::Ice::AsyncResultPtr
-    begin_onImage(const ::Scheduler::Image& __p_image, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_onImage(const ::scheduler::Image& __p_image, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
         return begin_onImage(__p_image, 0, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent));
     }
     ::Ice::AsyncResultPtr
-    begin_onImage(const ::Scheduler::Image& __p_image, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    begin_onImage(const ::scheduler::Image& __p_image, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
     {
         return begin_onImage(__p_image, 0, ::Ice::newCallback(__completed, __sent), 0);
     }
     ::Ice::AsyncResultPtr
-    begin_onImage(const ::Scheduler::Image& __p_image, const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_onImage(const ::scheduler::Image& __p_image, const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
         return begin_onImage(__p_image, &__ctx, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent), 0);
     }
     ::Ice::AsyncResultPtr
-    begin_onImage(const ::Scheduler::Image& __p_image, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    begin_onImage(const ::scheduler::Image& __p_image, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
     {
         return begin_onImage(__p_image, &__ctx, ::Ice::newCallback(__completed, __sent));
     }
 #endif
 
-    ::Ice::AsyncResultPtr begin_onImage(const ::Scheduler::Image& __p_image)
+    ::Ice::AsyncResultPtr begin_onImage(const ::scheduler::Image& __p_image)
     {
         return begin_onImage(__p_image, 0, ::IceInternal::__dummyCallback, 0);
     }
 
-    ::Ice::AsyncResultPtr begin_onImage(const ::Scheduler::Image& __p_image, const ::Ice::Context& __ctx)
+    ::Ice::AsyncResultPtr begin_onImage(const ::scheduler::Image& __p_image, const ::Ice::Context& __ctx)
     {
         return begin_onImage(__p_image, &__ctx, ::IceInternal::__dummyCallback, 0);
     }
 
-    ::Ice::AsyncResultPtr begin_onImage(const ::Scheduler::Image& __p_image, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_onImage(const ::scheduler::Image& __p_image, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_onImage(__p_image, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_onImage(const ::Scheduler::Image& __p_image, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_onImage(const ::scheduler::Image& __p_image, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_onImage(__p_image, &__ctx, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_onImage(const ::Scheduler::Image& __p_image, const ::Scheduler::Callback_SchedulerServerListener_onImagePtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_onImage(const ::scheduler::Image& __p_image, const ::scheduler::Callback_SchedulerServerListener_onImagePtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_onImage(__p_image, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_onImage(const ::Scheduler::Image& __p_image, const ::Ice::Context& __ctx, const ::Scheduler::Callback_SchedulerServerListener_onImagePtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_onImage(const ::scheduler::Image& __p_image, const ::Ice::Context& __ctx, const ::scheduler::Callback_SchedulerServerListener_onImagePtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_onImage(__p_image, &__ctx, __del, __cookie);
     }
@@ -1292,68 +1427,68 @@ public:
     
 private:
 
-    void onImage(const ::Scheduler::Image&, const ::Ice::Context*);
-    ::Ice::AsyncResultPtr begin_onImage(const ::Scheduler::Image&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
+    void onImage(const ::scheduler::Image&, const ::Ice::Context*);
+    ::Ice::AsyncResultPtr begin_onImage(const ::scheduler::Image&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
     
 public:
 
-    void onUpdate(const ::Scheduler::JobSeq& __p_jobs)
+    void onUpdate(const ::scheduler::JobStateSeq& __p_jobs)
     {
         onUpdate(__p_jobs, 0);
     }
-    void onUpdate(const ::Scheduler::JobSeq& __p_jobs, const ::Ice::Context& __ctx)
+    void onUpdate(const ::scheduler::JobStateSeq& __p_jobs, const ::Ice::Context& __ctx)
     {
         onUpdate(__p_jobs, &__ctx);
     }
 #ifdef ICE_CPP11
     ::Ice::AsyncResultPtr
-    begin_onUpdate(const ::Scheduler::JobSeq& __p_jobs, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_onUpdate(const ::scheduler::JobStateSeq& __p_jobs, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
         return begin_onUpdate(__p_jobs, 0, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent));
     }
     ::Ice::AsyncResultPtr
-    begin_onUpdate(const ::Scheduler::JobSeq& __p_jobs, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    begin_onUpdate(const ::scheduler::JobStateSeq& __p_jobs, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
     {
         return begin_onUpdate(__p_jobs, 0, ::Ice::newCallback(__completed, __sent), 0);
     }
     ::Ice::AsyncResultPtr
-    begin_onUpdate(const ::Scheduler::JobSeq& __p_jobs, const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_onUpdate(const ::scheduler::JobStateSeq& __p_jobs, const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
         return begin_onUpdate(__p_jobs, &__ctx, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent), 0);
     }
     ::Ice::AsyncResultPtr
-    begin_onUpdate(const ::Scheduler::JobSeq& __p_jobs, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    begin_onUpdate(const ::scheduler::JobStateSeq& __p_jobs, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
     {
         return begin_onUpdate(__p_jobs, &__ctx, ::Ice::newCallback(__completed, __sent));
     }
 #endif
 
-    ::Ice::AsyncResultPtr begin_onUpdate(const ::Scheduler::JobSeq& __p_jobs)
+    ::Ice::AsyncResultPtr begin_onUpdate(const ::scheduler::JobStateSeq& __p_jobs)
     {
         return begin_onUpdate(__p_jobs, 0, ::IceInternal::__dummyCallback, 0);
     }
 
-    ::Ice::AsyncResultPtr begin_onUpdate(const ::Scheduler::JobSeq& __p_jobs, const ::Ice::Context& __ctx)
+    ::Ice::AsyncResultPtr begin_onUpdate(const ::scheduler::JobStateSeq& __p_jobs, const ::Ice::Context& __ctx)
     {
         return begin_onUpdate(__p_jobs, &__ctx, ::IceInternal::__dummyCallback, 0);
     }
 
-    ::Ice::AsyncResultPtr begin_onUpdate(const ::Scheduler::JobSeq& __p_jobs, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_onUpdate(const ::scheduler::JobStateSeq& __p_jobs, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_onUpdate(__p_jobs, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_onUpdate(const ::Scheduler::JobSeq& __p_jobs, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_onUpdate(const ::scheduler::JobStateSeq& __p_jobs, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_onUpdate(__p_jobs, &__ctx, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_onUpdate(const ::Scheduler::JobSeq& __p_jobs, const ::Scheduler::Callback_SchedulerServerListener_onUpdatePtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_onUpdate(const ::scheduler::JobStateSeq& __p_jobs, const ::scheduler::Callback_SchedulerServerListener_onUpdatePtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_onUpdate(__p_jobs, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_onUpdate(const ::Scheduler::JobSeq& __p_jobs, const ::Ice::Context& __ctx, const ::Scheduler::Callback_SchedulerServerListener_onUpdatePtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_onUpdate(const ::scheduler::JobStateSeq& __p_jobs, const ::Ice::Context& __ctx, const ::scheduler::Callback_SchedulerServerListener_onUpdatePtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_onUpdate(__p_jobs, &__ctx, __del, __cookie);
     }
@@ -1362,8 +1497,8 @@ public:
     
 private:
 
-    void onUpdate(const ::Scheduler::JobSeq&, const ::Ice::Context*);
-    ::Ice::AsyncResultPtr begin_onUpdate(const ::Scheduler::JobSeq&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
+    void onUpdate(const ::scheduler::JobStateSeq&, const ::Ice::Context*);
+    ::Ice::AsyncResultPtr begin_onUpdate(const ::scheduler::JobStateSeq&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
     
 public:
 
@@ -1418,12 +1553,12 @@ public:
         return begin_onImageReady(__p_imgId, &__ctx, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_onImageReady(const ::std::string& __p_imgId, const ::Scheduler::Callback_SchedulerServerListener_onImageReadyPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_onImageReady(const ::std::string& __p_imgId, const ::scheduler::Callback_SchedulerServerListener_onImageReadyPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_onImageReady(__p_imgId, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_onImageReady(const ::std::string& __p_imgId, const ::Ice::Context& __ctx, const ::Scheduler::Callback_SchedulerServerListener_onImageReadyPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_onImageReady(const ::std::string& __p_imgId, const ::Ice::Context& __ctx, const ::scheduler::Callback_SchedulerServerListener_onImageReadyPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_onImageReady(__p_imgId, &__ctx, __del, __cookie);
     }
@@ -1488,12 +1623,12 @@ public:
         return begin_onReset(&__ctx, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_onReset(const ::Scheduler::Callback_SchedulerServerListener_onResetPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_onReset(const ::scheduler::Callback_SchedulerServerListener_onResetPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_onReset(0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_onReset(const ::Ice::Context& __ctx, const ::Scheduler::Callback_SchedulerServerListener_onResetPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_onReset(const ::Ice::Context& __ctx, const ::scheduler::Callback_SchedulerServerListener_onResetPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_onReset(&__ctx, __del, __cookie);
     }
@@ -1622,63 +1757,69 @@ class SchedulerServer : virtual public ::IceProxy::Ice::Object
 {
 public:
 
-    void submitBatch(const ::Scheduler::Batch& __p_batch)
+    void submitBatch(const ::scheduler::Batch& __p_batch)
     {
         submitBatch(__p_batch, 0);
     }
-    void submitBatch(const ::Scheduler::Batch& __p_batch, const ::Ice::Context& __ctx)
+    void submitBatch(const ::scheduler::Batch& __p_batch, const ::Ice::Context& __ctx)
     {
         submitBatch(__p_batch, &__ctx);
     }
 #ifdef ICE_CPP11
     ::Ice::AsyncResultPtr
-    begin_submitBatch(const ::Scheduler::Batch& __p_batch, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_submitBatch(const ::scheduler::Batch& __p_batch, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
-        return begin_submitBatch(__p_batch, 0, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent));
+        return __begin_submitBatch(__p_batch, 0, __response, __exception, __sent);
     }
     ::Ice::AsyncResultPtr
-    begin_submitBatch(const ::Scheduler::Batch& __p_batch, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    begin_submitBatch(const ::scheduler::Batch& __p_batch, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
     {
         return begin_submitBatch(__p_batch, 0, ::Ice::newCallback(__completed, __sent), 0);
     }
     ::Ice::AsyncResultPtr
-    begin_submitBatch(const ::Scheduler::Batch& __p_batch, const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_submitBatch(const ::scheduler::Batch& __p_batch, const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
-        return begin_submitBatch(__p_batch, &__ctx, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent), 0);
+        return __begin_submitBatch(__p_batch, &__ctx, __response, __exception, __sent);
     }
     ::Ice::AsyncResultPtr
-    begin_submitBatch(const ::Scheduler::Batch& __p_batch, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    begin_submitBatch(const ::scheduler::Batch& __p_batch, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
     {
         return begin_submitBatch(__p_batch, &__ctx, ::Ice::newCallback(__completed, __sent));
     }
+    
+private:
+
+    ::Ice::AsyncResultPtr __begin_submitBatch(const ::scheduler::Batch& __p_batch, const ::Ice::Context* __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception, const ::IceInternal::Function<void (bool)>& __sent);
+    
+public:
 #endif
 
-    ::Ice::AsyncResultPtr begin_submitBatch(const ::Scheduler::Batch& __p_batch)
+    ::Ice::AsyncResultPtr begin_submitBatch(const ::scheduler::Batch& __p_batch)
     {
         return begin_submitBatch(__p_batch, 0, ::IceInternal::__dummyCallback, 0);
     }
 
-    ::Ice::AsyncResultPtr begin_submitBatch(const ::Scheduler::Batch& __p_batch, const ::Ice::Context& __ctx)
+    ::Ice::AsyncResultPtr begin_submitBatch(const ::scheduler::Batch& __p_batch, const ::Ice::Context& __ctx)
     {
         return begin_submitBatch(__p_batch, &__ctx, ::IceInternal::__dummyCallback, 0);
     }
 
-    ::Ice::AsyncResultPtr begin_submitBatch(const ::Scheduler::Batch& __p_batch, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_submitBatch(const ::scheduler::Batch& __p_batch, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_submitBatch(__p_batch, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_submitBatch(const ::Scheduler::Batch& __p_batch, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_submitBatch(const ::scheduler::Batch& __p_batch, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_submitBatch(__p_batch, &__ctx, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_submitBatch(const ::Scheduler::Batch& __p_batch, const ::Scheduler::Callback_SchedulerServer_submitBatchPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_submitBatch(const ::scheduler::Batch& __p_batch, const ::scheduler::Callback_SchedulerServer_submitBatchPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_submitBatch(__p_batch, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_submitBatch(const ::Scheduler::Batch& __p_batch, const ::Ice::Context& __ctx, const ::Scheduler::Callback_SchedulerServer_submitBatchPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_submitBatch(const ::scheduler::Batch& __p_batch, const ::Ice::Context& __ctx, const ::scheduler::Callback_SchedulerServer_submitBatchPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_submitBatch(__p_batch, &__ctx, __del, __cookie);
     }
@@ -1687,68 +1828,74 @@ public:
     
 private:
 
-    void submitBatch(const ::Scheduler::Batch&, const ::Ice::Context*);
-    ::Ice::AsyncResultPtr begin_submitBatch(const ::Scheduler::Batch&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
+    void submitBatch(const ::scheduler::Batch&, const ::Ice::Context*);
+    ::Ice::AsyncResultPtr begin_submitBatch(const ::scheduler::Batch&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
     
 public:
 
-    void startJob(const ::std::string& __p_id)
+    void startJob(const ::scheduler::JobId& __p_id)
     {
         startJob(__p_id, 0);
     }
-    void startJob(const ::std::string& __p_id, const ::Ice::Context& __ctx)
+    void startJob(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx)
     {
         startJob(__p_id, &__ctx);
     }
 #ifdef ICE_CPP11
     ::Ice::AsyncResultPtr
-    begin_startJob(const ::std::string& __p_id, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_startJob(const ::scheduler::JobId& __p_id, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
-        return begin_startJob(__p_id, 0, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent));
+        return __begin_startJob(__p_id, 0, __response, __exception, __sent);
     }
     ::Ice::AsyncResultPtr
-    begin_startJob(const ::std::string& __p_id, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    begin_startJob(const ::scheduler::JobId& __p_id, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
     {
         return begin_startJob(__p_id, 0, ::Ice::newCallback(__completed, __sent), 0);
     }
     ::Ice::AsyncResultPtr
-    begin_startJob(const ::std::string& __p_id, const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_startJob(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
-        return begin_startJob(__p_id, &__ctx, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent), 0);
+        return __begin_startJob(__p_id, &__ctx, __response, __exception, __sent);
     }
     ::Ice::AsyncResultPtr
-    begin_startJob(const ::std::string& __p_id, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    begin_startJob(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
     {
         return begin_startJob(__p_id, &__ctx, ::Ice::newCallback(__completed, __sent));
     }
+    
+private:
+
+    ::Ice::AsyncResultPtr __begin_startJob(const ::scheduler::JobId& __p_id, const ::Ice::Context* __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception, const ::IceInternal::Function<void (bool)>& __sent);
+    
+public:
 #endif
 
-    ::Ice::AsyncResultPtr begin_startJob(const ::std::string& __p_id)
+    ::Ice::AsyncResultPtr begin_startJob(const ::scheduler::JobId& __p_id)
     {
         return begin_startJob(__p_id, 0, ::IceInternal::__dummyCallback, 0);
     }
 
-    ::Ice::AsyncResultPtr begin_startJob(const ::std::string& __p_id, const ::Ice::Context& __ctx)
+    ::Ice::AsyncResultPtr begin_startJob(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx)
     {
         return begin_startJob(__p_id, &__ctx, ::IceInternal::__dummyCallback, 0);
     }
 
-    ::Ice::AsyncResultPtr begin_startJob(const ::std::string& __p_id, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_startJob(const ::scheduler::JobId& __p_id, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_startJob(__p_id, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_startJob(const ::std::string& __p_id, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_startJob(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_startJob(__p_id, &__ctx, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_startJob(const ::std::string& __p_id, const ::Scheduler::Callback_SchedulerServer_startJobPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_startJob(const ::scheduler::JobId& __p_id, const ::scheduler::Callback_SchedulerServer_startJobPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_startJob(__p_id, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_startJob(const ::std::string& __p_id, const ::Ice::Context& __ctx, const ::Scheduler::Callback_SchedulerServer_startJobPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_startJob(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx, const ::scheduler::Callback_SchedulerServer_startJobPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_startJob(__p_id, &__ctx, __del, __cookie);
     }
@@ -1757,68 +1904,68 @@ public:
     
 private:
 
-    void startJob(const ::std::string&, const ::Ice::Context*);
-    ::Ice::AsyncResultPtr begin_startJob(const ::std::string&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
+    void startJob(const ::scheduler::JobId&, const ::Ice::Context*);
+    ::Ice::AsyncResultPtr begin_startJob(const ::scheduler::JobId&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
     
 public:
 
-    void stopJob(const ::std::string& __p_id)
+    void stopJob(const ::scheduler::JobId& __p_id)
     {
         stopJob(__p_id, 0);
     }
-    void stopJob(const ::std::string& __p_id, const ::Ice::Context& __ctx)
+    void stopJob(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx)
     {
         stopJob(__p_id, &__ctx);
     }
 #ifdef ICE_CPP11
     ::Ice::AsyncResultPtr
-    begin_stopJob(const ::std::string& __p_id, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_stopJob(const ::scheduler::JobId& __p_id, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
         return begin_stopJob(__p_id, 0, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent));
     }
     ::Ice::AsyncResultPtr
-    begin_stopJob(const ::std::string& __p_id, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    begin_stopJob(const ::scheduler::JobId& __p_id, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
     {
         return begin_stopJob(__p_id, 0, ::Ice::newCallback(__completed, __sent), 0);
     }
     ::Ice::AsyncResultPtr
-    begin_stopJob(const ::std::string& __p_id, const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_stopJob(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
         return begin_stopJob(__p_id, &__ctx, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent), 0);
     }
     ::Ice::AsyncResultPtr
-    begin_stopJob(const ::std::string& __p_id, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    begin_stopJob(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
     {
         return begin_stopJob(__p_id, &__ctx, ::Ice::newCallback(__completed, __sent));
     }
 #endif
 
-    ::Ice::AsyncResultPtr begin_stopJob(const ::std::string& __p_id)
+    ::Ice::AsyncResultPtr begin_stopJob(const ::scheduler::JobId& __p_id)
     {
         return begin_stopJob(__p_id, 0, ::IceInternal::__dummyCallback, 0);
     }
 
-    ::Ice::AsyncResultPtr begin_stopJob(const ::std::string& __p_id, const ::Ice::Context& __ctx)
+    ::Ice::AsyncResultPtr begin_stopJob(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx)
     {
         return begin_stopJob(__p_id, &__ctx, ::IceInternal::__dummyCallback, 0);
     }
 
-    ::Ice::AsyncResultPtr begin_stopJob(const ::std::string& __p_id, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_stopJob(const ::scheduler::JobId& __p_id, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_stopJob(__p_id, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_stopJob(const ::std::string& __p_id, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_stopJob(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_stopJob(__p_id, &__ctx, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_stopJob(const ::std::string& __p_id, const ::Scheduler::Callback_SchedulerServer_stopJobPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_stopJob(const ::scheduler::JobId& __p_id, const ::scheduler::Callback_SchedulerServer_stopJobPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_stopJob(__p_id, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_stopJob(const ::std::string& __p_id, const ::Ice::Context& __ctx, const ::Scheduler::Callback_SchedulerServer_stopJobPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_stopJob(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx, const ::scheduler::Callback_SchedulerServer_stopJobPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_stopJob(__p_id, &__ctx, __del, __cookie);
     }
@@ -1827,68 +1974,68 @@ public:
     
 private:
 
-    void stopJob(const ::std::string&, const ::Ice::Context*);
-    ::Ice::AsyncResultPtr begin_stopJob(const ::std::string&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
+    void stopJob(const ::scheduler::JobId&, const ::Ice::Context*);
+    ::Ice::AsyncResultPtr begin_stopJob(const ::scheduler::JobId&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
     
 public:
 
-    void invalidate(const ::std::string& __p_id)
+    void invalidate(const ::scheduler::JobId& __p_id)
     {
         invalidate(__p_id, 0);
     }
-    void invalidate(const ::std::string& __p_id, const ::Ice::Context& __ctx)
+    void invalidate(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx)
     {
         invalidate(__p_id, &__ctx);
     }
 #ifdef ICE_CPP11
     ::Ice::AsyncResultPtr
-    begin_invalidate(const ::std::string& __p_id, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_invalidate(const ::scheduler::JobId& __p_id, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
         return begin_invalidate(__p_id, 0, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent));
     }
     ::Ice::AsyncResultPtr
-    begin_invalidate(const ::std::string& __p_id, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    begin_invalidate(const ::scheduler::JobId& __p_id, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
     {
         return begin_invalidate(__p_id, 0, ::Ice::newCallback(__completed, __sent), 0);
     }
     ::Ice::AsyncResultPtr
-    begin_invalidate(const ::std::string& __p_id, const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_invalidate(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
         return begin_invalidate(__p_id, &__ctx, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent), 0);
     }
     ::Ice::AsyncResultPtr
-    begin_invalidate(const ::std::string& __p_id, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    begin_invalidate(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
     {
         return begin_invalidate(__p_id, &__ctx, ::Ice::newCallback(__completed, __sent));
     }
 #endif
 
-    ::Ice::AsyncResultPtr begin_invalidate(const ::std::string& __p_id)
+    ::Ice::AsyncResultPtr begin_invalidate(const ::scheduler::JobId& __p_id)
     {
         return begin_invalidate(__p_id, 0, ::IceInternal::__dummyCallback, 0);
     }
 
-    ::Ice::AsyncResultPtr begin_invalidate(const ::std::string& __p_id, const ::Ice::Context& __ctx)
+    ::Ice::AsyncResultPtr begin_invalidate(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx)
     {
         return begin_invalidate(__p_id, &__ctx, ::IceInternal::__dummyCallback, 0);
     }
 
-    ::Ice::AsyncResultPtr begin_invalidate(const ::std::string& __p_id, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_invalidate(const ::scheduler::JobId& __p_id, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_invalidate(__p_id, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_invalidate(const ::std::string& __p_id, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_invalidate(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_invalidate(__p_id, &__ctx, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_invalidate(const ::std::string& __p_id, const ::Scheduler::Callback_SchedulerServer_invalidatePtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_invalidate(const ::scheduler::JobId& __p_id, const ::scheduler::Callback_SchedulerServer_invalidatePtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_invalidate(__p_id, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_invalidate(const ::std::string& __p_id, const ::Ice::Context& __ctx, const ::Scheduler::Callback_SchedulerServer_invalidatePtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_invalidate(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx, const ::scheduler::Callback_SchedulerServer_invalidatePtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_invalidate(__p_id, &__ctx, __del, __cookie);
     }
@@ -1897,8 +2044,8 @@ public:
     
 private:
 
-    void invalidate(const ::std::string&, const ::Ice::Context*);
-    ::Ice::AsyncResultPtr begin_invalidate(const ::std::string&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
+    void invalidate(const ::scheduler::JobId&, const ::Ice::Context*);
+    ::Ice::AsyncResultPtr begin_invalidate(const ::scheduler::JobId&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
     
 public:
 
@@ -1953,12 +2100,12 @@ public:
         return begin_reset(&__ctx, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_reset(const ::Scheduler::Callback_SchedulerServer_resetPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_reset(const ::scheduler::Callback_SchedulerServer_resetPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_reset(0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_reset(const ::Ice::Context& __ctx, const ::Scheduler::Callback_SchedulerServer_resetPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_reset(const ::Ice::Context& __ctx, const ::scheduler::Callback_SchedulerServer_resetPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_reset(&__ctx, __del, __cookie);
     }
@@ -2029,12 +2176,12 @@ public:
         return begin_dumpStatus(&__ctx, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_dumpStatus(const ::Scheduler::Callback_SchedulerServer_dumpStatusPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_dumpStatus(const ::scheduler::Callback_SchedulerServer_dumpStatusPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_dumpStatus(0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_dumpStatus(const ::Ice::Context& __ctx, const ::Scheduler::Callback_SchedulerServer_dumpStatusPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_dumpStatus(const ::Ice::Context& __ctx, const ::scheduler::Callback_SchedulerServer_dumpStatusPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_dumpStatus(&__ctx, __del, __cookie);
     }
@@ -2048,17 +2195,17 @@ private:
     
 public:
 
-    ::Scheduler::JobSeq getJobs()
+    ::scheduler::JobSeq getJobs()
     {
         return getJobs(0);
     }
-    ::Scheduler::JobSeq getJobs(const ::Ice::Context& __ctx)
+    ::scheduler::JobSeq getJobs(const ::Ice::Context& __ctx)
     {
         return getJobs(&__ctx);
     }
 #ifdef ICE_CPP11
     ::Ice::AsyncResultPtr
-    begin_getJobs(const ::IceInternal::Function<void (const ::Scheduler::JobSeq&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_getJobs(const ::IceInternal::Function<void (const ::scheduler::JobSeq&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
         return __begin_getJobs(0, __response, __exception, __sent);
     }
@@ -2068,7 +2215,7 @@ public:
         return begin_getJobs(0, ::Ice::newCallback(__completed, __sent), 0);
     }
     ::Ice::AsyncResultPtr
-    begin_getJobs(const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Scheduler::JobSeq&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_getJobs(const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::scheduler::JobSeq&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
         return __begin_getJobs(&__ctx, __response, __exception, __sent);
     }
@@ -2080,7 +2227,7 @@ public:
     
 private:
 
-    ::Ice::AsyncResultPtr __begin_getJobs(const ::Ice::Context* __ctx, const ::IceInternal::Function<void (const ::Scheduler::JobSeq&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception, const ::IceInternal::Function<void (bool)>& __sent);
+    ::Ice::AsyncResultPtr __begin_getJobs(const ::Ice::Context* __ctx, const ::IceInternal::Function<void (const ::scheduler::JobSeq&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception, const ::IceInternal::Function<void (bool)>& __sent);
     
 public:
 #endif
@@ -2105,234 +2252,234 @@ public:
         return begin_getJobs(&__ctx, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_getJobs(const ::Scheduler::Callback_SchedulerServer_getJobsPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_getJobs(const ::scheduler::Callback_SchedulerServer_getJobsPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_getJobs(0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_getJobs(const ::Ice::Context& __ctx, const ::Scheduler::Callback_SchedulerServer_getJobsPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_getJobs(const ::Ice::Context& __ctx, const ::scheduler::Callback_SchedulerServer_getJobsPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_getJobs(&__ctx, __del, __cookie);
     }
 
-    ::Scheduler::JobSeq end_getJobs(const ::Ice::AsyncResultPtr&);
+    ::scheduler::JobSeq end_getJobs(const ::Ice::AsyncResultPtr&);
     
 private:
 
-    ::Scheduler::JobSeq getJobs(const ::Ice::Context*);
+    ::scheduler::JobSeq getJobs(const ::Ice::Context*);
     ::Ice::AsyncResultPtr begin_getJobs(const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
     
 public:
 
-    ::Scheduler::JobSeq getStartableJob(const ::Scheduler::WorkerId& __p_worker)
+    ::scheduler::JobSeq getStartableJob(const ::scheduler::WorkerId& __p_worker)
     {
         return getStartableJob(__p_worker, 0);
     }
-    ::Scheduler::JobSeq getStartableJob(const ::Scheduler::WorkerId& __p_worker, const ::Ice::Context& __ctx)
+    ::scheduler::JobSeq getStartableJob(const ::scheduler::WorkerId& __p_worker, const ::Ice::Context& __ctx)
     {
         return getStartableJob(__p_worker, &__ctx);
     }
 #ifdef ICE_CPP11
     ::Ice::AsyncResultPtr
-    begin_getStartableJob(const ::Scheduler::WorkerId& __p_worker, const ::IceInternal::Function<void (const ::Scheduler::JobSeq&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_getStartableJob(const ::scheduler::WorkerId& __p_worker, const ::IceInternal::Function<void (const ::scheduler::JobSeq&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
         return __begin_getStartableJob(__p_worker, 0, __response, __exception, __sent);
     }
     ::Ice::AsyncResultPtr
-    begin_getStartableJob(const ::Scheduler::WorkerId& __p_worker, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    begin_getStartableJob(const ::scheduler::WorkerId& __p_worker, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
     {
         return begin_getStartableJob(__p_worker, 0, ::Ice::newCallback(__completed, __sent), 0);
     }
     ::Ice::AsyncResultPtr
-    begin_getStartableJob(const ::Scheduler::WorkerId& __p_worker, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Scheduler::JobSeq&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_getStartableJob(const ::scheduler::WorkerId& __p_worker, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::scheduler::JobSeq&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
         return __begin_getStartableJob(__p_worker, &__ctx, __response, __exception, __sent);
     }
     ::Ice::AsyncResultPtr
-    begin_getStartableJob(const ::Scheduler::WorkerId& __p_worker, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    begin_getStartableJob(const ::scheduler::WorkerId& __p_worker, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
     {
         return begin_getStartableJob(__p_worker, &__ctx, ::Ice::newCallback(__completed, __sent));
     }
     
 private:
 
-    ::Ice::AsyncResultPtr __begin_getStartableJob(const ::Scheduler::WorkerId& __p_worker, const ::Ice::Context* __ctx, const ::IceInternal::Function<void (const ::Scheduler::JobSeq&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception, const ::IceInternal::Function<void (bool)>& __sent);
+    ::Ice::AsyncResultPtr __begin_getStartableJob(const ::scheduler::WorkerId& __p_worker, const ::Ice::Context* __ctx, const ::IceInternal::Function<void (const ::scheduler::JobSeq&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception, const ::IceInternal::Function<void (bool)>& __sent);
     
 public:
 #endif
 
-    ::Ice::AsyncResultPtr begin_getStartableJob(const ::Scheduler::WorkerId& __p_worker)
+    ::Ice::AsyncResultPtr begin_getStartableJob(const ::scheduler::WorkerId& __p_worker)
     {
         return begin_getStartableJob(__p_worker, 0, ::IceInternal::__dummyCallback, 0);
     }
 
-    ::Ice::AsyncResultPtr begin_getStartableJob(const ::Scheduler::WorkerId& __p_worker, const ::Ice::Context& __ctx)
+    ::Ice::AsyncResultPtr begin_getStartableJob(const ::scheduler::WorkerId& __p_worker, const ::Ice::Context& __ctx)
     {
         return begin_getStartableJob(__p_worker, &__ctx, ::IceInternal::__dummyCallback, 0);
     }
 
-    ::Ice::AsyncResultPtr begin_getStartableJob(const ::Scheduler::WorkerId& __p_worker, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_getStartableJob(const ::scheduler::WorkerId& __p_worker, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_getStartableJob(__p_worker, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_getStartableJob(const ::Scheduler::WorkerId& __p_worker, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_getStartableJob(const ::scheduler::WorkerId& __p_worker, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_getStartableJob(__p_worker, &__ctx, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_getStartableJob(const ::Scheduler::WorkerId& __p_worker, const ::Scheduler::Callback_SchedulerServer_getStartableJobPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_getStartableJob(const ::scheduler::WorkerId& __p_worker, const ::scheduler::Callback_SchedulerServer_getStartableJobPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_getStartableJob(__p_worker, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_getStartableJob(const ::Scheduler::WorkerId& __p_worker, const ::Ice::Context& __ctx, const ::Scheduler::Callback_SchedulerServer_getStartableJobPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_getStartableJob(const ::scheduler::WorkerId& __p_worker, const ::Ice::Context& __ctx, const ::scheduler::Callback_SchedulerServer_getStartableJobPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_getStartableJob(__p_worker, &__ctx, __del, __cookie);
     }
 
-    ::Scheduler::JobSeq end_getStartableJob(const ::Ice::AsyncResultPtr&);
+    ::scheduler::JobSeq end_getStartableJob(const ::Ice::AsyncResultPtr&);
     
 private:
 
-    ::Scheduler::JobSeq getStartableJob(const ::Scheduler::WorkerId&, const ::Ice::Context*);
-    ::Ice::AsyncResultPtr begin_getStartableJob(const ::Scheduler::WorkerId&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
+    ::scheduler::JobSeq getStartableJob(const ::scheduler::WorkerId&, const ::Ice::Context*);
+    ::Ice::AsyncResultPtr begin_getStartableJob(const ::scheduler::WorkerId&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
     
 public:
 
-    ::Scheduler::Job getJob(const ::std::string& __p_id)
+    ::scheduler::Job getJob(const ::scheduler::JobId& __p_id)
     {
         return getJob(__p_id, 0);
     }
-    ::Scheduler::Job getJob(const ::std::string& __p_id, const ::Ice::Context& __ctx)
+    ::scheduler::Job getJob(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx)
     {
         return getJob(__p_id, &__ctx);
     }
 #ifdef ICE_CPP11
     ::Ice::AsyncResultPtr
-    begin_getJob(const ::std::string& __p_id, const ::IceInternal::Function<void (const ::Scheduler::Job&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_getJob(const ::scheduler::JobId& __p_id, const ::IceInternal::Function<void (const ::scheduler::Job&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
         return __begin_getJob(__p_id, 0, __response, __exception, __sent);
     }
     ::Ice::AsyncResultPtr
-    begin_getJob(const ::std::string& __p_id, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    begin_getJob(const ::scheduler::JobId& __p_id, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
     {
         return begin_getJob(__p_id, 0, ::Ice::newCallback(__completed, __sent), 0);
     }
     ::Ice::AsyncResultPtr
-    begin_getJob(const ::std::string& __p_id, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Scheduler::Job&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_getJob(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::scheduler::Job&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
         return __begin_getJob(__p_id, &__ctx, __response, __exception, __sent);
     }
     ::Ice::AsyncResultPtr
-    begin_getJob(const ::std::string& __p_id, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    begin_getJob(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
     {
         return begin_getJob(__p_id, &__ctx, ::Ice::newCallback(__completed, __sent));
     }
     
 private:
 
-    ::Ice::AsyncResultPtr __begin_getJob(const ::std::string& __p_id, const ::Ice::Context* __ctx, const ::IceInternal::Function<void (const ::Scheduler::Job&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception, const ::IceInternal::Function<void (bool)>& __sent);
+    ::Ice::AsyncResultPtr __begin_getJob(const ::scheduler::JobId& __p_id, const ::Ice::Context* __ctx, const ::IceInternal::Function<void (const ::scheduler::Job&)>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception, const ::IceInternal::Function<void (bool)>& __sent);
     
 public:
 #endif
 
-    ::Ice::AsyncResultPtr begin_getJob(const ::std::string& __p_id)
+    ::Ice::AsyncResultPtr begin_getJob(const ::scheduler::JobId& __p_id)
     {
         return begin_getJob(__p_id, 0, ::IceInternal::__dummyCallback, 0);
     }
 
-    ::Ice::AsyncResultPtr begin_getJob(const ::std::string& __p_id, const ::Ice::Context& __ctx)
+    ::Ice::AsyncResultPtr begin_getJob(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx)
     {
         return begin_getJob(__p_id, &__ctx, ::IceInternal::__dummyCallback, 0);
     }
 
-    ::Ice::AsyncResultPtr begin_getJob(const ::std::string& __p_id, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_getJob(const ::scheduler::JobId& __p_id, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_getJob(__p_id, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_getJob(const ::std::string& __p_id, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_getJob(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_getJob(__p_id, &__ctx, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_getJob(const ::std::string& __p_id, const ::Scheduler::Callback_SchedulerServer_getJobPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_getJob(const ::scheduler::JobId& __p_id, const ::scheduler::Callback_SchedulerServer_getJobPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_getJob(__p_id, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_getJob(const ::std::string& __p_id, const ::Ice::Context& __ctx, const ::Scheduler::Callback_SchedulerServer_getJobPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_getJob(const ::scheduler::JobId& __p_id, const ::Ice::Context& __ctx, const ::scheduler::Callback_SchedulerServer_getJobPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_getJob(__p_id, &__ctx, __del, __cookie);
     }
 
-    ::Scheduler::Job end_getJob(const ::Ice::AsyncResultPtr&);
+    ::scheduler::Job end_getJob(const ::Ice::AsyncResultPtr&);
     
 private:
 
-    ::Scheduler::Job getJob(const ::std::string&, const ::Ice::Context*);
-    ::Ice::AsyncResultPtr begin_getJob(const ::std::string&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
+    ::scheduler::Job getJob(const ::scheduler::JobId&, const ::Ice::Context*);
+    ::Ice::AsyncResultPtr begin_getJob(const ::scheduler::JobId&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
     
 public:
 
-    void addListener(const ::Scheduler::SchedulerServerListenerPrx& __p_listener)
+    void addListener(const ::scheduler::SchedulerServerListenerPrx& __p_listener)
     {
         addListener(__p_listener, 0);
     }
-    void addListener(const ::Scheduler::SchedulerServerListenerPrx& __p_listener, const ::Ice::Context& __ctx)
+    void addListener(const ::scheduler::SchedulerServerListenerPrx& __p_listener, const ::Ice::Context& __ctx)
     {
         addListener(__p_listener, &__ctx);
     }
 #ifdef ICE_CPP11
     ::Ice::AsyncResultPtr
-    begin_addListener(const ::Scheduler::SchedulerServerListenerPrx& __p_listener, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_addListener(const ::scheduler::SchedulerServerListenerPrx& __p_listener, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
         return begin_addListener(__p_listener, 0, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent));
     }
     ::Ice::AsyncResultPtr
-    begin_addListener(const ::Scheduler::SchedulerServerListenerPrx& __p_listener, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    begin_addListener(const ::scheduler::SchedulerServerListenerPrx& __p_listener, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
     {
         return begin_addListener(__p_listener, 0, ::Ice::newCallback(__completed, __sent), 0);
     }
     ::Ice::AsyncResultPtr
-    begin_addListener(const ::Scheduler::SchedulerServerListenerPrx& __p_listener, const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_addListener(const ::scheduler::SchedulerServerListenerPrx& __p_listener, const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
         return begin_addListener(__p_listener, &__ctx, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent), 0);
     }
     ::Ice::AsyncResultPtr
-    begin_addListener(const ::Scheduler::SchedulerServerListenerPrx& __p_listener, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    begin_addListener(const ::scheduler::SchedulerServerListenerPrx& __p_listener, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
     {
         return begin_addListener(__p_listener, &__ctx, ::Ice::newCallback(__completed, __sent));
     }
 #endif
 
-    ::Ice::AsyncResultPtr begin_addListener(const ::Scheduler::SchedulerServerListenerPrx& __p_listener)
+    ::Ice::AsyncResultPtr begin_addListener(const ::scheduler::SchedulerServerListenerPrx& __p_listener)
     {
         return begin_addListener(__p_listener, 0, ::IceInternal::__dummyCallback, 0);
     }
 
-    ::Ice::AsyncResultPtr begin_addListener(const ::Scheduler::SchedulerServerListenerPrx& __p_listener, const ::Ice::Context& __ctx)
+    ::Ice::AsyncResultPtr begin_addListener(const ::scheduler::SchedulerServerListenerPrx& __p_listener, const ::Ice::Context& __ctx)
     {
         return begin_addListener(__p_listener, &__ctx, ::IceInternal::__dummyCallback, 0);
     }
 
-    ::Ice::AsyncResultPtr begin_addListener(const ::Scheduler::SchedulerServerListenerPrx& __p_listener, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_addListener(const ::scheduler::SchedulerServerListenerPrx& __p_listener, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_addListener(__p_listener, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_addListener(const ::Scheduler::SchedulerServerListenerPrx& __p_listener, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_addListener(const ::scheduler::SchedulerServerListenerPrx& __p_listener, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_addListener(__p_listener, &__ctx, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_addListener(const ::Scheduler::SchedulerServerListenerPrx& __p_listener, const ::Scheduler::Callback_SchedulerServer_addListenerPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_addListener(const ::scheduler::SchedulerServerListenerPrx& __p_listener, const ::scheduler::Callback_SchedulerServer_addListenerPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_addListener(__p_listener, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_addListener(const ::Scheduler::SchedulerServerListenerPrx& __p_listener, const ::Ice::Context& __ctx, const ::Scheduler::Callback_SchedulerServer_addListenerPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_addListener(const ::scheduler::SchedulerServerListenerPrx& __p_listener, const ::Ice::Context& __ctx, const ::scheduler::Callback_SchedulerServer_addListenerPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_addListener(__p_listener, &__ctx, __del, __cookie);
     }
@@ -2341,8 +2488,8 @@ public:
     
 private:
 
-    void addListener(const ::Scheduler::SchedulerServerListenerPrx&, const ::Ice::Context*);
-    ::Ice::AsyncResultPtr begin_addListener(const ::Scheduler::SchedulerServerListenerPrx&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
+    void addListener(const ::scheduler::SchedulerServerListenerPrx&, const ::Ice::Context*);
+    ::Ice::AsyncResultPtr begin_addListener(const ::scheduler::SchedulerServerListenerPrx&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
     
 public:
 
@@ -2397,12 +2544,12 @@ public:
         return begin_addListenerWithIdent(__p_ident, &__ctx, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_addListenerWithIdent(const ::Ice::Identity& __p_ident, const ::Scheduler::Callback_SchedulerServer_addListenerWithIdentPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_addListenerWithIdent(const ::Ice::Identity& __p_ident, const ::scheduler::Callback_SchedulerServer_addListenerWithIdentPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_addListenerWithIdent(__p_ident, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_addListenerWithIdent(const ::Ice::Identity& __p_ident, const ::Ice::Context& __ctx, const ::Scheduler::Callback_SchedulerServer_addListenerWithIdentPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_addListenerWithIdent(const ::Ice::Identity& __p_ident, const ::Ice::Context& __ctx, const ::scheduler::Callback_SchedulerServer_addListenerWithIdentPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_addListenerWithIdent(__p_ident, &__ctx, __del, __cookie);
     }
@@ -2416,73 +2563,73 @@ private:
     
 public:
 
-    void onWorkerStates(const ::Scheduler::JobWorkerStateSeq& __p_xs)
+    void onWorkerUpdate(const ::scheduler::WorkerUpdate& __p_x)
     {
-        onWorkerStates(__p_xs, 0);
+        onWorkerUpdate(__p_x, 0);
     }
-    void onWorkerStates(const ::Scheduler::JobWorkerStateSeq& __p_xs, const ::Ice::Context& __ctx)
+    void onWorkerUpdate(const ::scheduler::WorkerUpdate& __p_x, const ::Ice::Context& __ctx)
     {
-        onWorkerStates(__p_xs, &__ctx);
+        onWorkerUpdate(__p_x, &__ctx);
     }
 #ifdef ICE_CPP11
     ::Ice::AsyncResultPtr
-    begin_onWorkerStates(const ::Scheduler::JobWorkerStateSeq& __p_xs, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_onWorkerUpdate(const ::scheduler::WorkerUpdate& __p_x, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
-        return begin_onWorkerStates(__p_xs, 0, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent));
+        return begin_onWorkerUpdate(__p_x, 0, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent));
     }
     ::Ice::AsyncResultPtr
-    begin_onWorkerStates(const ::Scheduler::JobWorkerStateSeq& __p_xs, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    begin_onWorkerUpdate(const ::scheduler::WorkerUpdate& __p_x, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
     {
-        return begin_onWorkerStates(__p_xs, 0, ::Ice::newCallback(__completed, __sent), 0);
+        return begin_onWorkerUpdate(__p_x, 0, ::Ice::newCallback(__completed, __sent), 0);
     }
     ::Ice::AsyncResultPtr
-    begin_onWorkerStates(const ::Scheduler::JobWorkerStateSeq& __p_xs, const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
+    begin_onWorkerUpdate(const ::scheduler::WorkerUpdate& __p_x, const ::Ice::Context& __ctx, const ::IceInternal::Function<void ()>& __response, const ::IceInternal::Function<void (const ::Ice::Exception&)>& __exception = ::IceInternal::Function<void (const ::Ice::Exception&)>(), const ::IceInternal::Function<void (bool)>& __sent = ::IceInternal::Function<void (bool)>())
     {
-        return begin_onWorkerStates(__p_xs, &__ctx, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent), 0);
+        return begin_onWorkerUpdate(__p_x, &__ctx, new ::IceInternal::Cpp11FnOnewayCallbackNC(__response, __exception, __sent), 0);
     }
     ::Ice::AsyncResultPtr
-    begin_onWorkerStates(const ::Scheduler::JobWorkerStateSeq& __p_xs, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
+    begin_onWorkerUpdate(const ::scheduler::WorkerUpdate& __p_x, const ::Ice::Context& __ctx, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __completed, const ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>& __sent = ::IceInternal::Function<void (const ::Ice::AsyncResultPtr&)>())
     {
-        return begin_onWorkerStates(__p_xs, &__ctx, ::Ice::newCallback(__completed, __sent));
+        return begin_onWorkerUpdate(__p_x, &__ctx, ::Ice::newCallback(__completed, __sent));
     }
 #endif
 
-    ::Ice::AsyncResultPtr begin_onWorkerStates(const ::Scheduler::JobWorkerStateSeq& __p_xs)
+    ::Ice::AsyncResultPtr begin_onWorkerUpdate(const ::scheduler::WorkerUpdate& __p_x)
     {
-        return begin_onWorkerStates(__p_xs, 0, ::IceInternal::__dummyCallback, 0);
+        return begin_onWorkerUpdate(__p_x, 0, ::IceInternal::__dummyCallback, 0);
     }
 
-    ::Ice::AsyncResultPtr begin_onWorkerStates(const ::Scheduler::JobWorkerStateSeq& __p_xs, const ::Ice::Context& __ctx)
+    ::Ice::AsyncResultPtr begin_onWorkerUpdate(const ::scheduler::WorkerUpdate& __p_x, const ::Ice::Context& __ctx)
     {
-        return begin_onWorkerStates(__p_xs, &__ctx, ::IceInternal::__dummyCallback, 0);
+        return begin_onWorkerUpdate(__p_x, &__ctx, ::IceInternal::__dummyCallback, 0);
     }
 
-    ::Ice::AsyncResultPtr begin_onWorkerStates(const ::Scheduler::JobWorkerStateSeq& __p_xs, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_onWorkerUpdate(const ::scheduler::WorkerUpdate& __p_x, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
-        return begin_onWorkerStates(__p_xs, 0, __del, __cookie);
+        return begin_onWorkerUpdate(__p_x, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_onWorkerStates(const ::Scheduler::JobWorkerStateSeq& __p_xs, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_onWorkerUpdate(const ::scheduler::WorkerUpdate& __p_x, const ::Ice::Context& __ctx, const ::Ice::CallbackPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
-        return begin_onWorkerStates(__p_xs, &__ctx, __del, __cookie);
+        return begin_onWorkerUpdate(__p_x, &__ctx, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_onWorkerStates(const ::Scheduler::JobWorkerStateSeq& __p_xs, const ::Scheduler::Callback_SchedulerServer_onWorkerStatesPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_onWorkerUpdate(const ::scheduler::WorkerUpdate& __p_x, const ::scheduler::Callback_SchedulerServer_onWorkerUpdatePtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
-        return begin_onWorkerStates(__p_xs, 0, __del, __cookie);
+        return begin_onWorkerUpdate(__p_x, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_onWorkerStates(const ::Scheduler::JobWorkerStateSeq& __p_xs, const ::Ice::Context& __ctx, const ::Scheduler::Callback_SchedulerServer_onWorkerStatesPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_onWorkerUpdate(const ::scheduler::WorkerUpdate& __p_x, const ::Ice::Context& __ctx, const ::scheduler::Callback_SchedulerServer_onWorkerUpdatePtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
-        return begin_onWorkerStates(__p_xs, &__ctx, __del, __cookie);
+        return begin_onWorkerUpdate(__p_x, &__ctx, __del, __cookie);
     }
 
-    void end_onWorkerStates(const ::Ice::AsyncResultPtr&);
+    void end_onWorkerUpdate(const ::Ice::AsyncResultPtr&);
     
 private:
 
-    void onWorkerStates(const ::Scheduler::JobWorkerStateSeq&, const ::Ice::Context*);
-    ::Ice::AsyncResultPtr begin_onWorkerStates(const ::Scheduler::JobWorkerStateSeq&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
+    void onWorkerUpdate(const ::scheduler::WorkerUpdate&, const ::Ice::Context*);
+    ::Ice::AsyncResultPtr begin_onWorkerUpdate(const ::scheduler::WorkerUpdate&, const ::Ice::Context*, const ::IceInternal::CallbackBasePtr&, const ::Ice::LocalObjectPtr& __cookie = 0);
     
 public:
 
@@ -2537,12 +2684,12 @@ public:
         return begin_imageReady(__p_imgId, &__ctx, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_imageReady(const ::std::string& __p_imgId, const ::Scheduler::Callback_SchedulerServer_imageReadyPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_imageReady(const ::std::string& __p_imgId, const ::scheduler::Callback_SchedulerServer_imageReadyPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_imageReady(__p_imgId, 0, __del, __cookie);
     }
 
-    ::Ice::AsyncResultPtr begin_imageReady(const ::std::string& __p_imgId, const ::Ice::Context& __ctx, const ::Scheduler::Callback_SchedulerServer_imageReadyPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
+    ::Ice::AsyncResultPtr begin_imageReady(const ::std::string& __p_imgId, const ::Ice::Context& __ctx, const ::scheduler::Callback_SchedulerServer_imageReadyPtr& __del, const ::Ice::LocalObjectPtr& __cookie = 0)
     {
         return begin_imageReady(__p_imgId, &__ctx, __del, __cookie);
     }
@@ -2671,7 +2818,7 @@ private:
 
 }
 
-namespace Scheduler
+namespace scheduler
 {
 
 class SchedulerServerListener : virtual public ::Ice::Object
@@ -2686,16 +2833,16 @@ public:
     virtual const ::std::string& ice_id(const ::Ice::Current& = ::Ice::Current()) const;
     static const ::std::string& ice_staticId();
 
-    virtual void onImage_async(const ::Scheduler::AMD_SchedulerServerListener_onImagePtr&, const ::Scheduler::Image&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    virtual void onImage_async(const ::scheduler::AMD_SchedulerServerListener_onImagePtr&, const ::scheduler::Image&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___onImage(::IceInternal::Incoming&, const ::Ice::Current&);
 
-    virtual void onUpdate_async(const ::Scheduler::AMD_SchedulerServerListener_onUpdatePtr&, const ::Scheduler::JobSeq&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    virtual void onUpdate_async(const ::scheduler::AMD_SchedulerServerListener_onUpdatePtr&, const ::scheduler::JobStateSeq&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___onUpdate(::IceInternal::Incoming&, const ::Ice::Current&);
 
-    virtual void onImageReady_async(const ::Scheduler::AMD_SchedulerServerListener_onImageReadyPtr&, const ::std::string&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    virtual void onImageReady_async(const ::scheduler::AMD_SchedulerServerListener_onImageReadyPtr&, const ::std::string&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___onImageReady(::IceInternal::Incoming&, const ::Ice::Current&);
 
-    virtual void onReset_async(const ::Scheduler::AMD_SchedulerServerListener_onResetPtr&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    virtual void onReset_async(const ::scheduler::AMD_SchedulerServerListener_onResetPtr&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___onReset(::IceInternal::Incoming&, const ::Ice::Current&);
 
     virtual ::Ice::DispatchStatus __dispatch(::IceInternal::Incoming&, const ::Ice::Current&);
@@ -2729,43 +2876,43 @@ public:
     virtual const ::std::string& ice_id(const ::Ice::Current& = ::Ice::Current()) const;
     static const ::std::string& ice_staticId();
 
-    virtual void submitBatch_async(const ::Scheduler::AMD_SchedulerServer_submitBatchPtr&, const ::Scheduler::Batch&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    virtual void submitBatch_async(const ::scheduler::AMD_SchedulerServer_submitBatchPtr&, const ::scheduler::Batch&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___submitBatch(::IceInternal::Incoming&, const ::Ice::Current&);
 
-    virtual void startJob_async(const ::Scheduler::AMD_SchedulerServer_startJobPtr&, const ::std::string&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    virtual void startJob_async(const ::scheduler::AMD_SchedulerServer_startJobPtr&, const ::scheduler::JobId&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___startJob(::IceInternal::Incoming&, const ::Ice::Current&);
 
-    virtual void stopJob_async(const ::Scheduler::AMD_SchedulerServer_stopJobPtr&, const ::std::string&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    virtual void stopJob_async(const ::scheduler::AMD_SchedulerServer_stopJobPtr&, const ::scheduler::JobId&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___stopJob(::IceInternal::Incoming&, const ::Ice::Current&);
 
-    virtual void invalidate_async(const ::Scheduler::AMD_SchedulerServer_invalidatePtr&, const ::std::string&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    virtual void invalidate_async(const ::scheduler::AMD_SchedulerServer_invalidatePtr&, const ::scheduler::JobId&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___invalidate(::IceInternal::Incoming&, const ::Ice::Current&);
 
-    virtual void reset_async(const ::Scheduler::AMD_SchedulerServer_resetPtr&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    virtual void reset_async(const ::scheduler::AMD_SchedulerServer_resetPtr&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___reset(::IceInternal::Incoming&, const ::Ice::Current&);
 
-    virtual void dumpStatus_async(const ::Scheduler::AMD_SchedulerServer_dumpStatusPtr&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    virtual void dumpStatus_async(const ::scheduler::AMD_SchedulerServer_dumpStatusPtr&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___dumpStatus(::IceInternal::Incoming&, const ::Ice::Current&);
 
-    virtual void getJobs_async(const ::Scheduler::AMD_SchedulerServer_getJobsPtr&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    virtual void getJobs_async(const ::scheduler::AMD_SchedulerServer_getJobsPtr&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___getJobs(::IceInternal::Incoming&, const ::Ice::Current&);
 
-    virtual void getStartableJob_async(const ::Scheduler::AMD_SchedulerServer_getStartableJobPtr&, const ::Scheduler::WorkerId&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    virtual void getStartableJob_async(const ::scheduler::AMD_SchedulerServer_getStartableJobPtr&, const ::scheduler::WorkerId&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___getStartableJob(::IceInternal::Incoming&, const ::Ice::Current&);
 
-    virtual void getJob_async(const ::Scheduler::AMD_SchedulerServer_getJobPtr&, const ::std::string&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    virtual void getJob_async(const ::scheduler::AMD_SchedulerServer_getJobPtr&, const ::scheduler::JobId&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___getJob(::IceInternal::Incoming&, const ::Ice::Current&);
 
-    virtual void addListener_async(const ::Scheduler::AMD_SchedulerServer_addListenerPtr&, const ::Scheduler::SchedulerServerListenerPrx&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    virtual void addListener_async(const ::scheduler::AMD_SchedulerServer_addListenerPtr&, const ::scheduler::SchedulerServerListenerPrx&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___addListener(::IceInternal::Incoming&, const ::Ice::Current&);
 
-    virtual void addListenerWithIdent_async(const ::Scheduler::AMD_SchedulerServer_addListenerWithIdentPtr&, const ::Ice::Identity&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    virtual void addListenerWithIdent_async(const ::scheduler::AMD_SchedulerServer_addListenerWithIdentPtr&, const ::Ice::Identity&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___addListenerWithIdent(::IceInternal::Incoming&, const ::Ice::Current&);
 
-    virtual void onWorkerStates_async(const ::Scheduler::AMD_SchedulerServer_onWorkerStatesPtr&, const ::Scheduler::JobWorkerStateSeq&, const ::Ice::Current& = ::Ice::Current()) = 0;
-    ::Ice::DispatchStatus ___onWorkerStates(::IceInternal::Incoming&, const ::Ice::Current&);
+    virtual void onWorkerUpdate_async(const ::scheduler::AMD_SchedulerServer_onWorkerUpdatePtr&, const ::scheduler::WorkerUpdate&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    ::Ice::DispatchStatus ___onWorkerUpdate(::IceInternal::Incoming&, const ::Ice::Current&);
 
-    virtual void imageReady_async(const ::Scheduler::AMD_SchedulerServer_imageReadyPtr&, const ::std::string&, const ::Ice::Current& = ::Ice::Current()) = 0;
+    virtual void imageReady_async(const ::scheduler::AMD_SchedulerServer_imageReadyPtr&, const ::std::string&, const ::Ice::Current& = ::Ice::Current()) = 0;
     ::Ice::DispatchStatus ___imageReady(::IceInternal::Incoming&, const ::Ice::Current&);
 
     virtual ::Ice::DispatchStatus __dispatch(::IceInternal::Incoming&, const ::Ice::Current&);
@@ -2789,7 +2936,7 @@ inline bool operator<(const SchedulerServer& l, const SchedulerServer& r)
 
 }
 
-namespace Scheduler
+namespace scheduler
 {
 
 template<class T>
@@ -3121,7 +3268,7 @@ newCallback_SchedulerServerListener_onReset(T* instance, void (T::*excb)(const :
 }
 
 template<class T>
-class CallbackNC_SchedulerServer_submitBatch : public Callback_SchedulerServer_submitBatch_Base, public ::IceInternal::OnewayCallbackNC<T>
+class CallbackNC_SchedulerServer_submitBatch : public Callback_SchedulerServer_submitBatch_Base, public ::IceInternal::TwowayCallbackNC<T>
 {
 public:
 
@@ -3132,9 +3279,31 @@ public:
     typedef void (T::*Response)();
 
     CallbackNC_SchedulerServer_submitBatch(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
-        : ::IceInternal::OnewayCallbackNC<T>(obj, cb, excb, sentcb)
+        : ::IceInternal::TwowayCallbackNC<T>(obj, cb != 0, excb, sentcb), _response(cb)
     {
     }
+
+    virtual void completed(const ::Ice::AsyncResultPtr& __result) const
+    {
+        ::scheduler::SchedulerServerPrx __proxy = ::scheduler::SchedulerServerPrx::uncheckedCast(__result->getProxy());
+        try
+        {
+            __proxy->end_submitBatch(__result);
+        }
+        catch(const ::Ice::Exception& ex)
+        {
+            ::IceInternal::CallbackNC<T>::exception(__result, ex);
+            return;
+        }
+        if(_response)
+        {
+            (::IceInternal::CallbackNC<T>::_callback.get()->*_response)();
+        }
+    }
+
+    private:
+
+    Response _response;
 };
 
 template<class T> Callback_SchedulerServer_submitBatchPtr
@@ -3162,7 +3331,7 @@ newCallback_SchedulerServer_submitBatch(T* instance, void (T::*excb)(const ::Ice
 }
 
 template<class T, typename CT>
-class Callback_SchedulerServer_submitBatch : public Callback_SchedulerServer_submitBatch_Base, public ::IceInternal::OnewayCallback<T, CT>
+class Callback_SchedulerServer_submitBatch : public Callback_SchedulerServer_submitBatch_Base, public ::IceInternal::TwowayCallback<T, CT>
 {
 public:
 
@@ -3173,9 +3342,31 @@ public:
     typedef void (T::*Response)(const CT&);
 
     Callback_SchedulerServer_submitBatch(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
-        : ::IceInternal::OnewayCallback<T, CT>(obj, cb, excb, sentcb)
+        : ::IceInternal::TwowayCallback<T, CT>(obj, cb != 0, excb, sentcb), _response(cb)
     {
     }
+
+    virtual void completed(const ::Ice::AsyncResultPtr& __result) const
+    {
+        ::scheduler::SchedulerServerPrx __proxy = ::scheduler::SchedulerServerPrx::uncheckedCast(__result->getProxy());
+        try
+        {
+            __proxy->end_submitBatch(__result);
+        }
+        catch(const ::Ice::Exception& ex)
+        {
+            ::IceInternal::Callback<T, CT>::exception(__result, ex);
+            return;
+        }
+        if(_response)
+        {
+            (::IceInternal::Callback<T, CT>::_callback.get()->*_response)(CT::dynamicCast(__result->getCookie()));
+        }
+    }
+
+    private:
+
+    Response _response;
 };
 
 template<class T, typename CT> Callback_SchedulerServer_submitBatchPtr
@@ -3203,7 +3394,7 @@ newCallback_SchedulerServer_submitBatch(T* instance, void (T::*excb)(const ::Ice
 }
 
 template<class T>
-class CallbackNC_SchedulerServer_startJob : public Callback_SchedulerServer_startJob_Base, public ::IceInternal::OnewayCallbackNC<T>
+class CallbackNC_SchedulerServer_startJob : public Callback_SchedulerServer_startJob_Base, public ::IceInternal::TwowayCallbackNC<T>
 {
 public:
 
@@ -3214,9 +3405,31 @@ public:
     typedef void (T::*Response)();
 
     CallbackNC_SchedulerServer_startJob(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
-        : ::IceInternal::OnewayCallbackNC<T>(obj, cb, excb, sentcb)
+        : ::IceInternal::TwowayCallbackNC<T>(obj, cb != 0, excb, sentcb), _response(cb)
     {
     }
+
+    virtual void completed(const ::Ice::AsyncResultPtr& __result) const
+    {
+        ::scheduler::SchedulerServerPrx __proxy = ::scheduler::SchedulerServerPrx::uncheckedCast(__result->getProxy());
+        try
+        {
+            __proxy->end_startJob(__result);
+        }
+        catch(const ::Ice::Exception& ex)
+        {
+            ::IceInternal::CallbackNC<T>::exception(__result, ex);
+            return;
+        }
+        if(_response)
+        {
+            (::IceInternal::CallbackNC<T>::_callback.get()->*_response)();
+        }
+    }
+
+    private:
+
+    Response _response;
 };
 
 template<class T> Callback_SchedulerServer_startJobPtr
@@ -3244,7 +3457,7 @@ newCallback_SchedulerServer_startJob(T* instance, void (T::*excb)(const ::Ice::E
 }
 
 template<class T, typename CT>
-class Callback_SchedulerServer_startJob : public Callback_SchedulerServer_startJob_Base, public ::IceInternal::OnewayCallback<T, CT>
+class Callback_SchedulerServer_startJob : public Callback_SchedulerServer_startJob_Base, public ::IceInternal::TwowayCallback<T, CT>
 {
 public:
 
@@ -3255,9 +3468,31 @@ public:
     typedef void (T::*Response)(const CT&);
 
     Callback_SchedulerServer_startJob(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
-        : ::IceInternal::OnewayCallback<T, CT>(obj, cb, excb, sentcb)
+        : ::IceInternal::TwowayCallback<T, CT>(obj, cb != 0, excb, sentcb), _response(cb)
     {
     }
+
+    virtual void completed(const ::Ice::AsyncResultPtr& __result) const
+    {
+        ::scheduler::SchedulerServerPrx __proxy = ::scheduler::SchedulerServerPrx::uncheckedCast(__result->getProxy());
+        try
+        {
+            __proxy->end_startJob(__result);
+        }
+        catch(const ::Ice::Exception& ex)
+        {
+            ::IceInternal::Callback<T, CT>::exception(__result, ex);
+            return;
+        }
+        if(_response)
+        {
+            (::IceInternal::Callback<T, CT>::_callback.get()->*_response)(CT::dynamicCast(__result->getCookie()));
+        }
+    }
+
+    private:
+
+    Response _response;
 };
 
 template<class T, typename CT> Callback_SchedulerServer_startJobPtr
@@ -3548,7 +3783,7 @@ public:
 
     virtual void completed(const ::Ice::AsyncResultPtr& __result) const
     {
-        ::Scheduler::SchedulerServerPrx __proxy = ::Scheduler::SchedulerServerPrx::uncheckedCast(__result->getProxy());
+        ::scheduler::SchedulerServerPrx __proxy = ::scheduler::SchedulerServerPrx::uncheckedCast(__result->getProxy());
         ::std::string __ret;
         try
         {
@@ -3600,7 +3835,7 @@ public:
 
     virtual void completed(const ::Ice::AsyncResultPtr& __result) const
     {
-        ::Scheduler::SchedulerServerPrx __proxy = ::Scheduler::SchedulerServerPrx::uncheckedCast(__result->getProxy());
+        ::scheduler::SchedulerServerPrx __proxy = ::scheduler::SchedulerServerPrx::uncheckedCast(__result->getProxy());
         ::std::string __ret;
         try
         {
@@ -3643,7 +3878,7 @@ public:
 
     typedef void (T::*Exception)(const ::Ice::Exception&);
     typedef void (T::*Sent)(bool);
-    typedef void (T::*Response)(const ::Scheduler::JobSeq&);
+    typedef void (T::*Response)(const ::scheduler::JobSeq&);
 
     CallbackNC_SchedulerServer_getJobs(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
         : ::IceInternal::TwowayCallbackNC<T>(obj, cb != 0, excb, sentcb), _response(cb)
@@ -3652,8 +3887,8 @@ public:
 
     virtual void completed(const ::Ice::AsyncResultPtr& __result) const
     {
-        ::Scheduler::SchedulerServerPrx __proxy = ::Scheduler::SchedulerServerPrx::uncheckedCast(__result->getProxy());
-        ::Scheduler::JobSeq __ret;
+        ::scheduler::SchedulerServerPrx __proxy = ::scheduler::SchedulerServerPrx::uncheckedCast(__result->getProxy());
+        ::scheduler::JobSeq __ret;
         try
         {
             __ret = __proxy->end_getJobs(__result);
@@ -3675,13 +3910,13 @@ public:
 };
 
 template<class T> Callback_SchedulerServer_getJobsPtr
-newCallback_SchedulerServer_getJobs(const IceUtil::Handle<T>& instance, void (T::*cb)(const ::Scheduler::JobSeq&), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+newCallback_SchedulerServer_getJobs(const IceUtil::Handle<T>& instance, void (T::*cb)(const ::scheduler::JobSeq&), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
 {
     return new CallbackNC_SchedulerServer_getJobs<T>(instance, cb, excb, sentcb);
 }
 
 template<class T> Callback_SchedulerServer_getJobsPtr
-newCallback_SchedulerServer_getJobs(T* instance, void (T::*cb)(const ::Scheduler::JobSeq&), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+newCallback_SchedulerServer_getJobs(T* instance, void (T::*cb)(const ::scheduler::JobSeq&), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
 {
     return new CallbackNC_SchedulerServer_getJobs<T>(instance, cb, excb, sentcb);
 }
@@ -3695,7 +3930,7 @@ public:
 
     typedef void (T::*Exception)(const ::Ice::Exception& , const CT&);
     typedef void (T::*Sent)(bool , const CT&);
-    typedef void (T::*Response)(const ::Scheduler::JobSeq&, const CT&);
+    typedef void (T::*Response)(const ::scheduler::JobSeq&, const CT&);
 
     Callback_SchedulerServer_getJobs(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
         : ::IceInternal::TwowayCallback<T, CT>(obj, cb != 0, excb, sentcb), _response(cb)
@@ -3704,8 +3939,8 @@ public:
 
     virtual void completed(const ::Ice::AsyncResultPtr& __result) const
     {
-        ::Scheduler::SchedulerServerPrx __proxy = ::Scheduler::SchedulerServerPrx::uncheckedCast(__result->getProxy());
-        ::Scheduler::JobSeq __ret;
+        ::scheduler::SchedulerServerPrx __proxy = ::scheduler::SchedulerServerPrx::uncheckedCast(__result->getProxy());
+        ::scheduler::JobSeq __ret;
         try
         {
             __ret = __proxy->end_getJobs(__result);
@@ -3727,13 +3962,13 @@ public:
 };
 
 template<class T, typename CT> Callback_SchedulerServer_getJobsPtr
-newCallback_SchedulerServer_getJobs(const IceUtil::Handle<T>& instance, void (T::*cb)(const ::Scheduler::JobSeq&, const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+newCallback_SchedulerServer_getJobs(const IceUtil::Handle<T>& instance, void (T::*cb)(const ::scheduler::JobSeq&, const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
 {
     return new Callback_SchedulerServer_getJobs<T, CT>(instance, cb, excb, sentcb);
 }
 
 template<class T, typename CT> Callback_SchedulerServer_getJobsPtr
-newCallback_SchedulerServer_getJobs(T* instance, void (T::*cb)(const ::Scheduler::JobSeq&, const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+newCallback_SchedulerServer_getJobs(T* instance, void (T::*cb)(const ::scheduler::JobSeq&, const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
 {
     return new Callback_SchedulerServer_getJobs<T, CT>(instance, cb, excb, sentcb);
 }
@@ -3747,7 +3982,7 @@ public:
 
     typedef void (T::*Exception)(const ::Ice::Exception&);
     typedef void (T::*Sent)(bool);
-    typedef void (T::*Response)(const ::Scheduler::JobSeq&);
+    typedef void (T::*Response)(const ::scheduler::JobSeq&);
 
     CallbackNC_SchedulerServer_getStartableJob(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
         : ::IceInternal::TwowayCallbackNC<T>(obj, cb != 0, excb, sentcb), _response(cb)
@@ -3756,8 +3991,8 @@ public:
 
     virtual void completed(const ::Ice::AsyncResultPtr& __result) const
     {
-        ::Scheduler::SchedulerServerPrx __proxy = ::Scheduler::SchedulerServerPrx::uncheckedCast(__result->getProxy());
-        ::Scheduler::JobSeq __ret;
+        ::scheduler::SchedulerServerPrx __proxy = ::scheduler::SchedulerServerPrx::uncheckedCast(__result->getProxy());
+        ::scheduler::JobSeq __ret;
         try
         {
             __ret = __proxy->end_getStartableJob(__result);
@@ -3779,13 +4014,13 @@ public:
 };
 
 template<class T> Callback_SchedulerServer_getStartableJobPtr
-newCallback_SchedulerServer_getStartableJob(const IceUtil::Handle<T>& instance, void (T::*cb)(const ::Scheduler::JobSeq&), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+newCallback_SchedulerServer_getStartableJob(const IceUtil::Handle<T>& instance, void (T::*cb)(const ::scheduler::JobSeq&), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
 {
     return new CallbackNC_SchedulerServer_getStartableJob<T>(instance, cb, excb, sentcb);
 }
 
 template<class T> Callback_SchedulerServer_getStartableJobPtr
-newCallback_SchedulerServer_getStartableJob(T* instance, void (T::*cb)(const ::Scheduler::JobSeq&), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+newCallback_SchedulerServer_getStartableJob(T* instance, void (T::*cb)(const ::scheduler::JobSeq&), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
 {
     return new CallbackNC_SchedulerServer_getStartableJob<T>(instance, cb, excb, sentcb);
 }
@@ -3799,7 +4034,7 @@ public:
 
     typedef void (T::*Exception)(const ::Ice::Exception& , const CT&);
     typedef void (T::*Sent)(bool , const CT&);
-    typedef void (T::*Response)(const ::Scheduler::JobSeq&, const CT&);
+    typedef void (T::*Response)(const ::scheduler::JobSeq&, const CT&);
 
     Callback_SchedulerServer_getStartableJob(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
         : ::IceInternal::TwowayCallback<T, CT>(obj, cb != 0, excb, sentcb), _response(cb)
@@ -3808,8 +4043,8 @@ public:
 
     virtual void completed(const ::Ice::AsyncResultPtr& __result) const
     {
-        ::Scheduler::SchedulerServerPrx __proxy = ::Scheduler::SchedulerServerPrx::uncheckedCast(__result->getProxy());
-        ::Scheduler::JobSeq __ret;
+        ::scheduler::SchedulerServerPrx __proxy = ::scheduler::SchedulerServerPrx::uncheckedCast(__result->getProxy());
+        ::scheduler::JobSeq __ret;
         try
         {
             __ret = __proxy->end_getStartableJob(__result);
@@ -3831,13 +4066,13 @@ public:
 };
 
 template<class T, typename CT> Callback_SchedulerServer_getStartableJobPtr
-newCallback_SchedulerServer_getStartableJob(const IceUtil::Handle<T>& instance, void (T::*cb)(const ::Scheduler::JobSeq&, const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+newCallback_SchedulerServer_getStartableJob(const IceUtil::Handle<T>& instance, void (T::*cb)(const ::scheduler::JobSeq&, const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
 {
     return new Callback_SchedulerServer_getStartableJob<T, CT>(instance, cb, excb, sentcb);
 }
 
 template<class T, typename CT> Callback_SchedulerServer_getStartableJobPtr
-newCallback_SchedulerServer_getStartableJob(T* instance, void (T::*cb)(const ::Scheduler::JobSeq&, const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+newCallback_SchedulerServer_getStartableJob(T* instance, void (T::*cb)(const ::scheduler::JobSeq&, const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
 {
     return new Callback_SchedulerServer_getStartableJob<T, CT>(instance, cb, excb, sentcb);
 }
@@ -3851,7 +4086,7 @@ public:
 
     typedef void (T::*Exception)(const ::Ice::Exception&);
     typedef void (T::*Sent)(bool);
-    typedef void (T::*Response)(const ::Scheduler::Job&);
+    typedef void (T::*Response)(const ::scheduler::Job&);
 
     CallbackNC_SchedulerServer_getJob(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
         : ::IceInternal::TwowayCallbackNC<T>(obj, cb != 0, excb, sentcb), _response(cb)
@@ -3860,8 +4095,8 @@ public:
 
     virtual void completed(const ::Ice::AsyncResultPtr& __result) const
     {
-        ::Scheduler::SchedulerServerPrx __proxy = ::Scheduler::SchedulerServerPrx::uncheckedCast(__result->getProxy());
-        ::Scheduler::Job __ret;
+        ::scheduler::SchedulerServerPrx __proxy = ::scheduler::SchedulerServerPrx::uncheckedCast(__result->getProxy());
+        ::scheduler::Job __ret;
         try
         {
             __ret = __proxy->end_getJob(__result);
@@ -3883,13 +4118,13 @@ public:
 };
 
 template<class T> Callback_SchedulerServer_getJobPtr
-newCallback_SchedulerServer_getJob(const IceUtil::Handle<T>& instance, void (T::*cb)(const ::Scheduler::Job&), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+newCallback_SchedulerServer_getJob(const IceUtil::Handle<T>& instance, void (T::*cb)(const ::scheduler::Job&), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
 {
     return new CallbackNC_SchedulerServer_getJob<T>(instance, cb, excb, sentcb);
 }
 
 template<class T> Callback_SchedulerServer_getJobPtr
-newCallback_SchedulerServer_getJob(T* instance, void (T::*cb)(const ::Scheduler::Job&), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+newCallback_SchedulerServer_getJob(T* instance, void (T::*cb)(const ::scheduler::Job&), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
 {
     return new CallbackNC_SchedulerServer_getJob<T>(instance, cb, excb, sentcb);
 }
@@ -3903,7 +4138,7 @@ public:
 
     typedef void (T::*Exception)(const ::Ice::Exception& , const CT&);
     typedef void (T::*Sent)(bool , const CT&);
-    typedef void (T::*Response)(const ::Scheduler::Job&, const CT&);
+    typedef void (T::*Response)(const ::scheduler::Job&, const CT&);
 
     Callback_SchedulerServer_getJob(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
         : ::IceInternal::TwowayCallback<T, CT>(obj, cb != 0, excb, sentcb), _response(cb)
@@ -3912,8 +4147,8 @@ public:
 
     virtual void completed(const ::Ice::AsyncResultPtr& __result) const
     {
-        ::Scheduler::SchedulerServerPrx __proxy = ::Scheduler::SchedulerServerPrx::uncheckedCast(__result->getProxy());
-        ::Scheduler::Job __ret;
+        ::scheduler::SchedulerServerPrx __proxy = ::scheduler::SchedulerServerPrx::uncheckedCast(__result->getProxy());
+        ::scheduler::Job __ret;
         try
         {
             __ret = __proxy->end_getJob(__result);
@@ -3935,13 +4170,13 @@ public:
 };
 
 template<class T, typename CT> Callback_SchedulerServer_getJobPtr
-newCallback_SchedulerServer_getJob(const IceUtil::Handle<T>& instance, void (T::*cb)(const ::Scheduler::Job&, const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+newCallback_SchedulerServer_getJob(const IceUtil::Handle<T>& instance, void (T::*cb)(const ::scheduler::Job&, const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
 {
     return new Callback_SchedulerServer_getJob<T, CT>(instance, cb, excb, sentcb);
 }
 
 template<class T, typename CT> Callback_SchedulerServer_getJobPtr
-newCallback_SchedulerServer_getJob(T* instance, void (T::*cb)(const ::Scheduler::Job&, const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+newCallback_SchedulerServer_getJob(T* instance, void (T::*cb)(const ::scheduler::Job&, const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
 {
     return new Callback_SchedulerServer_getJob<T, CT>(instance, cb, excb, sentcb);
 }
@@ -4111,7 +4346,7 @@ newCallback_SchedulerServer_addListenerWithIdent(T* instance, void (T::*excb)(co
 }
 
 template<class T>
-class CallbackNC_SchedulerServer_onWorkerStates : public Callback_SchedulerServer_onWorkerStates_Base, public ::IceInternal::OnewayCallbackNC<T>
+class CallbackNC_SchedulerServer_onWorkerUpdate : public Callback_SchedulerServer_onWorkerUpdate_Base, public ::IceInternal::OnewayCallbackNC<T>
 {
 public:
 
@@ -4121,38 +4356,38 @@ public:
     typedef void (T::*Sent)(bool);
     typedef void (T::*Response)();
 
-    CallbackNC_SchedulerServer_onWorkerStates(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
+    CallbackNC_SchedulerServer_onWorkerUpdate(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
         : ::IceInternal::OnewayCallbackNC<T>(obj, cb, excb, sentcb)
     {
     }
 };
 
-template<class T> Callback_SchedulerServer_onWorkerStatesPtr
-newCallback_SchedulerServer_onWorkerStates(const IceUtil::Handle<T>& instance, void (T::*cb)(), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+template<class T> Callback_SchedulerServer_onWorkerUpdatePtr
+newCallback_SchedulerServer_onWorkerUpdate(const IceUtil::Handle<T>& instance, void (T::*cb)(), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
 {
-    return new CallbackNC_SchedulerServer_onWorkerStates<T>(instance, cb, excb, sentcb);
+    return new CallbackNC_SchedulerServer_onWorkerUpdate<T>(instance, cb, excb, sentcb);
 }
 
-template<class T> Callback_SchedulerServer_onWorkerStatesPtr
-newCallback_SchedulerServer_onWorkerStates(const IceUtil::Handle<T>& instance, void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+template<class T> Callback_SchedulerServer_onWorkerUpdatePtr
+newCallback_SchedulerServer_onWorkerUpdate(const IceUtil::Handle<T>& instance, void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
 {
-    return new CallbackNC_SchedulerServer_onWorkerStates<T>(instance, 0, excb, sentcb);
+    return new CallbackNC_SchedulerServer_onWorkerUpdate<T>(instance, 0, excb, sentcb);
 }
 
-template<class T> Callback_SchedulerServer_onWorkerStatesPtr
-newCallback_SchedulerServer_onWorkerStates(T* instance, void (T::*cb)(), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+template<class T> Callback_SchedulerServer_onWorkerUpdatePtr
+newCallback_SchedulerServer_onWorkerUpdate(T* instance, void (T::*cb)(), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
 {
-    return new CallbackNC_SchedulerServer_onWorkerStates<T>(instance, cb, excb, sentcb);
+    return new CallbackNC_SchedulerServer_onWorkerUpdate<T>(instance, cb, excb, sentcb);
 }
 
-template<class T> Callback_SchedulerServer_onWorkerStatesPtr
-newCallback_SchedulerServer_onWorkerStates(T* instance, void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+template<class T> Callback_SchedulerServer_onWorkerUpdatePtr
+newCallback_SchedulerServer_onWorkerUpdate(T* instance, void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
 {
-    return new CallbackNC_SchedulerServer_onWorkerStates<T>(instance, 0, excb, sentcb);
+    return new CallbackNC_SchedulerServer_onWorkerUpdate<T>(instance, 0, excb, sentcb);
 }
 
 template<class T, typename CT>
-class Callback_SchedulerServer_onWorkerStates : public Callback_SchedulerServer_onWorkerStates_Base, public ::IceInternal::OnewayCallback<T, CT>
+class Callback_SchedulerServer_onWorkerUpdate : public Callback_SchedulerServer_onWorkerUpdate_Base, public ::IceInternal::OnewayCallback<T, CT>
 {
 public:
 
@@ -4162,34 +4397,34 @@ public:
     typedef void (T::*Sent)(bool , const CT&);
     typedef void (T::*Response)(const CT&);
 
-    Callback_SchedulerServer_onWorkerStates(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
+    Callback_SchedulerServer_onWorkerUpdate(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
         : ::IceInternal::OnewayCallback<T, CT>(obj, cb, excb, sentcb)
     {
     }
 };
 
-template<class T, typename CT> Callback_SchedulerServer_onWorkerStatesPtr
-newCallback_SchedulerServer_onWorkerStates(const IceUtil::Handle<T>& instance, void (T::*cb)(const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+template<class T, typename CT> Callback_SchedulerServer_onWorkerUpdatePtr
+newCallback_SchedulerServer_onWorkerUpdate(const IceUtil::Handle<T>& instance, void (T::*cb)(const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
 {
-    return new Callback_SchedulerServer_onWorkerStates<T, CT>(instance, cb, excb, sentcb);
+    return new Callback_SchedulerServer_onWorkerUpdate<T, CT>(instance, cb, excb, sentcb);
 }
 
-template<class T, typename CT> Callback_SchedulerServer_onWorkerStatesPtr
-newCallback_SchedulerServer_onWorkerStates(const IceUtil::Handle<T>& instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+template<class T, typename CT> Callback_SchedulerServer_onWorkerUpdatePtr
+newCallback_SchedulerServer_onWorkerUpdate(const IceUtil::Handle<T>& instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
 {
-    return new Callback_SchedulerServer_onWorkerStates<T, CT>(instance, 0, excb, sentcb);
+    return new Callback_SchedulerServer_onWorkerUpdate<T, CT>(instance, 0, excb, sentcb);
 }
 
-template<class T, typename CT> Callback_SchedulerServer_onWorkerStatesPtr
-newCallback_SchedulerServer_onWorkerStates(T* instance, void (T::*cb)(const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+template<class T, typename CT> Callback_SchedulerServer_onWorkerUpdatePtr
+newCallback_SchedulerServer_onWorkerUpdate(T* instance, void (T::*cb)(const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
 {
-    return new Callback_SchedulerServer_onWorkerStates<T, CT>(instance, cb, excb, sentcb);
+    return new Callback_SchedulerServer_onWorkerUpdate<T, CT>(instance, cb, excb, sentcb);
 }
 
-template<class T, typename CT> Callback_SchedulerServer_onWorkerStatesPtr
-newCallback_SchedulerServer_onWorkerStates(T* instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+template<class T, typename CT> Callback_SchedulerServer_onWorkerUpdatePtr
+newCallback_SchedulerServer_onWorkerUpdate(T* instance, void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
 {
-    return new Callback_SchedulerServer_onWorkerStates<T, CT>(instance, 0, excb, sentcb);
+    return new Callback_SchedulerServer_onWorkerUpdate<T, CT>(instance, 0, excb, sentcb);
 }
 
 template<class T>
