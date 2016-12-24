@@ -1,20 +1,13 @@
 package scheduler
 
-object WrappedJob {
-  import scheduler.EnumJobState.State._
-
-  val startableStates = {
-    Set(STARTABLE)
-  }
-
-  val stoppableStates = {
-    Set(STARTED)
-  }
-}
-
+// Job is immutable
 class WrappedJob(val job : Job) {
 
-  val jobState = new JobState()
+  val jobState = new JobState(job.id,
+    EnumJobState.State.DORMANT,
+    Array.empty[WorkerId],
+    Array.empty[JobStateDescription],
+    Array.empty[WorkerStateDescription] )
 
   def state = jobState.state
 
@@ -24,5 +17,5 @@ class WrappedJob(val job : Job) {
 
   def priority = job.priority
 
-  def isStartable = WrappedJob.startableStates.contains(state)
+  def isStartable = JobStates.startable.contains(state)
 }

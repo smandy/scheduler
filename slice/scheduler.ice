@@ -8,16 +8,13 @@ module scheduler {
     sequence<string> StringSeq;
 
     dictionary<string, string> StringStringDict;
-
     
     ["cpp:comparable"] struct JobId {
         string id;
         string batch;
     };
 
-    
     ["cpp:type:std::unordered_map<JobId, JobId>"] dictionary<JobId,JobId> tmpJobId;
-
 
     module EnumJobState {
         enum State {
@@ -92,15 +89,18 @@ module scheduler {
         StringStringDict env;
     };
 
-
     /* The 'stateful part of a job detached from the immutable
        description of a job. Separation of concerns etc. */
-    
     struct JobState {
-        string jobId;
+        JobId id;
         EnumJobState::State state = EnumJobState::DORMANT;
         WorkerIdSeq currentWorker;
+
+        // Reported by the job itself
         JobStateDescriptionSeq jobStatus;
+        
+        // Reported by the worker
+        WorkerStateDescriptionSeq workerStatus;
     };
 
     exception DuplicateJob {
@@ -132,7 +132,7 @@ module scheduler {
     interface SchedulerServerListener {
         ["amd"] void onImage( Image image );
         ["amd"] void onUpdate( JobStateSeq jobs );
-        ["amd"] void onImageReady(string imgId);
+        ["amd"] void onImageReady(string batchId, string imgId);
         ["amd"] void onReset();
     };
 
@@ -150,8 +150,13 @@ module scheduler {
         ["amd"] JobSeq getStartableJob( WorkerId worker );
         ["amd"] Job getJob( JobId id ) throws JobNotExist;
         ["amd"] void addListener( SchedulerServerListener *listener);
+
+        // For Javascript
         ["amd"] void addListenerWithIdent( Ice::Identity ident);
+        
         ["amd"] void onWorkerUpdate( WorkerUpdate x);
-        ["amd"] void imageReady(string imgId);
+        
+        // Invoked from the graph server
+        ["amd"] void imageReady(string batchId, string imgId);
     };
 };

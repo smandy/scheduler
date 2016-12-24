@@ -10,8 +10,6 @@ class ScalaSchedulerServer(val communicator : Communicator,
   var jobs = Map[JobId, WrappedJob]()
   var workers = Map[WorkerId, WorkerState]()
 
-  var listeners = Set[SchedulerServerListenerPrx]()
-
   val topic = {
     val topicPrx = TopicManagerPrxHelper.checkedCast(communicator.propertyToProxy("icestorm.topicManager"))
     val subject = communicator.getProperties().getProperty("scheduler.topic")
@@ -93,7 +91,6 @@ class ScalaSchedulerServer(val communicator : Communicator,
   override def addListener_async(cb : AMD_SchedulerServer_addListener,
                                  listener : SchedulerServerListenerPrx,
                                  current: Current): Unit = runOnExecutor {
-    listeners += listener
     val qos = new java.util.HashMap[String,String]()
     topic.begin_subscribeAndGetPublisher(qos,
       listener,
@@ -131,7 +128,7 @@ class ScalaSchedulerServer(val communicator : Communicator,
     })
   }
 
-  override def imageReady_async(amd_schedulerServer_imageReady: AMD_SchedulerServer_imageReady, s: String, current: Current): Unit = ???
+  override def imageReady_async(amd_schedulerServer_imageReady: AMD_SchedulerServer_imageReady, batchId : String, s: String, current: Current): Unit = ???
 
   override def getJob_async(cb: AMD_SchedulerServer_getJob, jid : JobId, current: Current): Unit = {
     withJobOnExecutor(jid, cb, (wj) => {
