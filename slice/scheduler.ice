@@ -14,6 +14,8 @@ module scheduler {
         string batch;
     };
 
+    sequence<JobId> JobIdSeq;
+
     ["cpp:type:std::unordered_map<JobId, JobId>"] dictionary<JobId,JobId> tmpJobId;
 
     module EnumJobState {
@@ -104,11 +106,11 @@ module scheduler {
     };
 
     exception DuplicateJob {
-        JobId id;
+        JobIdSeq id;
     };
 
     exception JobNotExist {
-        JobId id;
+        JobIdSeq id;
     };
     
     exception JobNotStartable {
@@ -142,6 +144,7 @@ module scheduler {
         
         ["amd"] void startJob( JobId id ) throws JobNotExist, JobNotStartable;
         ["amd"] void stopJob( JobId id );
+        ["amd"] void invalidateJob( JobId id );
         
         ["amd"] void invalidate( JobId id);
         ["amd"] void reset();

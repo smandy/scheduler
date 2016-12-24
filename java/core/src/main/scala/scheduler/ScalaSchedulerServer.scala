@@ -34,8 +34,17 @@ class ScalaSchedulerServer(val communicator : Communicator,
 
   override def reset_async(amd_schedulerServer_reset: AMD_SchedulerServer_reset, current: Current): Unit = ???
 
+
+  def getJob( id : JobId) : WrappedJob = {
+
+  }
+
   override def submitBatch_async(amd_schedulerServer_submitBatch: AMD_SchedulerServer_submitBatch, batch: Batch, current: Current) = {
     runOnExecutor {
+      val dupes = batch.jobs.filter( x => jobs.isDefinedAt(x.id) )
+
+      
+
       for {job <- batch.jobs} {
         jobs += (job.id -> new WrappedJob(job))
       }

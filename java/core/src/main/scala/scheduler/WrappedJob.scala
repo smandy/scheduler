@@ -18,4 +18,6 @@ class WrappedJob(val job : Job) {
   def priority = job.priority
 
   def isStartable = JobStates.startable.contains(state)
+
+  var dependencies : Set[WrappedJob]
 }
