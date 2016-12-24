@@ -1,13 +1,15 @@
 package scheduler
 
 // Job is immutable
-class WrappedJob(val job : Job) {
+class Node(val job : Job) {
 
   val jobState = new JobState(job.id,
     EnumJobState.State.DORMANT,
     Array.empty[WorkerId],
     Array.empty[JobStateDescription],
     Array.empty[WorkerStateDescription] )
+
+  def id = job.id
 
   def state = jobState.state
 
@@ -19,5 +21,5 @@ class WrappedJob(val job : Job) {
 
   def isStartable = JobStates.startable.contains(state)
 
-  var dependencies : Set[WrappedJob]
+
 }

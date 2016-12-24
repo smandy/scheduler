@@ -20,14 +20,13 @@ module scheduler {
 
     module EnumJobState {
         enum State {
-            BLOCKED,
             DORMANT,
             STARTABLE,
             SCHEDULED,
             STARTED,
-            STOPPED,
+            CANCELLING,
+            CANCELLED,
             FAILED,
-            WAIVERED,
             COMPLETED
         };
     };
@@ -84,7 +83,7 @@ module scheduler {
     
     struct Job {
         JobId id;
-        StringSeq dependencies;
+        JobIdSeq  dependencies;
         int       priority;
         string    pwd;
         StringSeq cmdLine;
@@ -109,6 +108,10 @@ module scheduler {
         JobIdSeq id;
     };
 
+    exception JobCycleDetected {
+        JobIdSeq badNodes;
+    };
+
     exception JobNotExist {
         JobIdSeq id;
     };
@@ -120,6 +123,8 @@ module scheduler {
     sequence<Job> JobSeq;
     sequence<JobState> JobStateSeq;
     dictionary<string,Job> JobDict;
+
+    
 
     struct Batch {
         JobSeq jobs;

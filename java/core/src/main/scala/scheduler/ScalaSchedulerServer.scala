@@ -7,7 +7,8 @@ import IceStorm.{NoSuchTopic, TopicManagerPrxHelper}
 
 class ScalaSchedulerServer(val communicator : Communicator,
                      val executor: ScheduledExecutorService) extends _SchedulerServerDisp {
-  var jobs = Map[JobId, WrappedJob]()
+  var graph = Graph.forJobs(Map.empty[JobId, Node] ).right
+
   var workers = Map[WorkerId, WorkerState]()
 
   val topic = {
@@ -34,19 +35,28 @@ class ScalaSchedulerServer(val communicator : Communicator,
 
   override def reset_async(amd_schedulerServer_reset: AMD_SchedulerServer_reset, current: Current): Unit = ???
 
-
-  def getJob( id : JobId) : WrappedJob = {
-
-  }
+  /*
+  Create an array of jobs to add. We don't add them immediately
+  in case we need to back out because of a detected cycle
+   */
+  def mapForJobs(newJobs : Array[Job]) = Map( newJobs.map( x => (x.id, new Node(x))) : _*)
 
   override def submitBatch_async(amd_schedulerServer_submitBatch: AMD_SchedulerServer_submitBatch, batch: Batch, current: Current) = {
     runOnExecutor {
-      val dupes = batch.jobs.filter( x => jobs.isDefinedAt(x.id) )
+      val newJobMap = graph.jobs ++ mapForJobs( batch.jobs )
+      val newGraph = Graph.forJobs(newJobMap) match {
+        case Right(Graph(g)) => graph = g
+        case Left(new JobCycleDetected(xs) => cb.)
+      }
 
-      
-
-      for {job <- batch.jobs} {
-        jobs += (job.id -> new WrappedJob(job))
+      // Wire up dependencies
+      for {
+        job <- batch.jobs
+        dependantJob <- jobs.get(job.id)
+        dep <- job.dependencies
+        dependencyJob <- jobs.get(dep)
+      } {
+        dependantJob.dependencies += dependantJob
       }
     }
   }
@@ -68,15 +78,22 @@ class ScalaSchedulerServer(val communicator : Communicator,
                                 current: Current): Unit = ???
 
 
-  def withJobOnExecutor[T <: AMDCallback](jid : JobId, cb : T, f : (WrappedJob) => Unit ) = runOnExecutor {
+  def withJobOnExecutor[T <: AMDCallback](jid : JobId, cb : T, f : (Node) => Unit ) = runOnExecutor {
     jobs.get(jid) match {
       case Some(wj) => {
         f(wj)
       }
       case None => {
-        cb.ice_exception(new JobNotExist(jid))
+        cb.ice_exception(new JobNotExist(Array(jid)))
       }
     }
+  }
+
+  override def invalidateJob_async(__cb: AMD_SchedulerServer_invalidateJob, id: JobId, __current: Current): Unit = {
+    withJobOnExecutor(id, __cb, (wj) => {
+      val toKill = new java.util.HashSet[Node]()
+      wj.invalidateImpl(toKill)
+    })
   }
 
   override def startJob_async(cb : AMD_SchedulerServer_startJob, jid : JobId, current: Current) : Unit = {
@@ -124,12 +141,13 @@ class ScalaSchedulerServer(val communicator : Communicator,
 
   override def addListenerWithIdent_async(amd_schedulerServer_addListenerWithIdent: AMD_SchedulerServer_addListenerWithIdent, identity: Identity, current: Current): Unit = ???
 
-  override def stopJob_async(cb: AMD_SchedulerServer_stopJob,
-                             jid: JobId,
-                             current: Current): Unit = {
+  override def stopJob_async(cb : AMD_SchedulerServer_stopJob,
+                             jid : JobId,
+                             current: Current) : Unit = {
     withJobOnExecutor(jid , cb, (wj) => {
       if (wj.state == EnumJobState.State.STARTED ) {
-        wj.state = EnumJobState.State.STOPPED
+        /// XXAS - need to send cancel message to the worker
+        wj.state = EnumJobState.State.CANCELLED
         cb.ice_response()
       } else {
         cb.ice_exception( new JobNotStartable(jid))
