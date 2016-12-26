@@ -14,7 +14,7 @@ class ScalaSchedulerServer(val communicator: Communicator,
 
   val (topic, publisher) = {
     val topicPrx = TopicManagerPrxHelper.checkedCast(communicator.propertyToProxy("icestorm.topicmanager"))
-    val subject = communicator.getProperties().getProperty("scheduler.topic")
+    val subject = communicator.getProperties.getProperty("scheduler.topic")
     val topic = try {
       topicPrx.retrieve(subject)
     } catch {
@@ -23,10 +23,15 @@ class ScalaSchedulerServer(val communicator: Communicator,
     (topic, SchedulerServerListenerPrxHelper.uncheckedCast(topic.getPublisher()))
   }
 
-  /// XXXAS - check worker states.
+  def checkInvariants() : Unit = {
+    // Check dependencies + dependants self-consistent.
+  }
+
   def runOnExecutor(f: => Unit) = {
     val x: Runnable = () => {
+      checkInvariants()
       f
+      checkInvariants()
     }
     executor.submit(x)
   }
@@ -74,8 +79,8 @@ class ScalaSchedulerServer(val communicator: Communicator,
     import EnumJobState.READY
     for {
       v <- graph.jobs.values
-      if (v.state == EnumJobState.DORMANT)
-      if (!graph.dependencies.isDefinedAt(v) || graph.dependencies(v).forall(_.state == EnumJobState.COMPLETED))
+      if v.state == EnumJobState.DORMANT
+      if !graph.dependencies.isDefinedAt(v) || graph.dependencies(v).forall(_.state == EnumJobState.COMPLETED)
     } {
       v.state = READY
       updated.add(v.makeDTO())
@@ -90,7 +95,7 @@ class ScalaSchedulerServer(val communicator: Communicator,
           x.jobState.state = EnumJobState.SCHEDULED
           x.jobState.currentWorker = Array(workerId)
           cb.ice_response(Array(x.job))
-          publisher.begin_onUpdate( Array(x.makeDTO()))
+          publisher.begin_onUpdate(Array(x.makeDTO()))
         }
         case None => cb.ice_response(Array.empty[Job])
       }
@@ -105,12 +110,8 @@ class ScalaSchedulerServer(val communicator: Communicator,
 
   def withJobOnExecutor[T <: AMDCallback](jid: JobId, cb: T, f: (Node) => Unit) = runOnExecutor {
     graph.jobs.get(jid) match {
-      case Some(wj) => {
-        f(wj)
-      }
-      case None => {
-        cb.ice_exception(new JobNotExist(Array(jid)))
-      }
+      case Some(wj) => f(wj)
+      case None => cb.ice_exception(new JobNotExist(Array(jid)))
     }
   }
 
@@ -177,9 +178,6 @@ class ScalaSchedulerServer(val communicator: Communicator,
     })
   }
 
-  def sendUpdate(n: Node): Unit = {
-  }
-
   override def imageReady_async(cb : AMD_SchedulerServer_imageReady, batchId: String, s: String, current: Current): Unit = {
     println(s"Image readyy $batchId $s")
     cb.ice_response()
@@ -192,17 +190,17 @@ class ScalaSchedulerServer(val communicator: Communicator,
   }
 
   override def onWorkerUpdate_async(cb: AMD_SchedulerServer_onWorkerUpdate,
-                                    x: WorkerUpdate,
+                                    wu: WorkerUpdate,
                                     __current: Current): Unit = {
     import EnumJobState._
     import JobStates._
     val updated = new util.ArrayList[JobDTO]()
     for {
-      u <- x.updates
+      u <- wu.updates
       wj <- graph.jobs.get(u.id)
     } {
       val newState = (wj.state, u.state) match {
-        case (x, y) if (!x.isTerminal && y.isTerminal) => {
+        case (x, y) if !x.isTerminal && y.isTerminal => {
           wj.jobState.currentWorker = Array.empty[WorkerId]
           Some(y)
         }
