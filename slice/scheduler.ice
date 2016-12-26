@@ -97,12 +97,22 @@ module scheduler {
         EnumJobState::State state = EnumJobState::DORMANT;
         
         WorkerIdSeq currentWorker;
+        
         // Reported by the job itself
         JobStateDescriptionSeq jobStatus;
         
         // Reported by the worker
         WorkerStateDescriptionSeq workerStatus;
     };
+
+    /* Convenience to use until we hava fancy version with job + state
+       uncoupled */
+    struct JobDTO {
+        Job job;
+        JobState state;
+    };
+
+    sequence<JobDTO> JobDTOSeq;
 
     exception DuplicateJob {
         JobIdSeq id;
@@ -155,7 +165,7 @@ module scheduler {
         ["amd"] void reset();
         
         ["amd"] string dumpStatus();
-        ["amd"] JobSeq getJobs();
+        ["amd"] JobDTOSeq getJobs();
         ["amd"] JobSeq getStartableJob( WorkerId worker );
         ["amd"] Job getJob( JobId id ) throws JobNotExist;
         ["amd"] void addListener( SchedulerServerListener *listener);

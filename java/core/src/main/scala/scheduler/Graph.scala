@@ -22,16 +22,6 @@ object Graph {
 }
 
 case class Graph private(val jobs: Map[JobId, Node]) {
-  lazy val dependencies : Map[Node,Set[Node]] = {
-    val tups = for {
-      (q, v) <- jobs
-      j = jobs(q)
-      deps = v.job.dependencies.map(jobs(_))
-    } yield {
-      (j, deps.toSet)
-    }
-    tups.toMap
-  }
 
   def invalidateImpl( n : Node, toKill : java.util.Set[Node]) : Unit = {
     if (JobStates.stopabble.contains(n.state)) {
@@ -45,6 +35,17 @@ case class Graph private(val jobs: Map[JobId, Node]) {
     } {
       invalidateImpl(dep, toKill)
     }
+  }
+
+  lazy val dependencies : Map[Node,Set[Node]] = {
+    val tups = for {
+      (q, v) <- jobs
+      j = jobs(q)
+      deps = v.job.dependencies.map(jobs(_))
+    } yield {
+      (j, deps.toSet)
+    }
+    tups.toMap
   }
 
   lazy val dependents : Map[Node, Set[Node]] = {

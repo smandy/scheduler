@@ -26,16 +26,16 @@ if 0:
     print jobs1, jobs2, jobs3
 
 js = server.getJobs()
-import os
 
+print "Got jobs"
+import os
 
 dn = os.path.expanduser('~/jobs')
 for x in os.listdir( dn):
     print x
     os.remove( '%s/%s' % (dn,x))
 
-js = scheduler.JobState
-
+js = scheduler.EnumJobState.State
 
 def doComplete(jid):
     setState(jid, js.COMPLETED)
@@ -55,12 +55,15 @@ n += 1
 
 while True:
     jobs = server.getJobs()
+
+    print "In loop"
     if set( [ x.state for x in jobs ] ) == set( [ js.COMPLETED ] ):
         break
     fails = [ x for x in jobs if x.state == js.FAILED ]
     jobs1 = []
     
     for i in range(5):
+        print "Get job"
         newJobs = server.getStartableJob(wid)
         if not newJobs:
             break

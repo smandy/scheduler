@@ -34,7 +34,8 @@ class ScalaSchedulerServer(val communicator : Communicator,
   }
 
   override def reset_async(cb: AMD_SchedulerServer_reset, current: Current): Unit = {
-    println("Reset not implemented")
+    println("Reset")
+    graph = Graph.empty
     cb.ice_response()
   }
 
@@ -56,15 +57,15 @@ class ScalaSchedulerServer(val communicator : Communicator,
     }
   }
 
-  override def getStartableJob_async(amd_schedulerServer_getStartableJob: AMD_SchedulerServer_getStartableJob, workerId: WorkerId, current: Current): Unit = {
+  override def getStartableJob_async(cb : AMD_SchedulerServer_getStartableJob, workerId: WorkerId, current: Current): Unit = {
     runOnExecutor {
       graph.jobs.values.filter(_.isStartable).toArray.sortBy(_.priority).headOption match {
         case Some(x) => {
           x.jobState.currentWorker = Array(workerId)
           x.jobState.state = EnumJobState.State.SCHEDULED
-          Array(x.job)
+          cb.ice_response(Array(x.job))
         }
-        case None => Array.empty[Job]
+        case None => cb.ice_response(Array.empty[Job])
       }
     }
   }
@@ -103,7 +104,7 @@ class ScalaSchedulerServer(val communicator : Communicator,
   }
 
   override def getJobs_async(cb: AMD_SchedulerServer_getJobs, current: Current): Unit = {
-    cb.ice_response(graph.jobs.values.map(_.job).toArray[Job])
+    cb.ice_response(graph.jobs.values.map(_.makeDTO()).toArray[JobDTO])
   }
 
   override def invalidate_async(amd_schedulerServer_invalidate: AMD_SchedulerServer_invalidate, jid : JobId, current: Current): Unit = ???

@@ -35,6 +35,10 @@ public class Runner {
 
         System.out.println("Destroying");
 
+        adapter.deactivate();
+
+        executor.shutdown();
+
         communicator.destroy();
         System.out.println("Destroyed - exiting");
     }

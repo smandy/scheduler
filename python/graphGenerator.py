@@ -15,6 +15,7 @@ digraph G2 {
 }"""
 
 colorForState = {
+    js.DORMANT   : 'grey',
     js.STARTABLE : 'orange4',
     js.SCHEDULED : 'orange2',
     js.STARTED   : 'orange',
@@ -37,11 +38,11 @@ def doGraphFromJobs(t, jobs, prefix = '~/jobs'):
     edges = []
     nodes = []
     for j in jobs:
-        for dep in j.dependencies:
-            edges.append( "%s -> %s;" % (dep, j.id) )
+        for dep in j.job.dependencies:
+            edges.append( "%s -> %s;" % (dep.id, j.job.id.id) )
 
     for n in jobs:
-        nodes.append( '%s [ fillcolor=%s, style = filled];' % (n.id,colorForState[n.state]))
+        nodes.append( '%s [ fillcolor=%s, style = filled];' % (n.job.id.id,colorForState[n.state.state]))
         
     with open(dotFile, 'w') as outFile:
         strEdges = "\n".join(edges)
