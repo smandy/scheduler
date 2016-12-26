@@ -7,7 +7,7 @@ import IceStorm.{NoSuchTopic, TopicManagerPrxHelper}
 
 class ScalaSchedulerServer(val communicator : Communicator,
                      val executor: ScheduledExecutorService) extends _SchedulerServerDisp {
-  var graph = Graph.forJobs(Map.empty[JobId, Node] ).right
+  var graph = Graph.empty
 
   var workers = Map[WorkerId, WorkerState]()
 
@@ -41,29 +41,21 @@ class ScalaSchedulerServer(val communicator : Communicator,
    */
   def mapForJobs(newJobs : Array[Job]) = Map( newJobs.map( x => (x.id, new Node(x))) : _*)
 
-  override def submitBatch_async(amd_schedulerServer_submitBatch: AMD_SchedulerServer_submitBatch, batch: Batch, current: Current) = {
+  override def submitBatch_async(cb : AMD_SchedulerServer_submitBatch, batch: Batch, current: Current) = {
     runOnExecutor {
-      val newJobMap = graph.jobs ++ mapForJobs( batch.jobs )
-      val newGraph = Graph.forJobs(newJobMap) match {
-        case Right(Graph(g)) => graph = g
-        case Left(new JobCycleDetected(xs) => cb.)
-      }
-
-      // Wire up dependencies
-      for {
-        job <- batch.jobs
-        dependantJob <- jobs.get(job.id)
-        dep <- job.dependencies
-        dependencyJob <- jobs.get(dep)
-      } {
-        dependantJob.dependencies += dependantJob
+      val newGraph = Graph.forJobs(graph.jobs ++ mapForJobs( batch.jobs)) match {
+        case Right(g) => {
+          graph = g
+          cb.ice_response()
+        }
+        case Left(jc) => cb.ice_exception(jc)
       }
     }
   }
 
   override def getStartableJob_async(amd_schedulerServer_getStartableJob: AMD_SchedulerServer_getStartableJob, workerId: WorkerId, current: Current): Unit = {
     runOnExecutor {
-      jobs.values.filter(_.isStartable).toArray.sortBy(_.priority).headOption match {
+      graph.jobs.values.filter(_.isStartable).toArray.sortBy(_.priority).headOption match {
         case Some(x) => {
           x.jobState.currentWorker = Array(workerId)
           x.jobState.state = EnumJobState.State.SCHEDULED
@@ -79,7 +71,7 @@ class ScalaSchedulerServer(val communicator : Communicator,
 
 
   def withJobOnExecutor[T <: AMDCallback](jid : JobId, cb : T, f : (Node) => Unit ) = runOnExecutor {
-    jobs.get(jid) match {
+    graph.jobs.get(jid) match {
       case Some(wj) => {
         f(wj)
       }
@@ -89,10 +81,11 @@ class ScalaSchedulerServer(val communicator : Communicator,
     }
   }
 
-  override def invalidateJob_async(__cb: AMD_SchedulerServer_invalidateJob, id: JobId, __current: Current): Unit = {
-    withJobOnExecutor(id, __cb, (wj) => {
+  override def invalidateJob_async(cb: AMD_SchedulerServer_invalidateJob, id: JobId, __current: Current): Unit = {
+    withJobOnExecutor(id, cb, (wj) => {
       val toKill = new java.util.HashSet[Node]()
-      wj.invalidateImpl(toKill)
+      graph.invalidateImpl(wj, toKill)
+      cb.ice_response()
     })
   }
 
@@ -107,12 +100,10 @@ class ScalaSchedulerServer(val communicator : Communicator,
   }
 
   override def getJobs_async(cb: AMD_SchedulerServer_getJobs, current: Current): Unit = {
-    cb.ice_response(jobs.values.map(_.job).toArray[Job])
+    cb.ice_response(graph.jobs.values.map(_.job).toArray[Job])
   }
 
   override def invalidate_async(amd_schedulerServer_invalidate: AMD_SchedulerServer_invalidate, jid : JobId, current: Current): Unit = ???
-
-  //def r( f : => Unit) : Runnable = () => { f }
 
   override def addListener_async(cb : AMD_SchedulerServer_addListener,
                                  listener : SchedulerServerListenerPrx,
@@ -134,8 +125,8 @@ class ScalaSchedulerServer(val communicator : Communicator,
   }
 
   def makeImage() : Image = {
-    val tmpJobs   = jobs.values.map(_.job).toArray[Job]
-    val tmpStates = jobs.values.map(_.jobState).toArray[JobState]
+    val tmpJobs   = graph.jobs.values.map(_.job).toArray[Job]
+    val tmpStates = graph.jobs.values.map(_.jobState).toArray[JobState]
     new Image( tmpJobs, tmpStates, "")
   }
 

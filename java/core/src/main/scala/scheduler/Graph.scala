@@ -1,6 +1,8 @@
 package scheduler
 
 object Graph {
+  val empty = Graph( Map.empty[JobId,Node])
+
   def forJobs(jobs: Map[JobId, Node]): Either[JobCycleDetected, Graph] = {
     assert(jobs.forall(_._2.job.dependencies.forall(jobs.contains)), "Malformed graph")
 
@@ -20,15 +22,32 @@ object Graph {
 }
 
 case class Graph private(val jobs: Map[JobId, Node]) {
-  lazy val dependencies = for {
-    (q, v) <- jobs
-    j = jobs(q)
-    deps = v.job.dependencies.map(jobs(_))
-  } yield {
-    (j, deps.toSet)
+  lazy val dependencies : Map[Node,Set[Node]] = {
+    val tups = for {
+      (q, v) <- jobs
+      j = jobs(q)
+      deps = v.job.dependencies.map(jobs(_))
+    } yield {
+      (j, deps.toSet)
+    }
+    tups.toMap
   }
 
-  lazy val dependents: Map[Node, Set[Node]] = {
+  def invalidateImpl( n : Node, toKill : java.util.Set[Node]) : Unit = {
+    if (JobStates.stopabble.contains(n.state)) {
+      toKill.add( n )
+    }
+    // TODO - send update
+    n.state = EnumJobState.State.CANCELLING
+    for {
+      deps <- dependencies.get(n)
+      dep <- deps
+    } {
+      invalidateImpl(dep, toKill)
+    }
+  }
+
+  lazy val dependents : Map[Node, Set[Node]] = {
     val tups = for {
       (q, v) <- jobs.toIterable
       j = jobs(q)
@@ -40,18 +59,5 @@ case class Graph private(val jobs: Map[JobId, Node]) {
     val grouped = tups.groupBy(_._2)
     grouped.map(x => (x._1, x._2.map(_._2).toSet))
   }
-
-  /*
-    def invalidateImpl( toKill : java.util.Set[WrappedJob]) : Unit = {
-      if (EnumJobState.State.STARTED == state) {
-        toKill.add( this )
-      }
-      state = EnumJobState.State.DORMANT
-      dependencies.foreach( _.invalidateImpl(toKill))
-    }*/
-
-  /*  def hasDependency( wj : WrappedJob) : Boolean = {
-      !dependencies.contains(wj) && dependencies.forall( d => !d.hasDependency(wj))
-    }*/
 }
 
