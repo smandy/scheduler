@@ -15,6 +15,7 @@
   <url>http://maven.apache.org</url>
   <properties>
     <scala.version>2.12.1</scala.version>
+    <ice.version>3.6.3</ice.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <output.directory>/home/andy</output.directory>
   </properties>

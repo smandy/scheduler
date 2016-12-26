@@ -76,6 +76,7 @@ class ScalaSchedulerServer(val communicator : Communicator,
         case Some(x) => {
           x.jobState.currentWorker = Array(workerId)
           x.jobState.state = EnumJobState.SCHEDULED
+          x.jobState.currentWorker = Array(workerId)
           cb.ice_response(Array(x.job))
         }
         case None => cb.ice_response(Array.empty[Job])
@@ -181,16 +182,18 @@ class ScalaSchedulerServer(val communicator : Communicator,
                                     x: WorkerUpdate,
                                     __current: Current): Unit = {
     import EnumJobState._
-    import JobStates.PimpState
+    import JobStates._
     for {
       u <- x.updates
       wj <- graph.jobs.get(u.id)
     } {
-      val newState = ( wj.state.isTerminal, wj.state, u.state) match {
-        case (false, _, FAILED)    => Some(FAILED)
-        case (false, _, CANCELLED)  => Some(CANCELLED)
-        case (false, _, COMPLETED) => Some(COMPLETED)
-        case (_, SCHEDULED, STARTED) => Some(STARTED)
+      val newState = (wj.state, u.state) match {
+        case (x, y) if (!x.isTerminal && y.isTerminal) => {
+          wj.jobState.currentWorker = Array.empty[WorkerId]
+          Some(y)
+        }
+        case (SCHEDULED, STARTED)    => Some(STARTED)
+        case (CANCELLING, CANCELLED) => Some(CANCELLED)
         case _ => None
       }
       newState.foreach( (x) => {
