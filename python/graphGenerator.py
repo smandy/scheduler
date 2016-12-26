@@ -34,15 +34,14 @@ def doGraphFromJobs(t, jobs, prefix = '~/jobs'):
     print t
     dotFile = os.path.expanduser( '%s/%s.dot' % (prefix, t))
     pngFile = os.path.expanduser( '%s/%s.png' % (prefix, t))
-
     edges = []
     nodes = []
-    for j in jobs:
-        for dep in j.job.dependencies:
-            edges.append( "%s -> %s;" % (dep.id, j.job.id.id) )
+    for dto in jobs:
+        for dep in dto.job.dependencies:
+            edges.append( "%s -> %s;" % (dep.id, dto.job.id.id) )
 
     for n in jobs:
-        nodes.append( '%s [ fillcolor=%s, style = filled];' % (n.job.id.id,colorForState[n.state.state]))
+        nodes.append( '%s [ fillcolor=%s, style = filled];' % (n.job.id.id, colorForState[n.state.state]))
         
     with open(dotFile, 'w') as outFile:
         strEdges = "\n".join(edges)

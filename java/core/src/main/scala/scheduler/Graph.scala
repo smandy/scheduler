@@ -22,18 +22,22 @@ object Graph {
 }
 
 case class Graph private(val jobs: Map[JobId, Node]) {
+  import JobStates._
 
-  def invalidateImpl( n : Node, toKill : java.util.Set[Node]) : Unit = {
-    if (JobStates.stoppable.contains(n.state)) {
-      toKill.add( n )
+  def invalidatable( jid : Node) : Boolean = {
+    jid.state.isInvalidatable && dependencies.getOrElse( jid, Set.empty[Node]).forall( invalidatable _ )
+  }
+
+  def invalidateImpl( n : Node, updated : java.util.ArrayList[Node] ) : Unit = {
+    if (n.state != EnumJobState.DORMANT) {
+      n.state = EnumJobState.DORMANT
+      updated.add(n)
     }
-    // TODO - send update
-    n.state = EnumJobState.CANCELLING
     for {
       deps <- dependencies.get(n)
       dep <- deps
     } {
-      invalidateImpl(dep, toKill)
+      invalidateImpl(dep, updated)
     }
   }
 

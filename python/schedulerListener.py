@@ -1,7 +1,7 @@
 import uuid
 import Ice
 
-from schedulerHelper import Scheduler
+from schedulerHelper import scheduler
 from graphGenerator import doGraphFromJobs
 import os
 from datetime import datetime
@@ -9,13 +9,13 @@ from datetime import datetime
 #communicator = Ice.initialize(['--Ice.Config=../config/schedulerserver.config'])
 communicator = Ice.initialize(['--Ice.Config=../config/client.config'])
 prx = communicator.propertyToProxy("SchedulerServer.Proxy")
-server = Scheduler.SchedulerServerPrx.checkedCast( prx )
+server = scheduler.SchedulerServerPrx.checkedCast( prx )
 imageDir = os.path.expanduser( communicator.getProperties().getProperty('SchedulerListener.ImageDir'))
 
 def onFail(self, ex, current):
     print "Failed %s" % ex
     
-class MyListener(Scheduler.SchedulerServerListener):
+class MyListener(scheduler.SchedulerServerListener):
     def __init__(self):
         self.imgCounter = 0
 
@@ -24,7 +24,7 @@ class MyListener(Scheduler.SchedulerServerListener):
         cb.ice_response()
         
     def onImage_async(self, cb, image, current):
-        print "%s Woot got image %s" % (datetime.now().isoformat(), ",".join( [x.id for x in image.jobs] ))
+        print "%s Woot got image %s" % (datetime.now().isoformat(), ",".join( [x.job.id.id for x in image.jobs] ))
         cb.ice_response()
         self.onJobs(image.jobs)
         print "done"
@@ -35,10 +35,10 @@ class MyListener(Scheduler.SchedulerServerListener):
         self.imgCounter = (self.imgCounter + 1 ) % 4
         img =  'images/%s.png' % suffix
         print "%s notifying server of image ready %s" % (datetime.now().isoformat() , img)
-        server.begin_imageReady(img)
+        server.begin_imageReady('woot', img)
         
     def onUpdate_async(self, cb, update, current):
-        print "%s Woot got udpate %s" % (datetime.now().isoformat(), ",".join( [x.id for x in update] ))
+        print "%s Woot got udpate %s" % (datetime.now().isoformat(), ",".join( [x.job.id.id for x in update] ))
         cb.ice_response()
         server.begin_getJobs( _response = self.onJobs, _ex = onFail)
         #print "done"
@@ -50,7 +50,7 @@ myListener = MyListener()
 myPrx = adapter.addWithUUID( myListener )
 
 print "MyPrx is %s" % myPrx
-listenerPrx = Scheduler.SchedulerServerListenerPrx.uncheckedCast(myPrx)
+listenerPrx = scheduler.SchedulerServerListenerPrx.uncheckedCast(myPrx)
 
 server.addListener(listenerPrx)
 communicator.waitForShutdown()

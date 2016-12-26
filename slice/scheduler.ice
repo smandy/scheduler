@@ -122,25 +122,21 @@ module scheduler {
     sequence<JobState> JobStateSeq;
     dictionary<string,Job> JobDict;
 
-    
-
     struct Batch {
         JobSeq jobs;
     };
 
     struct Image {
-        JobSeq jobs;
-        JobStateSeq jobStates;
+        JobDTOSeq jobs;
         string currentImage;
     };
     
     interface SchedulerServerListener {
-        ["amd"] void onImage( Image image );
-        ["amd"] void onUpdate( JobStateSeq jobs );
-        ["amd"] void onImageReady(string batchId, string imgId);
-        ["amd"] void onReset();
+        ["amd","ami"] void onImage( Image image );
+        ["amd","ami"] void onUpdate( JobDTOSeq jobs );
+        ["amd","ami"] void onImageReady(string batchId, string imgId);
+        ["amd","ami"] void onReset();
     };
-
 
     interface SchedulerServer {
         ["amd"] void submitBatch( Batch batch ) throws DuplicateJob;
@@ -149,7 +145,6 @@ module scheduler {
         ["amd"] void stopJob( JobId id );
         ["amd"] void invalidateJob( JobId id );
         
-        ["amd"] void invalidate( JobId id);
         ["amd"] void reset();
         
         ["amd"] string dumpStatus();
@@ -161,7 +156,7 @@ module scheduler {
         // For Javascript
         ["amd"] void addListenerWithIdent( Ice::Identity ident);
         
-        ["amd"] void onWorkerUpdate( WorkerUpdate x);
+        ["amd"] void onWorkerUpdate(WorkerUpdate x);
         
         // Invoked from the graph server
         ["amd"] void imageReady(string batchId, string imgId);
