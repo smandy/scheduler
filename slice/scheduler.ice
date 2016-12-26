@@ -153,12 +153,13 @@ module scheduler {
         
         ["amd"] void invalidate( JobId id);
         ["amd"] void reset();
+        
         ["amd"] string dumpStatus();
         ["amd"] JobSeq getJobs();
         ["amd"] JobSeq getStartableJob( WorkerId worker );
         ["amd"] Job getJob( JobId id ) throws JobNotExist;
         ["amd"] void addListener( SchedulerServerListener *listener);
-
+        
         // For Javascript
         ["amd"] void addListenerWithIdent( Ice::Identity ident);
         
