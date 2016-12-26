@@ -35,17 +35,22 @@ for x in os.listdir( dn):
     print x
     os.remove( '%s/%s' % (dn,x))
 
-js = scheduler.EnumJobState.State
-wjs = scheduler.EnumWorkerJobState.State
+js = scheduler.EnumJobState
 
 def doComplete(jid):
-    setState(jid, wjs.COMPLETED)
+    workerUpdate(jid, js.COMPLETED)
 
-def setState(jid,s):
-    print "SetState %s %s" % (jid, s)
+def workerUpdate(jid,s):
+    """Use the cheeky set method"""
+    print "Worker update %s %s" % (jid, s)
     wsd = scheduler.WorkerStateDescription(jid, s)
     s = scheduler.WorkerUpdate( wid, [ wsd ] )
     server.onWorkerUpdate(s)
+
+def setState(jid,s):
+    """Use the cheeky set method"""
+    print "SetState %s %s" % (jid, s)
+    server.setState( jid, s)
     
 def stateSummary():
     xs = server.getJobs()
@@ -58,31 +63,31 @@ n += 1
 
 while True:
     jobs = server.getJobs()
-
-    print "In loop"
-    if set( [ x.state for x in jobs ] ) == set( [ js.COMPLETED ] ):
+    if set( [ x.state.state for x in jobs ] ) == set( [ js.COMPLETED ] ):
         break
-    fails = [ x for x in jobs if x.state == js.FAILED ]
+    fails = [ x for x in jobs if x.state.state == js.FAILED ]
     jobs1 = []
     
+    print "In loop %s fails" % len(fails)
     for i in range(5):
-        print "Get job"
+        #print "Get job"
         newJobs = server.getStartableJob(wid)
-        print "Got %s" % len(newJobs)
+        #print "Got %s" % len(newJobs)
         if not newJobs:
             break
         jobs1 += newJobs
         
     if not jobs1 and fails:
         # lets pretend Manual intervention
-        setState( fails[0].id, js.STARTABLE)
+        print "Doing setstate"
+        setState( fails[0].job.id, js.READY)
         
     doGraph( 'state%03d' % n, server)
     n += 1
+    
     for x in jobs1:
-        state = random.choice( [ wjs.FAILED, wjs.COMPLETED,
-                                 wjs.COMPLETED ] )
-        setState( x.id, state )
+        state = random.choice( [ js.FAILED, js.COMPLETED,js.COMPLETED ] )
+        workerUpdate( x.id, state)
     doGraph( 'state%03d' % n, server)
     n += 1
         

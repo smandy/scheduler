@@ -165,5 +165,7 @@ module scheduler {
         
         // Invoked from the graph server
         ["amd"] void imageReady(string batchId, string imgId);
+
+        ["amd"] void setState( JobId id, EnumJobState state);
     };
 };

@@ -12,8 +12,6 @@ def makeBatch():
     job2 = scheduler.Job( m('id02'), [m('id01')],  2)
     job3 = scheduler.Job( m('id03'), [m('id01'), m('id02')],  2)
 
-    #naughty = scheduler.Job( 'bad', [], scheduler.EnumJobState.State.FAILED , 2)
-
     job4 = scheduler.Job( m('id04'), [m('id03')],  2)
     pt1 = scheduler.Job( m('pt1'), [m('id04')],  2)
     pt2 = scheduler.Job( m('pt2'), [m('pt1')],  2)

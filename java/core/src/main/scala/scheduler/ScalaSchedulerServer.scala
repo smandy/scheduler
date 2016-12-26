@@ -63,6 +63,7 @@ class ScalaSchedulerServer(val communicator : Communicator,
     import EnumJobState.READY
     for {
       v <- graph.jobs.values
+      if (v.state==EnumJobState.DORMANT)
       if (!graph.dependencies.isDefinedAt(v) || graph.dependencies(v).forall(_.state == EnumJobState.COMPLETED))
     } {
       v.state = READY
@@ -176,7 +177,9 @@ class ScalaSchedulerServer(val communicator : Communicator,
     })
   }
 
-  override def onWorkerUpdate_async(cb : AMD_SchedulerServer_onWorkerUpdate, x: WorkerUpdate, __current: Current): Unit = {
+  override def onWorkerUpdate_async(cb : AMD_SchedulerServer_onWorkerUpdate,
+                                    x: WorkerUpdate,
+                                    __current: Current): Unit = {
     import EnumJobState._
     import JobStates.PimpState
     for {
@@ -196,5 +199,14 @@ class ScalaSchedulerServer(val communicator : Communicator,
       } )
     }
     cb.ice_response()
+  }
+
+  override def setState_async(cb: AMD_SchedulerServer_setState, id: JobId, state: EnumJobState, __current: Current): Unit = {
+    println(s"Trying to Setting state $id $state")
+    withJobOnExecutor(id, cb, (wj) => {
+      println(s"Setting state $id $state")
+      wj.state = state
+      cb.ice_response()
+    } )
   }
 }
