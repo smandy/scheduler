@@ -50,6 +50,12 @@ class ScalaSchedulerServer(val communicator : Communicator,
       val newGraph = Graph.forJobs(graph.jobs ++ mapForJobs( batch.jobs)) match {
         case Right(g) => {
           graph = g
+          for {
+            v <- graph.jobs.values
+            if (!graph.dependencies.isDefinedAt(v) || graph.dependencies(v).forall(_.state == EnumJobState.State.COMPLETED))
+          } {
+            v.state = EnumJobState.State.STARTABLE
+          }
           cb.ice_response()
         }
         case Left(jc) => cb.ice_exception(jc)

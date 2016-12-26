@@ -37,7 +37,8 @@ module scheduler {
             STARTED,
             FAILED,
             CANCELLING,
-            CANCELED
+            CANCELED,
+            COMPLETED
         };
     };
 

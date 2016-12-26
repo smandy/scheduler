@@ -36,13 +36,16 @@ for x in os.listdir( dn):
     os.remove( '%s/%s' % (dn,x))
 
 js = scheduler.EnumJobState.State
+wjs = scheduler.EnumWorkerJobState.State
 
 def doComplete(jid):
-    setState(jid, js.COMPLETED)
+    setState(jid, wjs.COMPLETED)
 
 def setState(jid,s):
-    s = scheduler.JobWorkerState(wid, jid, s)
-    server.onWorkerStates( [s])
+    print "SetState %s %s" % (jid, s)
+    wsd = scheduler.WorkerStateDescription(jid, s)
+    s = scheduler.WorkerUpdate( wid, [ wsd ] )
+    server.onWorkerUpdate(s)
     
 def stateSummary():
     xs = server.getJobs()
@@ -65,6 +68,7 @@ while True:
     for i in range(5):
         print "Get job"
         newJobs = server.getStartableJob(wid)
+        print "Got %s" % len(newJobs)
         if not newJobs:
             break
         jobs1 += newJobs
