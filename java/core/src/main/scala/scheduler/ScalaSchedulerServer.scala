@@ -11,14 +11,15 @@ class ScalaSchedulerServer(val communicator : Communicator,
 
   var workers = Map[WorkerId, WorkerState]()
 
-  val topic = {
+  val (topic, publisher) = {
     val topicPrx = TopicManagerPrxHelper.checkedCast(communicator.propertyToProxy("icestorm.topicmanager"))
     val subject = communicator.getProperties().getProperty("scheduler.topic")
-    try {
+    val topic = try {
       topicPrx.retrieve(subject)
     } catch {
       case (nst: NoSuchTopic) => topicPrx.create(subject)
     }
+    (topic, SchedulerServerListenerPrxHelper.uncheckedCast(topic.getPublisher()))
   }
 
   /// XXXAS - check worker states.
@@ -59,11 +60,12 @@ class ScalaSchedulerServer(val communicator : Communicator,
   }
 
   def checkStartableStates(): Unit = {
+    import EnumJobState.READY
     for {
       v <- graph.jobs.values
-      if (!graph.dependencies.isDefinedAt(v) || graph.dependencies(v).forall(_.state == EnumJobState.State.COMPLETED))
+      if (!graph.dependencies.isDefinedAt(v) || graph.dependencies(v).forall(_.state == EnumJobState.COMPLETED))
     } {
-      v.state = EnumJobState.State.STARTABLE
+      v.state = READY
     }
   }
 
@@ -72,7 +74,7 @@ class ScalaSchedulerServer(val communicator : Communicator,
       graph.jobs.values.filter(_.isStartable).toArray.sortBy(_.priority).headOption match {
         case Some(x) => {
           x.jobState.currentWorker = Array(workerId)
-          x.jobState.state = EnumJobState.State.SCHEDULED
+          x.jobState.state = EnumJobState.SCHEDULED
           cb.ice_response(Array(x.job))
         }
         case None => cb.ice_response(Array.empty[Job])
@@ -80,9 +82,11 @@ class ScalaSchedulerServer(val communicator : Communicator,
     }
   }
 
-  override def dumpStatus_async(amd_schedulerServer_dumpStatus: AMD_SchedulerServer_dumpStatus,
-                                current: Current): Unit = ???
-
+  override def dumpStatus_async(cb : AMD_SchedulerServer_dumpStatus,
+                                current: Current): Unit = {
+    val ret = graph.jobs.map( _.toString ).mkString("\n")
+    cb.ice_response(ret)
+  }
 
   def withJobOnExecutor[T <: AMDCallback](jid : JobId, cb : T, f : (Node) => Unit ) = runOnExecutor {
     graph.jobs.get(jid) match {
@@ -105,8 +109,8 @@ class ScalaSchedulerServer(val communicator : Communicator,
 
   override def startJob_async(cb : AMD_SchedulerServer_startJob, jid : JobId, current: Current) : Unit = {
     withJobOnExecutor(jid, cb, (wj) =>
-      if (wj.state == EnumJobState.State.DORMANT) {
-        wj.state = EnumJobState.State.STARTABLE
+      if (wj.state == EnumJobState.DORMANT) {
+        wj.state = EnumJobState.READY
         cb.ice_response()
       } else {
         cb.ice_exception(new JobNotStartable(jid))
@@ -150,14 +154,18 @@ class ScalaSchedulerServer(val communicator : Communicator,
                              jid : JobId,
                              current: Current) : Unit = {
     withJobOnExecutor(jid , cb, (wj) => {
-      if (wj.state == EnumJobState.State.STARTED ) {
-        /// XXAS - need to send cancel message to the worker
-        wj.state = EnumJobState.State.CANCELLED
-        cb.ice_response()
-      } else {
-        cb.ice_exception( new JobNotStartable(jid))
+      import EnumJobState._
+      if ( wj.state == STARTED) {
+        wj.state = CANCELLING
       }
+      cb.ice_response()
     })
+  }
+
+  def sendUpdate( n : Node): Unit = {
+
+
+
   }
 
   override def imageReady_async(amd_schedulerServer_imageReady: AMD_SchedulerServer_imageReady, batchId : String, s: String, current: Current): Unit = ???
@@ -169,17 +177,17 @@ class ScalaSchedulerServer(val communicator : Communicator,
   }
 
   override def onWorkerUpdate_async(cb : AMD_SchedulerServer_onWorkerUpdate, x: WorkerUpdate, __current: Current): Unit = {
+    import EnumJobState._
+    import JobStates.PimpState
     for {
       u <- x.updates
       wj <- graph.jobs.get(u.id)
     } {
-      import EnumWorkerJobState.{ State => wjs }
-      import EnumJobState.{ State => js }
-      val newState = ( JobStates.terminal.contains(wj.state), wj.state, u.state) match {
-        case (false, _, wjs.FAILED)    => Some(js.FAILED)
-        case (false, _, wjs.CANCELED)  => Some(js.CANCELLED)
-        case (false, _, wjs.COMPLETED) => Some(js.COMPLETED)
-        case (_, EnumJobState.State.SCHEDULED, EnumWorkerJobState.State.STARTED) => Some(EnumJobState.State.STARTED)
+      val newState = ( wj.state.isTerminal, wj.state, u.state) match {
+        case (false, _, FAILED)    => Some(FAILED)
+        case (false, _, CANCELLED)  => Some(CANCELLED)
+        case (false, _, COMPLETED) => Some(COMPLETED)
+        case (_, SCHEDULED, STARTED) => Some(STARTED)
         case _ => None
       }
       newState.foreach( (x) => {

@@ -1,0 +1,25 @@
+// dot -Tpng -o states.png states.dot
+
+digraph G2 {
+    graph [rankdir = UD];
+    node[shape=record,fontname="Liberation"];
+
+    DORMANT -> READY;
+    READY -> SCHEDULED [label="getStartableJobs"];
+    SCHEDULED -> STARTED [label="onWorkerStatus(Started)"];
+    STARTED -> FAILED [label="retcode!=0"];
+    STARTED -> CANCELLING [label="onCancel"];
+    STARTED -> COMPLETED [label="retCode=0"];
+    CANCELLING -> CANCELLED [label="retcode!=0"];
+    CANCELLED -> READY;
+
+    
+    DORMANT [ style = filled];
+    READY [ style = filled];
+    SCHEDULED [ style = filled];
+    STARTED [ style = filled];
+    CANCELLING [ style = filled];
+    CANCELLED [ style = filled];
+    FAILED [ style = filled];
+    COMPLETED [ style = filled];
+}

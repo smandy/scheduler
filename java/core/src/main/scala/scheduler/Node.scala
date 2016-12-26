@@ -5,7 +5,7 @@ class Node(val job : Job) {
   def makeDTO() = new JobDTO( job, jobState)
 
   val jobState = new JobState(job.id,
-    EnumJobState.State.DORMANT,
+    EnumJobState.DORMANT,
     Array.empty[WorkerId],
     Array.empty[JobStateDescription],
     Array.empty[WorkerStateDescription] )
@@ -14,7 +14,7 @@ class Node(val job : Job) {
 
   def state = jobState.state
 
-  def state_=( s : scheduler.EnumJobState.State) : Unit = {
+  def state_=( s : scheduler.EnumJobState) : Unit = {
     jobState.state = s
   }
 

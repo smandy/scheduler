@@ -24,11 +24,11 @@ object Graph {
 case class Graph private(val jobs: Map[JobId, Node]) {
 
   def invalidateImpl( n : Node, toKill : java.util.Set[Node]) : Unit = {
-    if (JobStates.stopabble.contains(n.state)) {
+    if (JobStates.stoppable.contains(n.state)) {
       toKill.add( n )
     }
     // TODO - send update
-    n.state = EnumJobState.State.CANCELLING
+    n.state = EnumJobState.CANCELLING
     for {
       deps <- dependencies.get(n)
       dep <- deps

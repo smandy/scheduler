@@ -18,30 +18,17 @@ module scheduler {
 
     ["cpp:type:std::unordered_map<JobId, JobId>"] dictionary<JobId,JobId> tmpJobId;
 
-    module EnumJobState {
-        enum State {
-            DORMANT,
-            STARTABLE,
-            SCHEDULED,
-            STARTED,
-            CANCELLING,
-            CANCELLED,
-            FAILED,
-            COMPLETED
-        };
+    enum EnumJobState {
+        DORMANT,
+        READY,
+        SCHEDULED,
+        STARTED,
+        CANCELLING,
+        CANCELLED,
+        FAILED,
+        COMPLETED
     };
-
-    // The state a worker thinks a job is in
-    module EnumWorkerJobState {
-        enum State {
-            STARTED,
-            FAILED,
-            CANCELLING,
-            CANCELED,
-            COMPLETED
-        };
-    };
-
+    
     struct JobUpdate {
         JobId  id;
         int    pctComplete;
@@ -60,7 +47,7 @@ module scheduler {
     // ALl he really knows if he's started it and if it's complete
     struct WorkerStateDescription {
         JobId id;
-        ::scheduler::EnumWorkerJobState::State state;
+        EnumJobState state;
     };
 
     sequence<WorkerStateDescription> WorkerStateDescriptionSeq;
@@ -95,7 +82,7 @@ module scheduler {
        description of a job. Separation of concerns etc. */
     struct JobState {
         JobId id;
-        EnumJobState::State state = EnumJobState::DORMANT;
+        EnumJobState state = DORMANT;
         
         WorkerIdSeq currentWorker;
         
