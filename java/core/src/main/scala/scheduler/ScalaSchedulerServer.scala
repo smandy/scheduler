@@ -8,9 +8,7 @@ import IceStorm.{NoSuchTopic, TopicManagerPrxHelper}
 
 class ScalaSchedulerServer(val communicator: Communicator,
                            val executor: ScheduledExecutorService) extends _SchedulerServerDisp {
-  var graph = Graph.empty
-
-  var workers = Map[WorkerId, WorkerState]()
+  private var graph = Graph.empty
 
   val (topic, publisher) = {
     val topicPrx = TopicManagerPrxHelper.checkedCast(communicator.propertyToProxy("icestorm.topicmanager"))
@@ -93,7 +91,6 @@ class ScalaSchedulerServer(val communicator: Communicator,
         case Some(x) => {
           x.jobState.currentWorker = Array(workerId)
           x.jobState.state = EnumJobState.SCHEDULED
-          x.jobState.currentWorker = Array(workerId)
           cb.ice_response(Array(x.job))
           publisher.begin_onUpdate(Array(x.makeDTO()))
         }
@@ -201,6 +198,8 @@ class ScalaSchedulerServer(val communicator: Communicator,
     } {
       val newState = (wj.state, u.state) match {
         case (x, y) if !x.isTerminal && y.isTerminal => {
+          assert( !wj.jobState.currentWorker.isEmpty, "Logic error")
+          val wid = wj.jobState.currentWorker.head
           wj.jobState.currentWorker = Array.empty[WorkerId]
           Some(y)
         }
