@@ -80,8 +80,8 @@ while True:
     doGraph( 'state%03d' % n, server)
     n += 1
     for x in jobs1:
-        state = random.choice( [ js.FAILED, js.COMPLETED,
-                                 js.COMPLETED, js.COMPLETED] )
+        state = random.choice( [ wjs.FAILED, wjs.COMPLETED,
+                                 wjs.COMPLETED ] )
         setState( x.id, state )
     doGraph( 'state%03d' % n, server)
     n += 1

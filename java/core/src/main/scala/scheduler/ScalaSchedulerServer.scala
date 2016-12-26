@@ -50,16 +50,20 @@ class ScalaSchedulerServer(val communicator : Communicator,
       val newGraph = Graph.forJobs(graph.jobs ++ mapForJobs( batch.jobs)) match {
         case Right(g) => {
           graph = g
-          for {
-            v <- graph.jobs.values
-            if (!graph.dependencies.isDefinedAt(v) || graph.dependencies(v).forall(_.state == EnumJobState.State.COMPLETED))
-          } {
-            v.state = EnumJobState.State.STARTABLE
-          }
+          checkStartableStates()
           cb.ice_response()
         }
         case Left(jc) => cb.ice_exception(jc)
       }
+    }
+  }
+
+  def checkStartableStates(): Unit = {
+    for {
+      v <- graph.jobs.values
+      if (!graph.dependencies.isDefinedAt(v) || graph.dependencies(v).forall(_.state == EnumJobState.State.COMPLETED))
+    } {
+      v.state = EnumJobState.State.STARTABLE
     }
   }
 
@@ -164,5 +168,25 @@ class ScalaSchedulerServer(val communicator : Communicator,
     })
   }
 
-  override def onWorkerUpdate_async(__cb: AMD_SchedulerServer_onWorkerUpdate, x: WorkerUpdate, __current: Current): Unit = ???
+  override def onWorkerUpdate_async(cb : AMD_SchedulerServer_onWorkerUpdate, x: WorkerUpdate, __current: Current): Unit = {
+    for {
+      u <- x.updates
+      wj <- graph.jobs.get(u.id)
+    } {
+      import EnumWorkerJobState.{ State => wjs }
+      import EnumJobState.{ State => js }
+      val newState = ( JobStates.terminal.contains(wj.state), wj.state, u.state) match {
+        case (false, _, wjs.FAILED)    => Some(js.FAILED)
+        case (false, _, wjs.CANCELED)  => Some(js.CANCELLED)
+        case (false, _, wjs.COMPLETED) => Some(js.COMPLETED)
+        case (_, EnumJobState.State.SCHEDULED, EnumWorkerJobState.State.STARTED) => Some(EnumJobState.State.STARTED)
+        case _ => None
+      }
+      newState.foreach( (x) => {
+        wj.state = x
+        checkStartableStates()
+      } )
+    }
+    cb.ice_response()
+  }
 }
