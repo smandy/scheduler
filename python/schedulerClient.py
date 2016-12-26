@@ -2,12 +2,13 @@ import random
 import exampleBatch
 
 import Ice
-from schedulerHelper import Scheduler
+from schedulerHelper import scheduler
 from graphGenerator import doGraph
 
 communicator = Ice.initialize(['--Ice.Config=../config/client.config'])
 prx = communicator.propertyToProxy("SchedulerServer.Proxy")
-server = Scheduler.SchedulerServerPrx.checkedCast( prx )
+server = scheduler.SchedulerServerPrx.checkedCast( prx )
+
 server.reset()
 
 batch = exampleBatch.makeBatch()
@@ -16,7 +17,7 @@ print "Sending"
 server.submitBatch( batch )
 print "sent"
 
-wid = Scheduler.WorkerId("worker1")
+wid = scheduler.WorkerId("worker1")
 
 if 0:
     jobs1 = server.getStartableJob(wid)
@@ -33,14 +34,14 @@ for x in os.listdir( dn):
     print x
     os.remove( '%s/%s' % (dn,x))
 
-js = Scheduler.JobState
+js = scheduler.JobState
 
 
 def doComplete(jid):
     setState(jid, js.COMPLETED)
 
 def setState(jid,s):
-    s = Scheduler.JobWorkerState(wid, jid, s)
+    s = scheduler.JobWorkerState(wid, jid, s)
     server.onWorkerStates( [s])
     
 def stateSummary():

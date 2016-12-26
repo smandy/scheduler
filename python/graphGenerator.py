@@ -1,7 +1,7 @@
-from schedulerHelper import Scheduler
+from schedulerHelper import scheduler
 import os
 
-js = Scheduler.JobState
+js = scheduler.EnumJobState.State
 
 template = """\
 digraph G2 {
@@ -18,7 +18,7 @@ colorForState = {
     js.STARTABLE : 'orange4',
     js.SCHEDULED : 'orange2',
     js.STARTED   : 'orange',
-    js.BLOCKED   : 'gray',
+    #js.BLOCKED   : 'gray',
     js.COMPLETED : 'green',
     js.FAILED    : 'red'
     }

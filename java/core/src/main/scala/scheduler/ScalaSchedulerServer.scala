@@ -12,7 +12,7 @@ class ScalaSchedulerServer(val communicator : Communicator,
   var workers = Map[WorkerId, WorkerState]()
 
   val topic = {
-    val topicPrx = TopicManagerPrxHelper.checkedCast(communicator.propertyToProxy("icestorm.topicManager"))
+    val topicPrx = TopicManagerPrxHelper.checkedCast(communicator.propertyToProxy("icestorm.topicmanager"))
     val subject = communicator.getProperties().getProperty("scheduler.topic")
     try {
       topicPrx.retrieve(subject)
@@ -33,7 +33,10 @@ class ScalaSchedulerServer(val communicator : Communicator,
     fut.get()
   }
 
-  override def reset_async(amd_schedulerServer_reset: AMD_SchedulerServer_reset, current: Current): Unit = ???
+  override def reset_async(cb: AMD_SchedulerServer_reset, current: Current): Unit = {
+    println("Reset not implemented")
+    cb.ice_response()
+  }
 
   /*
   Create an array of jobs to add. We don't add them immediately

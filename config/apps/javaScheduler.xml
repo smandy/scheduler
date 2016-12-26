@@ -3,16 +3,16 @@
 <icegrid>
    <application name="SchedulerJava">
       <node name="raffles">
-         <server id="SchedulerJava" activation="manual" exe="java" pwd="/mnt/hdd/andy/repos/scheduler/java/core/target">
+         <server id="SchedulerJava" activation="manual" exe="java" pwd="/mnt/hdd/andy/deploy">
             <description>Java implementation of the SCHEDULER Job Scheduler.</description>
             <option>-cp</option>
             <option>core-0.1.0-SNAPSHOT-jar-with-dependencies.jar</option>
-            <option>bamma.Runner</option>
+            <option>scheduler.Runner</option>
             <properties>
                <property name="Ice.StdOut" value="/tmp/schedulerJava.txt"/>
                <property name="Ice.StdErr" value="/tmp/schedulerJava.txt"/>
-               <property name="IceStorm.TopicManager" value="IceStorm/TopicManager"/>
-               <property name="Scheduler.Topic" value="dev.jobs"/>
+               <property name="icestorm.topicmanager" value="IceStorm/TopicManager"/>
+               <property name="scheduler.topic" value="dev.jobs"/>
                <property name="adapterName" value="SchedulerJava"/>
                <property name="objectIdentity" value="server"/>
             </properties>

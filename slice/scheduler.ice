@@ -95,8 +95,8 @@ module scheduler {
     struct JobState {
         JobId id;
         EnumJobState::State state = EnumJobState::DORMANT;
+        
         WorkerIdSeq currentWorker;
-
         // Reported by the job itself
         JobStateDescriptionSeq jobStatus;
         

@@ -1,42 +1,44 @@
 import Ice
 
-from schedulerHelper import Scheduler
+from schedulerHelper import scheduler
 
 # An example batch.
 
+def m(s):
+    return scheduler.JobId( s,'batch')
+
 def makeBatch():
-    job1 = Scheduler.Job( 'id01', [], Scheduler.JobState.STARTABLE , 5)
-    job2 = Scheduler.Job( 'id02', ['id01'], Scheduler.JobState.STARTABLE , 2)
-    job3 = Scheduler.Job( 'id03', ['id01', 'id02'], Scheduler.JobState.STARTABLE , 2)
+    job1 = scheduler.Job( m('id01'), [],  5)
+    job2 = scheduler.Job( m('id02'), [m('id01')],  2)
+    job3 = scheduler.Job( m('id03'), [m('id01'), m('id02')],  2)
 
-    #naughty = Scheduler.Job( 'bad', [], Scheduler.JobState.FAILED , 2)
+    #naughty = scheduler.Job( 'bad', [], scheduler.EnumJobState.State.FAILED , 2)
 
-    job4 = Scheduler.Job( 'id04', ['id03'], Scheduler.JobState.STARTABLE , 2)
-    pt1 = Scheduler.Job( 'pt1', ['id04'], Scheduler.JobState.STARTABLE , 2)
-    pt2 = Scheduler.Job( 'pt2', ['pt1'], Scheduler.JobState.STARTABLE , 2)
+    job4 = scheduler.Job( m('id04'), [m('id03')],  2)
+    pt1 = scheduler.Job( m('pt1'), [m('id04')],  2)
+    pt2 = scheduler.Job( m('pt2'), [m('pt1')],  2)
 
-    reduces = [ Scheduler.Job( 'mr%s' % i, ['pt2'], Scheduler.JobState.STARTABLE , 2) for i in range(5) ]
+    reduces = [ scheduler.Job( m('mr%s' % i), [m('pt2')],  2) for i in range(5) ]
     rids = [ x.id for x in reduces]
 
-    job5 = Scheduler.Job( 'id05', ['id03'] + rids, Scheduler.JobState.STARTABLE , 2)
-    job6 = Scheduler.Job( 'id06', ['id03'], Scheduler.JobState.STARTABLE , 2)
-    job7 = Scheduler.Job( 'id07', ['id03'], Scheduler.JobState.STARTABLE , 2)
+    job5 = scheduler.Job( m('id05'), [m('id03')] + rids,  2)
+    job6 = scheduler.Job( m('id06'), [m('id03')],  2)
+    job7 = scheduler.Job( m('id07'), [m('id03')],  2)
 
 
-    job8 = Scheduler.Job( 'id08', ['id05', 'id06'], Scheduler.JobState.STARTABLE , 1)
-    job9 = Scheduler.Job( 'id09', ['id06', 'id07'], Scheduler.JobState.STARTABLE , 2)
+    job8 = scheduler.Job( m('id08'), [m('id05'), m('id06')],  1)
+    job9 = scheduler.Job( m('id09'), [m('id06'), m('id07')],  2)
 
-    job10 = Scheduler.Job( 'id10', ['id08', 'id09'], Scheduler.JobState.STARTABLE , 2)
-    job11 = Scheduler.Job( 'id11', ['id08', 'id09'], Scheduler.JobState.STARTABLE , 2)
+    job10 = scheduler.Job( m('id10'), [m('id08'), m('id09')],  2)
+    job11 = scheduler.Job( m('id11'), [m('id08'), m('id09')],  2)
 
-    job12 = Scheduler.Job( 'id12', ['id05', 'id10'], Scheduler.JobState.STARTABLE , 2)
-    job13 = Scheduler.Job( 'id13', ['id02', 'id03' ,'id10'], Scheduler.JobState.STARTABLE , 2)
-    job14 = Scheduler.Job( 'id14', ['id10', 'id11'], Scheduler.JobState.STARTABLE , 2)
+    job12 = scheduler.Job( m('id12'), [m('id05'), m('id10')],  2)
+    job13 = scheduler.Job( m('id13'), [m('id02'), m('id03') ,m('id10')],  2)
+    job14 = scheduler.Job( m('id14'), [m('id10'), m('id11')],  2)
 
-    terminal = Scheduler.Job( 'terminal', ['id12','id13','id14'], Scheduler.JobState.STARTABLE , 2)
+    terminal = scheduler.Job( m('terminal'), [m('id12'),m('id13'),m('id14')],  2)
 
-    batch = Scheduler.Batch()
-
+    batch = scheduler.Batch()
 
     tmpJobs = [job1, job2, job3, job4, job5,
                job6, job7, job8, job9 , job10, job11,
