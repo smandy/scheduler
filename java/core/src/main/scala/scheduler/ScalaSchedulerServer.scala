@@ -10,6 +10,10 @@ class ScalaSchedulerServer(val communicator: Communicator,
                            val executor: ScheduledExecutorService) extends _SchedulerServerDisp {
   private var graph = Graph.empty
 
+  def assertOnExecutor() : Unit = {
+    //assert( executor.)
+  }
+
   val (topic, publisher) = {
     val topicPrx = TopicManagerPrxHelper.checkedCast(communicator.propertyToProxy("icestorm.topicmanager"))
     val subject = communicator.getProperties.getProperty("scheduler.topic")
@@ -19,6 +23,21 @@ class ScalaSchedulerServer(val communicator: Communicator,
       case (nst: NoSuchTopic) => topicPrx.create(subject)
     }
     (topic, SchedulerServerListenerPrxHelper.uncheckedCast(topic.getPublisher()))
+  }
+
+  var listeners = Set[SchedulerServerListenerPrx](publisher)
+
+  /* Call from executor */
+  def onUpdate(update : Array[JobDTO]) : Unit = {
+    listeners.foreach( (x) => {
+      x.begin_onUpdate(update,
+        () => {},
+        (ex) => {
+          runOnExecutor {
+            listeners -= x
+          }
+        })
+    })
   }
 
   def checkInvariants() : Unit = {
@@ -69,7 +88,7 @@ class ScalaSchedulerServer(val communicator: Communicator,
         }
         case Left(jc) => cb.ice_exception(jc)
       }
-      publisher.begin_onUpdate(updated.toArray(Array.empty[JobDTO]))
+      onUpdate(updated.toArray(Array.empty[JobDTO])
     }
 
   /* Call from executor! */
@@ -92,7 +111,7 @@ class ScalaSchedulerServer(val communicator: Communicator,
           x.jobState.currentWorker = Array(workerId)
           x.jobState.state = EnumJobState.SCHEDULED
           cb.ice_response(Array(x.job))
-          publisher.begin_onUpdate(Array(x.makeDTO()))
+          onUpdate(Array(x.makeDTO()))
         }
         case None => cb.ice_response(Array.empty[Job])
       }
@@ -219,7 +238,7 @@ class ScalaSchedulerServer(val communicator: Communicator,
     cb.ice_response()
     if (!updated.isEmpty) {
       checkStartableStates(updated)
-      publisher.begin_onUpdate( updated.toArray(Array.empty[JobDTO]))
+      onUpdate(updated.toArray(Array.empty[JobDTO]))
     }
   }
 
