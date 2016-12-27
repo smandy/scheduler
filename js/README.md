@@ -1,6 +1,14 @@
 # Starting up #
 
+
+## Slice2java ##
+
+Still needs to be done manually
+
+`slice2js ../slice/scheduler.ice`
+
 ## Processes to Start ##
+
 
 ### Startup Grid ###
 
@@ -42,4 +50,7 @@ The man doing the work.
 Add an icegrid node that would add to the server - the workers and the
 listeners.
 
+## Slice2js ##
 
+ 1997  cd generated/
+ 1998  slice2js ../../slice/scheduler.ice 

@@ -158,8 +158,12 @@ class ScalaSchedulerServer(val communicator: Communicator,
     new Image(tmpJobs,  "")
   }
 
-  override def addListenerWithIdent_async(cb : AMD_SchedulerServer_addListenerWithIdent, identity: Identity, current: Current): Unit = {
-    print("Add listener with ident")
+  override def addListenerWithIdent_async(cb : AMD_SchedulerServer_addListenerWithIdent, ident: Identity, current: Current): Unit = {
+    println("Add listener with ident jamone")
+    val prx = SchedulerServerListenerPrxHelper.uncheckedCast(current.con.createProxy(ident));
+    val image = makeImage()
+    prx.begin_onImage(image)
+    println("Sending image")
     cb.ice_response()
   }
 

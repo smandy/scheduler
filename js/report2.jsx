@@ -6,7 +6,7 @@ function clearObject(obj) {
 var iid = new Ice.InitializationData();
 var props = Ice.createProperties();
 
-var CallbackReceiver = Ice.Class( Scheduler.SchedulerServerListener, {
+var CallbackReceiver = Ice.Class( scheduler.SchedulerServerListener, {
     onImage_async      : function(cb, image, current) { this.parent.onImage_async(cb, image, current); },
     onReset_async      : function(cb, current)        { this.parent.onReset_async( cb, current); },
     onImageReady_async : function(cb, s, current)     { this.parent.onImageReady_async( cb,s,current); },
@@ -16,7 +16,8 @@ var CallbackReceiver = Ice.Class( Scheduler.SchedulerServerListener, {
 props.setProperty('Ice.Default.Locator', 'IceGrid/Locator:ws -h raffles -p 4063');
 iid.properties = props;
 var communicator = Ice.initialize(iid);
-var proxy = communicator.stringToProxy("server@SchedulerServer").ice_timeout(1000);
+//var proxy = communicator.stringToProxy("server@SchedulerServer").ice_timeout(1000);
+var proxy = communicator.stringToProxy("server@SchedulerJava").ice_timeout(1000);
 console.log("About to ping " + proxy );
 
 var Job = React.createClass( {
@@ -39,7 +40,18 @@ var StateFormatter = React.createClass({
         //console.log( "State is " + this.props.value + " p=" + this.props);
         return ( <div>{this.props.value.name}</div>);
     }
-    });
+});
+
+//Custom Formatter component
+var IdFormatter = React.createClass({
+    render : function() {
+        return ( <div>{this.props.value.id.id}</div> );
+    }});
+
+var StateFormatter = React.createClass({
+    render : function() {
+        return ( <div>{this.props.value.state.name}</div> );
+    }});
 
 var IceGridListener = React.createClass( {
     getInitialState : function() {
@@ -109,7 +121,7 @@ var IceGridListener = React.createClass( {
     componentDidMount : function() {
         console.log("Did mount");
         var outer = this;
-        Scheduler.SchedulerServerPrx.checkedCast( proxy ).then( function(server) {
+        scheduler.SchedulerServerPrx.checkedCast( proxy ).then( function(server) {
             console.log("Checked cast : " + server);
             return communicator.createObjectAdapter("").then(
                 function(adapter)
@@ -133,7 +145,9 @@ var IceGridListener = React.createClass( {
                         });
                     console.log("Went for it");
                 });
-        } )
+        } , function(ex) {
+            console.log("Failed " + ex);
+        })
     },
     rowGetter : function(i) {
         return this.state.data[i];
@@ -157,13 +171,14 @@ var IceGridListener = React.createClass( {
         // {products}
         // </div>;
         var columns = [
-            { key : 'id',
-                name : 'ID' },
-                { key : 'pwd',
-                    name : 'PWD' },
-                    { key : 'state',
-                        name : 'state',
-                    formatter : StateFormatter} ];
+            { key : 'job',
+                name : 'Job',
+                formatter : IdFormatter},
+                { key : 'state',
+                    name : 'State',
+                    formatter : StateFormatter },
+    
+                    ];
         var grid = this.state.gridVisible ? <ReactDataGrid
         columns={columns}
         rowGetter={this.rowGetter}
