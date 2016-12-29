@@ -1,13 +1,13 @@
 <icegrid>
-    <application name="SchedulerServer">
+    <application name="JavaSchedulerServer">
         <node name="raffles">
-            <server id="SchedulerServer" exe="/home/andy/repos/scheduler/cpp/schedulerServer" activation="manual">
+            <server id="JavaSchedulerServer" exe="/home/andy/repos/scheduler/cpp/schedulerServer" activation="manual">
               <!--<property name="Ice.Trace.Network" value="1"/> -->
               <property name="Ice.StdOut" value="/tmp/scheduler.txt" />
               <property name="Ice.StdErr" value="/tmp/scheduler.txt" />
               <property name="IceStorm.TopicManager" value="IceStorm/TopicManager" />
               <property name="Scheduler.Topic" value="dev.jobs" />
-              <adapter name="SchedulerServer" id="SchedulerServer" endpoints="tcp -h raffles:ws -h raffles"/>
+              <adapter name="JavaSchedulerServer" id="JavaSchedulerServer" endpoints="tcp -h raffles:ws -h raffles"/>
             </server>
         </node>
     </application>

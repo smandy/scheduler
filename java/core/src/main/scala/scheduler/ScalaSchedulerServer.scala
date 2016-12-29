@@ -46,7 +46,7 @@ class ScalaSchedulerServer(val communicator: Communicator,
 
   def runOnExecutor(f: => Unit) = {
     val x: Runnable = () => {
-      checkInvariants()
+      // checkInvariants()
       f
       checkInvariants()
     }
@@ -88,7 +88,7 @@ class ScalaSchedulerServer(val communicator: Communicator,
         }
         case Left(jc) => cb.ice_exception(jc)
       }
-      onUpdate(updated.toArray(Array.empty[JobDTO])
+      onUpdate(updated.toArray(Array.empty[JobDTO]))
     }
 
   /* Call from executor! */
