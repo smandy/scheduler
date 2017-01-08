@@ -2,15 +2,16 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>bamma</groupId>
+  <groupId>argo</groupId>
   <artifactId>scheduler-slice</artifactId>
   <version>0.1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>schedulerslice</name>
   <url>http://maven.apache.org</url>
   <properties>
-    <scala.version>2.11.0</scala.version>
+    <scala.version>2.12.1</scala.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <ice.version>3.6.3</ice.version>
     
   </properties>
   <build>
@@ -48,7 +49,7 @@
                 <slice2java outputdir="${project.build.directory}/generated-sources">
                   <fileset dir="${basedir}/../slice" includes="scheduler.ice"/>
                   <includepath>
-                    <pathelement location="/usr/share/Ice-3.6.1/slice"/>
+                    <pathelement location="/usr/share/Ice-${ice.version}/slice"/>
                   </includepath>
                 </slice2java>
               </target>
@@ -71,7 +72,7 @@
       <dependency>
         <groupId>com.zeroc</groupId>
         <artifactId>ice</artifactId>
-        <version>3.6.0</version>
+        <version>${ice.version}</version>
       </dependency>
   </dependencies>
   <repositories>
