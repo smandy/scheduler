@@ -4,7 +4,6 @@ import Ice.Communicator;
 import Ice.ObjectAdapter;
 import Ice.Properties;
 import Ice.Util;
-
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 

@@ -11,7 +11,7 @@
   <properties>
     <scala.version>2.12.1</scala.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <ice.version>3.6.3</ice.version>
+    <ice.version>3.6.1</ice.version>
     
   </properties>
   <build>

@@ -162,5 +162,8 @@ module scheduler {
         ["amd"] void imageReady(string batchId, string imgId);
 
         ["amd"] void setState( JobId id, EnumJobState state);
+
+        ["amd"] Image getImage();
+
     };
 };

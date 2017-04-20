@@ -14,6 +14,9 @@ class ScalaSchedulerServer(val communicator: Communicator,
     //assert( executor.)
   }
 
+
+  override def getImage_async(amd_schedulerServer_getImage: AMD_SchedulerServer_getImage, current: Current): Unit = ???
+
   val (topic, publisher) = {
     val topicPrx = TopicManagerPrxHelper.checkedCast(communicator.propertyToProxy("icestorm.topicmanager"))
     val subject = communicator.getProperties.getProperty("scheduler.topic")

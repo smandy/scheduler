@@ -48,14 +48,9 @@ var IdFormatter = React.createClass({
         return ( <div>{this.props.value.id.id}</div> );
     }});
 
-var StateFormatter = React.createClass({
-    render : function() {
-        return ( <div>{this.props.value.state.name}</div> );
-    }});
-
 var IceGridListener = React.createClass( {
     getInitialState : function() {
-        console.log("Get initial state")
+        console.log("Get initial state");
         return {
             data : [],
             lookup : [],
@@ -129,7 +124,7 @@ var IceGridListener = React.createClass( {
                     console.log("Made adapter");
                     var receiver = new CallbackReceiver();
                     receiver.parent = outer;
-                    console.log("Made adapter " + this);
+                    console.log("Made adapter " + adapter);
                     var r = adapter.addWithUUID(receiver);
                     console.log("Made r");
                     var connection = proxy.ice_getCachedConnection();
@@ -147,7 +142,7 @@ var IceGridListener = React.createClass( {
                 });
         } , function(ex) {
             console.log("Failed " + ex);
-        })
+        });
     },
     rowGetter : function(i) {
         return this.state.data[i];
@@ -172,13 +167,12 @@ var IceGridListener = React.createClass( {
         // </div>;
         var columns = [
             { key : 'job',
-                name : 'Job',
-                formatter : IdFormatter},
-                { key : 'state',
-                    name : 'State',
-                    formatter : StateFormatter },
-    
-                    ];
+              name : 'Job',
+              formatter : IdFormatter},
+            { key : 'state',
+              name : 'State',
+              formatter : StateFormatter },
+        ];
         var grid = this.state.gridVisible ? <ReactDataGrid
         columns={columns}
         rowGetter={this.rowGetter}
