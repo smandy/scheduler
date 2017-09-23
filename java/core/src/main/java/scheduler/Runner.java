@@ -1,9 +1,7 @@
 package scheduler;
 
-import Ice.Communicator;
-import Ice.ObjectAdapter;
-import Ice.Properties;
-import Ice.Util;
+import com.zeroc.Ice.*;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -26,7 +24,7 @@ public class Runner {
         ScalaSchedulerServer server = new ScalaSchedulerServer(communicator, executor);
 
         System.out.println("server = " + server);
-        adapter.add(server, communicator.stringToIdentity(objectIdentity));
+        adapter.add(server, Util.stringToIdentity(objectIdentity));
         adapter.activate();
 
         System.out.println("Waiting for communicator shutdown");

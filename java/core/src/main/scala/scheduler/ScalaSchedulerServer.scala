@@ -1,49 +1,44 @@
 package scheduler
 
 import java.util
-import java.util.concurrent.{Callable, ScheduledExecutorService}
+import java.util.concurrent.{Callable, CompletableFuture, CompletionStage, ScheduledExecutorService}
 
-import Ice._
-import IceStorm.{NoSuchTopic, TopicManagerPrxHelper}
+import com.zeroc.Ice.{Communicator, Current, Identity}
+import com.zeroc.IceStorm.{NoSuchTopic, TopicManagerPrx}
 
 class ScalaSchedulerServer(val communicator: Communicator,
-                           val executor: ScheduledExecutorService) extends _SchedulerServerDisp {
+                           val executor: ScheduledExecutorService) extends SchedulerServer {
+
+
+  override def getImageAsync(current: Current): CompletionStage[Image] = ???
+
   private var graph = Graph.empty
 
-  def assertOnExecutor() : Unit = {
+  def assertOnExecutor(): Unit = {
     //assert( executor.)
   }
 
-
-  override def getImage_async(amd_schedulerServer_getImage: AMD_SchedulerServer_getImage, current: Current): Unit = ???
-
   val (topic, publisher) = {
-    val topicPrx = TopicManagerPrxHelper.checkedCast(communicator.propertyToProxy("icestorm.topicmanager"))
+    val topicPrx = TopicManagerPrx.checkedCast(communicator.propertyToProxy("icestorm.topicmanager"))
     val subject = communicator.getProperties.getProperty("scheduler.topic")
     val topic = try {
       topicPrx.retrieve(subject)
     } catch {
       case (nst: NoSuchTopic) => topicPrx.create(subject)
     }
-    (topic, SchedulerServerListenerPrxHelper.uncheckedCast(topic.getPublisher()))
+    (topic, SchedulerServerListenerPrx.uncheckedCast(topic.getPublisher()))
   }
 
   var listeners = Set[SchedulerServerListenerPrx](publisher)
 
   /* Call from executor */
-  def onUpdate(update : Array[JobDTO]) : Unit = {
-    listeners.foreach( (x) => {
-      x.begin_onUpdate(update,
-        () => {},
-        (ex) => {
-          runOnExecutor {
-            listeners -= x
-          }
-        })
+  def onUpdate(update: Array[JobDTO]): Unit = {
+    listeners.foreach((x) => {
+      val tmp = x.onUpdateAsync(update)
     })
   }
 
-  def checkInvariants() : Unit = {
+  def checkInvariants(): Unit = {
     // Check dependencies + dependants self-consistent.
   }
 
@@ -62,10 +57,10 @@ class ScalaSchedulerServer(val communicator: Communicator,
     fut.get()
   }
 
-  override def reset_async(cb: AMD_SchedulerServer_reset, current: Current): Unit = {
+  override def resetAsync(current: Current): CompletionStage[Void] = {
     println("Reset")
     graph = Graph.empty
-    cb.ice_response()
+    CompletableFuture.completedFuture(null)
   }
 
   /*
@@ -74,7 +69,8 @@ class ScalaSchedulerServer(val communicator: Communicator,
    */
   def mapForJobs(newJobs: Array[Job]) = Map(newJobs.map(x => (x.id, new Node(x))): _*)
 
-  override def submitBatch_async(cb: AMD_SchedulerServer_submitBatch, batch: Batch, current: Current) =
+  override def submitBatchAsync(batch: Batch, current: Current): CompletionStage[Void] = {
+    val cb = new CompletableFuture[Void]
     runOnExecutor {
       val newJobs = mapForJobs(batch.jobs)
       val updated = new util.ArrayList[JobDTO]()
@@ -87,12 +83,14 @@ class ScalaSchedulerServer(val communicator: Communicator,
         case Right(g) => {
           graph = g
           checkStartableStates(updated)
-          cb.ice_response()
+          cb.complete(null)
         }
-        case Left(jc) => cb.ice_exception(jc)
+        case Left(jc) => cb.completeExceptionally(jc)
       }
       onUpdate(updated.toArray(Array.empty[JobDTO]))
     }
+    cb
+  }
 
   /* Call from executor! */
   def checkStartableStates(updated: util.ArrayList[JobDTO]): Unit = {
@@ -107,114 +105,121 @@ class ScalaSchedulerServer(val communicator: Communicator,
     }
   }
 
-  override def getStartableJob_async(cb: AMD_SchedulerServer_getStartableJob, workerId: WorkerId, current: Current): Unit = {
+  override def getStartableJobAsync(workerId: WorkerId, current: Current): CompletableFuture[Array[Job]] = {
+    val cb = new CompletableFuture[Array[Job]]
     runOnExecutor {
       graph.jobs.values.filter(_.isStartable).toArray.sortBy(_.priority).headOption match {
         case Some(x) => {
           x.jobState.currentWorker = Array(workerId)
           x.jobState.state = EnumJobState.SCHEDULED
-          cb.ice_response(Array(x.job))
           onUpdate(Array(x.makeDTO()))
+          cb.complete(Array(x.job))
         }
-        case None => cb.ice_response(Array.empty[Job])
+        case None => cb.complete(Array.empty[Job])
       }
     }
+    cb
   }
 
-  override def dumpStatus_async(cb: AMD_SchedulerServer_dumpStatus,
-                                current: Current): Unit = {
+  override def dumpStatusAsync(current: Current): CompletableFuture[String] = {
     val ret = graph.jobs.map(_.toString).mkString("\n")
-    cb.ice_response(ret)
+    CompletableFuture.completedFuture(ret)
   }
 
-  def withJobOnExecutor[T <: AMDCallback](jid: JobId, cb: T, f: (Node) => Unit) = runOnExecutor {
+  def withJobOnExecutor[T](jid: JobId, cb: CompletableFuture[T], f: (Node) => Unit) = runOnExecutor {
     graph.jobs.get(jid) match {
-      case Some(wj) => f(wj)
-      case None => cb.ice_exception(new JobNotExist(Array(jid)))
+      case Some(wj) => {
+        f(wj)
+      }
+      case None => cb.completeExceptionally(new JobNotExist(Array(jid)))
     }
   }
 
-  override def invalidateJob_async(cb: AMD_SchedulerServer_invalidateJob, id: JobId, __current: Current): Unit = {
+  override def invalidateJobAsync(id: JobId, __current: Current): CompletionStage[Void] = {
+    val cb = new CompletableFuture[Void]
     withJobOnExecutor(id, cb, (wj) => {
       val toKill = new java.util.ArrayList[Node]()
       graph.invalidateImpl(wj, toKill)
-      cb.ice_response()
+      cb.complete(null)
     })
+    cb
   }
 
-  override def startJob_async(cb: AMD_SchedulerServer_startJob, jid: JobId, current: Current): Unit = {
+  override def startJobAsync(jid: JobId, current: Current): CompletableFuture[Void] = {
+    val cb = new CompletableFuture[Void]
     withJobOnExecutor(jid, cb, (wj) =>
       if (wj.state == EnumJobState.DORMANT) {
         wj.state = EnumJobState.READY
-        cb.ice_response()
+        cb.complete(null)
       } else {
-        cb.ice_exception(new JobNotStartable(jid))
+        cb.completeExceptionally(new JobNotStartable(jid))
       })
+    cb
   }
 
-  override def getJobs_async(cb: AMD_SchedulerServer_getJobs, current: Current): Unit = {
-    cb.ice_response(graph.jobs.values.map(_.makeDTO()).toArray[JobDTO])
+  override def getJobsAsync(current: Current): CompletionStage[Array[JobDTO]] = {
+    CompletableFuture.completedFuture(graph.jobs.values.map(_.makeDTO()).toArray[JobDTO])
   }
 
-  override def addListener_async(cb: AMD_SchedulerServer_addListener,
-                                 listener: SchedulerServerListenerPrx,
-                                 current: Current): Unit = runOnExecutor {
-    val qos = new java.util.HashMap[String, String]()
-    topic.begin_subscribeAndGetPublisher(qos,
-      listener,
-      (rawPrx) => {
-        println(s"Got proxy $rawPrx")
-        val prx = SchedulerServerListenerPrxHelper.uncheckedCast(rawPrx)
+  override def addListenerAsync(listener: SchedulerServerListenerPrx,
+                                current: Current): CompletionStage[Void] = {
+    val cb = new CompletableFuture[Void]
+    runOnExecutor {
+      val qos = new java.util.HashMap[String, String]()
+      topic.subscribeAndGetPublisherAsync(qos, listener).whenComplete((rawPrx, ex) => {
+        val prx = SchedulerServerListenerPrx.uncheckedCast(rawPrx)
         val image = makeImage()
-        prx.begin_onImage(
-          image,
-          () => println("Success"),
-          (ex) => println("Failed"))
-      },
-      (ex: UserException) => {},
-      (ex: Exception) => {})
+        prx.onImageAsync(image).whenComplete((r, x) => {
+          println("Call complete")
+          cb.complete(null)
+        })
+      })
+    }
+    cb
   }
 
   def makeImage(): Image = {
     val tmpJobs = graph.jobs.values.map(_.makeDTO()).toArray[JobDTO]
-    new Image(tmpJobs,  "")
+    new Image(tmpJobs, "")
   }
 
-  override def addListenerWithIdent_async(cb : AMD_SchedulerServer_addListenerWithIdent, ident: Identity, current: Current): Unit = {
+  override def addListenerWithIdentAsync(ident: Identity, current: Current): CompletableFuture[Void] = {
     println("Add listener with ident jamone")
-    val prx = SchedulerServerListenerPrxHelper.uncheckedCast(current.con.createProxy(ident));
+    val prx = SchedulerServerListenerPrx.uncheckedCast(current.con.createProxy(ident));
     val image = makeImage()
-    prx.begin_onImage(image)
+    prx.onImageAsync(image)
     println("Sending image")
-    cb.ice_response()
+    CompletableFuture.completedFuture(null)
   }
 
-  override def stopJob_async(cb: AMD_SchedulerServer_stopJob,
-                             jid: JobId,
-                             current: Current): Unit = {
+  override def stopJobAsync(jid: JobId,
+                            current: Current): CompletableFuture[Void] = {
+    val cb = new CompletableFuture[Void]()
     withJobOnExecutor(jid, cb, (wj) => {
       import EnumJobState._
       if (wj.state == STARTED) {
         wj.state = CANCELLING
       }
-      cb.ice_response()
+      cb.complete(null)
     })
+    cb
   }
 
-  override def imageReady_async(cb : AMD_SchedulerServer_imageReady, batchId: String, s: String, current: Current): Unit = {
+  override def imageReadyAsync(batchId: String, s: String, current: Current): CompletionStage[Void] = {
     println(s"Image readyy $batchId $s")
-    cb.ice_response()
+    CompletableFuture.completedFuture(null)
   }
 
-  override def getJob_async(cb: AMD_SchedulerServer_getJob, jid: JobId, current: Current): Unit = {
+  override def getJobAsync(jid: JobId, current: Current): CompletionStage[Job] = {
+    val cb = new CompletableFuture[Job]()
     withJobOnExecutor(jid, cb, (wj) => {
-      cb.ice_response(wj.job)
+      cb.complete(wj.job)
     })
+    cb
   }
 
-  override def onWorkerUpdate_async(cb: AMD_SchedulerServer_onWorkerUpdate,
-                                    wu: WorkerUpdate,
-                                    __current: Current): Unit = {
+  override def onWorkerUpdateAsync(wu: WorkerUpdate,
+                                   __current: Current): CompletableFuture[Void] = {
     import EnumJobState._
     import JobStates._
     val updated = new util.ArrayList[JobDTO]()
@@ -224,7 +229,7 @@ class ScalaSchedulerServer(val communicator: Communicator,
     } {
       val newState = (wj.state, u.state) match {
         case (x, y) if !x.isTerminal && y.isTerminal => {
-          assert( !wj.jobState.currentWorker.isEmpty, "Logic error")
+          assert(!wj.jobState.currentWorker.isEmpty, "Logic error")
           val wid = wj.jobState.currentWorker.head
           wj.jobState.currentWorker = Array.empty[WorkerId]
           Some(y)
@@ -238,19 +243,21 @@ class ScalaSchedulerServer(val communicator: Communicator,
         updated.add(wj.makeDTO())
       })
     }
-    cb.ice_response()
     if (!updated.isEmpty) {
       checkStartableStates(updated)
       onUpdate(updated.toArray(Array.empty[JobDTO]))
     }
+    CompletableFuture.completedFuture(null)
   }
 
-  override def setState_async(cb: AMD_SchedulerServer_setState, id: JobId, state: EnumJobState, __current: Current): Unit = {
+  override def setStateAsync(id: JobId, state: EnumJobState, __current: Current): CompletableFuture[Void] = {
     println(s"Trying to Setting state $id $state")
+    val cb = new CompletableFuture[Void]()
     withJobOnExecutor(id, cb, (wj) => {
       println(s"Setting state $id $state")
       wj.state = state
-      cb.ice_response()
+      cb.complete(null)
     })
+    cb
   }
 }

@@ -11,8 +11,9 @@
   <properties>
     <scala.version>2.12.1</scala.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <ice.version>3.6.1</ice.version>
-    
+    <ice.version>3.7.0</ice.version>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>    
   </properties>
   <build>
     <plugins>
@@ -49,7 +50,7 @@
                 <slice2java outputdir="${project.build.directory}/generated-sources">
                   <fileset dir="${basedir}/../slice" includes="scheduler.ice"/>
                   <includepath>
-                    <pathelement location="/usr/share/Ice-${ice.version}/slice"/>
+                    <pathelement location="/usr/share/ice/slice"/>
                   </includepath>
                 </slice2java>
               </target>

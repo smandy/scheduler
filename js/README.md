@@ -1,6 +1,5 @@
 # Starting up #
 
-
 ## Slice2java ##
 
 Still needs to be done manually
