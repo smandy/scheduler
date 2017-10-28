@@ -9,16 +9,18 @@
 // Pointers for getting icestorm up
 // Aha - the trick was exposing IceStorm/TopicManager as a well known object
 // https://github.com/SintefRaufossManufacturing/icehms/blob/master/icecfg/icebox.xml
-// typedef std::shared_ptr<Scheduler::Job> JobPtr;
+// typedef std::shared_ptr<Job> JobPtr;
 // http://git.asterisk.org/gitweb/?p=asterisk-scf/release/techdemo.git;a=commitdiff_plain;h=89b836724135902a7d628cc08bd8ddd786b82240
 
 using loggerType = std::shared_ptr<spdlog::logger>;
 
-class SchedulerServerImpl : public scheduler::SchedulerServer {
-  std::vector<scheduler::Job> jobs;
-  IceStorm::TopicPrx topic;
-  std::map<scheduler::JobId, std::vector<scheduler::JobId>> dependants;
-  std::set<scheduler::SchedulerServerListenerPrx> listeners;
+using namespace scheduler;
+
+class SchedulerServerImpl : public SchedulerServer {
+  std::vector<JobDTO> jobs;
+  std::shared_ptr<IceStorm::TopicPrx> topic;
+  std::map<JobId, std::vector<JobId>> dependants;
+  std::set<std::shared_ptr<SchedulerServerListenerPrx>> listeners;
   std::string currentImage;
 
 public:
@@ -26,74 +28,87 @@ public:
   SchedulerServerImpl(Ice::CommunicatorPtr communicator) {
     log = spdlog::get("log");
     log->info("Get Topic");
-    auto topicPrx = IceStorm::TopicManagerPrx::checkedCast(
+    auto topicManagerPrx = Ice::checkedCast<IceStorm::TopicManagerPrx>(
         communicator->propertyToProxy("IceStorm.TopicManager"));
     log->info("Get Subject");
     auto subject =
         communicator->getProperties()->getProperty("Scheduler.Topic");
     log->info("Subject is {}", subject);
     try {
-      topic = topicPrx->retrieve(subject);
+      topic = topicManagerPrx->retrieve(subject);
     } catch (IceStorm::NoSuchTopic &) {
-      topic = topicPrx->create(subject);
+      topic = topicManagerPrx->create(subject);
     }
-    listeners.insert(scheduler::SchedulerServerListenerPrx::uncheckedCast(
-        topic->getPublisher()));
+    listeners.insert(
+        Ice::uncheckedCast<SchedulerServerListenerPrx>(topic->getPublisher()));
     log->info("Done");
   }
 
-  inline scheduler::Job *find(const scheduler::JobId id) {
-    static thread_local scheduler::Job finder;
-    scheduler::Job *ret = nullptr;
-    finder.id = id;
+  inline JobDTO *find(const JobId id) {
+    static thread_local JobDTO finder;
+    Job *ret = nullptr;
+    finder.job.id = id;
     auto x =
         std::lower_bound(begin(jobs), end(jobs), finder, [](auto &a, auto &b) {
-          return a.id.id < b.id.id ? true : (a.id.batch < b.id.batch);
+          return a.job.id.id < b.job.id.id ? true
+                                           : (a.job.id.batch < b.job.id.batch);
         });
-    if (x != end(jobs) && x->id == id) {
+    if (x != end(jobs) && x->job.id == id) {
       return &(*x);
     } else {
-      throw scheduler::JobNotExist{{id}};
+      throw JobNotExist{{id}};
+    }
+  }
+
+  virtual void getJobAsync(JobId id, ::std::function<void(const JobDTO &)> cb,
+                           ::std::function<void(::std::exception_ptr)> ex,
+                           const ::Ice::Current &) {
+    /// TODO - not found
+    try {
+      cb(*find(id));
+    } catch (JobNotExist &jne) {
+      ex(std::current_exception());
+    };
+  }
+
+  template <typename T> struct TR;
+
+  void blockDependenciesOf(const JobId &id) {
+    for (auto &depId : dependants[id]) {
+
+      auto depJob = find(depId);
+      // TR<decltype(depJob)> my_error;
+      depJob->state.state = EnumJobState::READY;
     }
   }
 
   virtual void
-  getJob_async(const ::scheduler::AMD_SchedulerServer_getJobPtr &cb,
-               const ::scheduler::JobId &id,
-               const ::Ice::Current & = ::Ice::Current()) {
-    cb->ice_response(*find(id));
-  }
-
-  void blockDependenciesOf(const scheduler::JobId &id) {
-    for (auto &depId : dependants[id]) {
-      auto depJob = find(depId);
-      depJob->state = scheduler::EnumJobState::BLOCKED;
-    }
-  }
-
-  virtual void imageReadyAsync(const ::std::string &batchId,
-                               const ::std::string &imgId,
-                               ::std::function<void()> cb,
-                               ::std::function<void(::std::exception_ptr)> ex) {
+  imageReadyAsync(::std::string s, ::std::string batchId,
+                  ::std::function<void()> cb,
+                  ::std::function<void(::std::exception_ptr)> error,
+                  const ::Ice::Current &) {
     currentImage = s;
     for (auto &listener : listeners) {
-      listener->begin_onImageReady(
-          s, [s]() { log->info("Sent image ready {}", s); },
-          [&](const Ice::Exception &ex) {
-            log->error("Bad listener {}", ex.what());
-            auto it = listeners.find(listener);
-            if (it != std::end(listeners)) {
-              log->info("Expunging {}", *it);
-              listeners.erase(it);
-            }
-            log->info("Done expunge");
+      listener->onImageReadyAsync(
+          batchId, s, [s]() { log->info("Sent image ready {}", s); },
+          [&](std::exception_ptr ex) {
+            try {
+              rethrow_exception(ex);
+            } catch (const Ice::Exception &ex) {
+              log->error("Bad listener {}", ex.what());
+              auto it = listeners.find(listener);
+              if (it != std::end(listeners)) {
+                log->info("Expunging"); // TODO - detail
+                listeners.erase(it);
+              }
+              log->info("Done expunge");
+            };
           });
+      cb();
     }
-    cb();
-  };
+  }
 
-  virtual void submitBatchAsync(::scheduler::Batch, batch,
-                                ::std::function<void()> cb,
+  virtual void submitBatchAsync(Batch batch, ::std::function<void()> cb,
                                 ::std::function<void(::std::exception_ptr)> ex,
                                 const ::Ice::Current &) {
     log->info("Submitbatch");
@@ -104,11 +119,18 @@ public:
         }
       }
     }
+
+    std::vector<JobDTO> dest;
+    std::transform(begin(batch.jobs), end(batch.jobs), begin(dest),
+                   [&](const auto &j) {
+                     return JobDTO{j, {}};
+                   });
+
     log->info("Inserting");
-    jobs.insert(jobs.end(), begin(batch.jobs), end(batch.jobs));
+    jobs.insert(jobs.end(), begin(dest), end(dest));
     log->info("Sorting");
     std::sort(begin(jobs), end(jobs),
-              [&](auto &a, auto &b) { return a.id < b.id; });
+              [&](auto &a, auto &b) { return a.job.id < b.job.id; });
     for (auto &job : batch.jobs) {
       log->info("Looping");
       blockDependenciesOf(job.id);
@@ -117,195 +139,225 @@ public:
     // Ug - we've blocked our copies so we need to go and fetch
     // them back from the graph. Noticed when developing the web
     // gui too much stuff was reporting itself as 'startable' :-(
-    scheduler::JobSeq ret;
+    JobDTOSeq ret;
     for (auto &j : batch.jobs) {
       log->info("Looking for ");
       ret.push_back(*find(j.id));
     };
     log->info("Have {} items to return", ret.size());
     for (auto &listener : listeners) {
-      listener->begin_onUpdate(ret, []() { log->debug("Sent new jobs"); },
-                               [&](const Ice::Exception &ex) {
-                                 log->error("Bad listener : \n{}\n", ex.what());
-                                 auto it = listeners.find(listener);
-                                 if (it != std::end(listeners)) {
-                                   log->error("Expunging");
-                                   listeners.erase(it);
-                                 }
-                               });
+      listener->onUpdateAsync(ret, []() { log->debug("Sent new jobs"); },
+                              [&](const std::exception_ptr ex2) {
+                                try {
+                                  std::rethrow_exception(ex2);
+                                } catch (const Ice::Exception &ex) {
+                                  log->error("Bad listener : \n{}\n",
+                                             ex.what());
+                                  auto it = listeners.find(listener);
+                                  if (it != std::end(listeners)) {
+                                    log->error("Expunging");
+                                    listeners.erase(it);
+                                  }
+                                };
+
+                              });
     }
     cb();
   }
 
-  virtual void
-  startJob_async(const ::scheduler::AMD_SchedulerServer_startJobPtr &cb,
-                 const ::std::string &id,
-                 const ::Ice::Current & = ::Ice::Current()) {
-    log->info("startJob {}, id");
-    cb->ice_response();
-  }
-
-  virtual void
-  stopJob_async(const ::scheduler::AMD_SchedulerServer_stopJobPtr &cb,
-                const ::std::string &id,
-                const ::Ice::Current & = ::Ice::Current()) {
-    log->info("stopJob {}", id);
-    cb->ice_response();
-  }
-
-  virtual void invalidateJobAsnc(const scheduler::JobId &id,
-                                 std::function<void()> cb) {
-    log->info("invalidate {}", id);
+  virtual void startJobAsync(::scheduler::JobId id, ::std::function<void()> cb,
+                             ::std::function<void(::std::exception_ptr)> error,
+                             const ::Ice::Current &) {
+    log->info("startJob {}", id.id);
     cb();
   }
 
-  virtual void reset_async(const ::scheduler::AMD_SchedulerServer_resetPtr &cb,
-                           const ::Ice::Current & = ::Ice::Current()) {
+  virtual void stopJobAsync(JobId id, ::std::function<void()> cb,
+                            ::std::function<void(::std::exception_ptr)> error,
+                            const ::Ice::Current &) {
+    log->info("stopJob {}", id.id);
+    cb();
+  }
+
+  virtual void
+  invalidateJobAsync(scheduler::JobId id, std::function<void()> cb,
+                     std::function<void(std::__exception_ptr::exception_ptr)>,
+                     const Ice::Current &) {
+    log->info("invalidate {}", id.id);
+    cb();
+  }
+
+  virtual void resetAsync(::std::function<void()> cb,
+                          ::std::function<void(::std::exception_ptr)> error,
+                          const ::Ice::Current &) {
     jobs.clear();
     dependants.clear();
     currentImage = "";
     for (auto &listener : listeners) {
-      listener->begin_onReset([]() {},
-                              [&](const Ice::Exception &ex) {
-                                log->info("Bad listener");
-                                auto it = listeners.find(listener);
-                                if (it != std::end(listeners)) {
-                                  log->info("Expunging");
-                                  listeners.erase(it);
-                                }
-                              });
-    }
-    cb->ice_response();
+      listener->onResetAsync([]() {},
+                             [&](const std::exception_ptr x) {
+                               try {
+                               } catch (const Ice::Exception &ex) {
+                                 log->info("Bad listener");
+                                 auto it = listeners.find(listener);
+                                 if (it != std::end(listeners)) {
+                                   log->info("Expunging");
+                                   listeners.erase(it);
+                                 }
+                               }
+                             });
+    };
+    cb();
   }
 
-  virtual void getStartableJob_async(
-      const ::scheduler::AMD_SchedulerServer_getStartableJobPtr &cb,
-      const ::scheduler::WorkerId &,
-      const ::Ice::Current & = ::Ice::Current()) {
-    scheduler::JobSeq ret;
-    scheduler::Job *selected = nullptr;
-    for (auto &job : jobs) {
-      if (job.state == scheduler::JobState::STARTABLE) {
-        if (!selected || job.priority < selected->priority) {
-          selected = &job;
+  virtual void
+  getStartableJobAsync(WorkerId wid, ::std::function<void(const JobSeq &)> cb,
+                       ::std::function<void(::std::exception_ptr)> error,
+                       const ::Ice::Current &) {
+    JobSeq ret;
+    JobDTO *selected = nullptr;
+    for (auto &dto : jobs) {
+      if (dto.state.state == EnumJobState::READY) {
+        if (!selected || dto.job.priority < selected->job.priority) {
+          selected = &dto;
         }
       }
     }
     if (selected) {
-      selected->state = scheduler::JobState::SCHEDULED;
-      ret.push_back(*selected);
+      selected->state.state = EnumJobState::SCHEDULED;
+      ret.push_back(selected->job);
     }
-    cb->ice_response(ret);
+    cb(ret);
   }
 
   virtual void
-  dumpStatus_async(const ::scheduler::AMD_SchedulerServer_dumpStatusPtr &cb,
-                   const ::Ice::Current & = ::Ice::Current()) {
-    cb->ice_response("Unimplemented");
+  dumpStatusAsync(::std::function<void(const ::std::string &)>,
+                  ::std::function<void(::std::exception_ptr)> error,
+                  const ::Ice::Current &) {
+    error(std::make_exception_ptr(std::invalid_argument{"Unimplmented"}));
   }
 
   virtual void
-  getJobs_async(const ::scheduler::AMD_SchedulerServer_getJobsPtr &cb,
-                const ::Ice::Current & = ::Ice::Current()) {
-    cb->ice_response(jobs);
-  }
+  getJobsAsync(std::function<void(const std::vector<scheduler::JobDTO> &)> cb,
+               std::function<void(std::__exception_ptr::exception_ptr)> error,
+               const Ice::Current &) {
+    cb(jobs);
+  };
 
-  virtual void onWorkerUpdate_async(
-      const ::scheduler::AMD_SchedulerServer_onWorkerUpdatePtr &cb,
-      const ::scheduler::WorkerUpdate &wud,
-      const ::Ice::Current & = ::Ice::Current()) {
-    std::vector<scheduler::Job> updated;
+  virtual void
+  onWorkerUpdateAsync(WorkerUpdate wud, ::std::function<void()> cb,
+                      ::std::function<void(::std::exception_ptr)> error,
+                      const ::Ice::Current &) {
+    std::vector<JobDTO> updated;
     for (auto &update : wud.updates) {
-      auto job = find(jws.id);
-      if (job->state != jws.state) {
-        job->state = jws.state;
-        updated.push_back(*job);
+      auto dto = find(update.id);
+      if (dto->state.state != update.state) {
+        dto->state.state = update.state;
+        updated.push_back(*dto);
       }
-      for (auto dep : dependants[job->id]) {
+      for (auto dep : dependants[dto->job.id]) {
         log->info("Check startable");
         checkIsStartable(dep, updated);
       }
     }
-
     if (!updated.empty()) {
       for (auto &listener : listeners) {
-        listener->begin_onUpdate(updated, []() { log->info("Sent new jobs"); },
-                                 [&](const Ice::Exception &ex) {
-                                   log->info("Bad listener");
-                                   auto it = listeners.find(listener);
-                                   if (it != end(listeners)) {
-                                     listeners.erase(it);
-                                   }
-                                 });
+        listener->onUpdateAsync(updated, []() { log->info("Sent new jobs"); },
+                                [this, listener](const std::exception_ptr x) {
+                                  try {
+                                    rethrow_exception(x);
+                                  } catch (const Ice::Exception &ex) {
+                                    log->info("Bad listener");
+                                    auto it = listeners.find(listener);
+                                    if (it != end(listeners)) {
+                                      listeners.erase(it);
+                                    }
+                                  };
+                                });
       }
     }
-    cb->ice_response();
+    cb();
   }
 
-  void checkIsStartable(const std::string &id,
-                        std::vector<scheduler::Job> &updatedSink) {
-    auto job = find(id);
-    if (job->state == scheduler::JobState::BLOCKED) {
+  void checkIsStartable(const JobId &id, std::vector<JobDTO> &updatedSink) {
+    auto dto = find(id);
+    // TODO - check if ready is right.
+    if (dto->state.state == EnumJobState::READY) {
       bool isStartable = true;
-      for (auto &id : job->dependencies) {
+      for (auto &id : dto->job.dependencies) {
         if (causesBlockage(id)) {
           isStartable = false;
           break;
         };
       }
-      log->info("job is {} startable={}", id, isStartable);
+      log->info("job is {} startable={}", id.id, isStartable);
       if (isStartable) {
-        job->state = scheduler::JobState::STARTABLE;
-        updatedSink.push_back(*job);
+        // TODO - check state
+        dto->state.state = EnumJobState::READY;
+        updatedSink.push_back(*dto);
       }
     }
   }
 
-  bool causesBlockage(const std::string id) {
-    auto job = find(id);
-    return job->state != scheduler::JobState::WAIVERED &&
-           job->state != scheduler::JobState::COMPLETED;
+  bool causesBlockage(const JobId &id) {
+    auto dto = find(id);
+    return dto->state.state != EnumJobState::COMPLETED;
   }
-
-  virtual void addListenerWithIdent_async(
-      const ::scheduler::AMD_SchedulerServer_addListenerWithIdentPtr &cb,
-      const ::Ice::Identity &ident,
-      const ::Ice::Current &current = ::Ice::Current()) {
+  virtual void
+  addListenerWithIdentAsync(::Ice::Identity ident, ::std::function<void()> cb,
+                            ::std::function<void(::std::exception_ptr)> error,
+                            const ::Ice::Current &current) {
     log->info("Addlistener with ident {} {}", ident.name, ident.category);
-    ::scheduler::SchedulerServerListenerPrx client =
-        scheduler::SchedulerServerListenerPrx::uncheckedCast(
-            current.con->createProxy(ident));
-    scheduler::Image img{jobs, currentImage};
+    auto client = Ice::uncheckedCast<SchedulerServerListenerPrx>(
+        current.con->createProxy(ident));
+    Image img{jobs, currentImage};
     // std::cout << "Made image " << std::endl;
-    client->begin_onImage(
+    client->onImageAsync(
         img,
         [this, client]() {
           log->debug("Success with image");
           listeners.insert(client);
         },
-        [](const Ice::Exception &ex) {
-          log->error("Failed to send to listener - sod him {}", ex.what());
+        [](const std::exception_ptr x) {
+          try {
+            std::rethrow_exception(x);
+          } catch (const Ice::Exception &ex) {
+            log->error("Failed to send to listener - sod him {}", ex.what());
+          };
         });
-    cb->ice_response();
+    cb();
+  };
+
+  virtual void setStateAsync(::scheduler::JobId, ::scheduler::EnumJobState,
+                             ::std::function<void()>,
+                             ::std::function<void(::std::exception_ptr)>,
+                             const ::Ice::Current &){
+      // Not implemented
+  };
+
+  virtual void getImageAsync(::std::function<void(const ::scheduler::Image &)>,
+                             ::std::function<void(::std::exception_ptr)>,
+                             const ::Ice::Current &){
+      // Not implemented
   };
 
   virtual void
-  addListener_async(const ::scheduler::AMD_SchedulerServer_addListenerPtr &cb,
-                    const ::scheduler::SchedulerServerListenerPrx &prx,
-                    const ::Ice::Current & = ::Ice::Current()) {
-    log->info("Add listener {}", prx);
+  addListenerAsync(::std::shared_ptr<SchedulerServerListenerPrx> prx,
+                   ::std::function<void()> cb,
+                   ::std::function<void(::std::exception_ptr)> error,
+                   const ::Ice::Current &) {
+    log->info("Add listener {}", prx->ice_toString());
     static const IceStorm::QoS theQos;
-    topic->begin_subscribeAndGetPublisher(
-        theQos, prx, [this, cb](const Ice::ObjectPrx &response) {
+    topic->subscribeAndGetPublisherAsync(
+        theQos, prx, [this, cb](auto response) {
           // std::cout << " Got publisher " << response << std::endl;
-          auto p =
-              scheduler::SchedulerServerListenerPrx::uncheckedCast(response);
-          scheduler::Image img{jobs, currentImage};
+          auto p = Ice::uncheckedCast<SchedulerServerListenerPrx>(response);
+          Image img{jobs, currentImage};
           // std::cout << "Made image " << std::endl;
-          p->begin_onImage(img, []() { log->debug("Success with image"); });
+          p->onImageAsync(img, []() { log->debug("Success with image"); });
           // std::cout << "Called image " << cb << std::endl;
           // Hmmm ... should this be in side the lambda above maybe?
-          cb->ice_response();
+          cb();
           // std::cout << "Called response " << std::endl;
         });
     log->debug("End method");
@@ -321,13 +373,12 @@ int main(int argc, char *argv[]) {
   log->info("Make communicator");
   auto communicator = Ice::initialize(argc, argv);
   log->info("Make server");
-  auto server = std::make_unique<SchedulerServerImpl>(communicator);
+  auto server = std::make_shared<SchedulerServerImpl>(communicator);
   log->info("Make adapter");
   auto adapter = communicator->createObjectAdapter("SchedulerServer");
   log->info("Add impl to adapter");
   // Liveness of server ensured by scope of main
-  auto prx =
-      adapter->add(server.get(), communicator->stringToIdentity("server"));
+  auto prx = adapter->add(server, Ice::stringToIdentity("server"));
   log->info("Activate adpater");
   adapter->activate();
   log->info("Wait for shutdown");

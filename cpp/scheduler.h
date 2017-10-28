@@ -416,7 +416,7 @@ public:
     virtual void getStartableJobAsync(::scheduler::WorkerId, ::std::function<void(const ::scheduler::JobSeq&)>, ::std::function<void(::std::exception_ptr)>, const ::Ice::Current&) = 0;
     bool _iceD_getStartableJob(::IceInternal::Incoming&, const ::Ice::Current&);
 
-    virtual void getJobAsync(::scheduler::JobId, ::std::function<void(const ::scheduler::Job&)>, ::std::function<void(::std::exception_ptr)>, const ::Ice::Current&) = 0;
+    virtual void getJobAsync(::scheduler::JobId, ::std::function<void(const ::scheduler::JobDTO&)>, ::std::function<void(::std::exception_ptr)>, const ::Ice::Current&) = 0;
     bool _iceD_getJob(::IceInternal::Incoming&, const ::Ice::Current&);
 
     virtual void addListenerAsync(::std::shared_ptr<::scheduler::SchedulerServerListenerPrx>, ::std::function<void()>, ::std::function<void(::std::exception_ptr)>, const ::Ice::Current&) = 0;
@@ -747,29 +747,29 @@ public:
 
     void _iceI_getStartableJob(const ::std::shared_ptr<::IceInternal::OutgoingAsyncT<::scheduler::JobSeq>>&, const ::scheduler::WorkerId&, const ::Ice::Context&);
 
-    ::scheduler::Job getJob(const ::scheduler::JobId& iceP_id, const ::Ice::Context& context = Ice::noExplicitContext)
+    ::scheduler::JobDTO getJob(const ::scheduler::JobId& iceP_id, const ::Ice::Context& context = Ice::noExplicitContext)
     {
-        return _makePromiseOutgoing<::scheduler::Job>(true, this, &scheduler::SchedulerServerPrx::_iceI_getJob, iceP_id, context).get();
+        return _makePromiseOutgoing<::scheduler::JobDTO>(true, this, &scheduler::SchedulerServerPrx::_iceI_getJob, iceP_id, context).get();
     }
 
     template<template<typename> class P = ::std::promise>
     auto getJobAsync(const ::scheduler::JobId& iceP_id, const ::Ice::Context& context = Ice::noExplicitContext)
-        -> decltype(::std::declval<P<::scheduler::Job>>().get_future())
+        -> decltype(::std::declval<P<::scheduler::JobDTO>>().get_future())
     {
-        return _makePromiseOutgoing<::scheduler::Job, P>(false, this, &scheduler::SchedulerServerPrx::_iceI_getJob, iceP_id, context);
+        return _makePromiseOutgoing<::scheduler::JobDTO, P>(false, this, &scheduler::SchedulerServerPrx::_iceI_getJob, iceP_id, context);
     }
 
     ::std::function<void()>
     getJobAsync(const ::scheduler::JobId& iceP_id,
-                ::std::function<void(::scheduler::Job)> response,
+                ::std::function<void(::scheduler::JobDTO)> response,
                 ::std::function<void(::std::exception_ptr)> ex = nullptr,
                 ::std::function<void(bool)> sent = nullptr,
                 const ::Ice::Context& context = Ice::noExplicitContext)
     {
-        return _makeLamdaOutgoing<::scheduler::Job>(response, ex, sent, this, &scheduler::SchedulerServerPrx::_iceI_getJob, iceP_id, context);
+        return _makeLamdaOutgoing<::scheduler::JobDTO>(response, ex, sent, this, &scheduler::SchedulerServerPrx::_iceI_getJob, iceP_id, context);
     }
 
-    void _iceI_getJob(const ::std::shared_ptr<::IceInternal::OutgoingAsyncT<::scheduler::Job>>&, const ::scheduler::JobId&, const ::Ice::Context&);
+    void _iceI_getJob(const ::std::shared_ptr<::IceInternal::OutgoingAsyncT<::scheduler::JobDTO>>&, const ::scheduler::JobId&, const ::Ice::Context&);
 
     void addListener(const ::std::shared_ptr<::scheduler::SchedulerServerListenerPrx>& iceP_listener, const ::Ice::Context& context = Ice::noExplicitContext)
     {
@@ -1901,7 +1901,7 @@ public:
 
     virtual ~AMD_SchedulerServer_getJob();
 
-    virtual void ice_response(const ::scheduler::Job&) = 0;
+    virtual void ice_response(const ::scheduler::JobDTO&) = 0;
 };
 
 typedef ::IceUtil::Handle< ::scheduler::AMD_SchedulerServer_getJob> AMD_SchedulerServer_getJobPtr;
@@ -2094,7 +2094,7 @@ public:
 
     AMD_SchedulerServer_getJob(::IceInternal::Incoming&);
 
-    virtual void ice_response(const ::scheduler::Job&);
+    virtual void ice_response(const ::scheduler::JobDTO&);
 };
 
 class AMD_SchedulerServer_addListener : public ::scheduler::AMD_SchedulerServer_addListener, public ::IceInternal::IncomingAsync
@@ -2694,7 +2694,7 @@ private:
 
 public:
 
-    ::scheduler::Job getJob(const ::scheduler::JobId& iceP_id, const ::Ice::Context& context = ::Ice::noExplicitContext)
+    ::scheduler::JobDTO getJob(const ::scheduler::JobId& iceP_id, const ::Ice::Context& context = ::Ice::noExplicitContext)
     {
         return end_getJob(_iceI_begin_getJob(iceP_id, context, ::IceInternal::dummyCallback, 0, true));
     }
@@ -2724,7 +2724,7 @@ public:
         return _iceI_begin_getJob(iceP_id, context, del, cookie);
     }
 
-    ::scheduler::Job end_getJob(const ::Ice::AsyncResultPtr&);
+    ::scheduler::JobDTO end_getJob(const ::Ice::AsyncResultPtr&);
 
 private:
 
@@ -4686,7 +4686,7 @@ public:
 
     typedef void (T::*Exception)(const ::Ice::Exception&);
     typedef void (T::*Sent)(bool);
-    typedef void (T::*Response)(const ::scheduler::Job&);
+    typedef void (T::*Response)(const ::scheduler::JobDTO&);
 
     CallbackNC_SchedulerServer_getJob(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
         : ::IceInternal::TwowayCallbackNC<T>(obj, cb != 0, excb, sentcb), _response(cb)
@@ -4696,7 +4696,7 @@ public:
     virtual void completed(const ::Ice::AsyncResultPtr& result) const
     {
         ::scheduler::SchedulerServerPrx proxy = ::scheduler::SchedulerServerPrx::uncheckedCast(result->getProxy());
-        ::scheduler::Job ret;
+        ::scheduler::JobDTO ret;
         try
         {
             ret = proxy->end_getJob(result);
@@ -4718,13 +4718,13 @@ private:
 };
 
 template<class T> Callback_SchedulerServer_getJobPtr
-newCallback_SchedulerServer_getJob(const IceUtil::Handle<T>& instance, void (T::*cb)(const ::scheduler::Job&), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+newCallback_SchedulerServer_getJob(const IceUtil::Handle<T>& instance, void (T::*cb)(const ::scheduler::JobDTO&), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
 {
     return new CallbackNC_SchedulerServer_getJob<T>(instance, cb, excb, sentcb);
 }
 
 template<class T> Callback_SchedulerServer_getJobPtr
-newCallback_SchedulerServer_getJob(T* instance, void (T::*cb)(const ::scheduler::Job&), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
+newCallback_SchedulerServer_getJob(T* instance, void (T::*cb)(const ::scheduler::JobDTO&), void (T::*excb)(const ::Ice::Exception&), void (T::*sentcb)(bool) = 0)
 {
     return new CallbackNC_SchedulerServer_getJob<T>(instance, cb, excb, sentcb);
 }
@@ -4738,7 +4738,7 @@ public:
 
     typedef void (T::*Exception)(const ::Ice::Exception& , const CT&);
     typedef void (T::*Sent)(bool , const CT&);
-    typedef void (T::*Response)(const ::scheduler::Job&, const CT&);
+    typedef void (T::*Response)(const ::scheduler::JobDTO&, const CT&);
 
     Callback_SchedulerServer_getJob(const TPtr& obj, Response cb, Exception excb, Sent sentcb)
         : ::IceInternal::TwowayCallback<T, CT>(obj, cb != 0, excb, sentcb), _response(cb)
@@ -4748,7 +4748,7 @@ public:
     virtual void completed(const ::Ice::AsyncResultPtr& result) const
     {
         ::scheduler::SchedulerServerPrx proxy = ::scheduler::SchedulerServerPrx::uncheckedCast(result->getProxy());
-        ::scheduler::Job ret;
+        ::scheduler::JobDTO ret;
         try
         {
             ret = proxy->end_getJob(result);
@@ -4770,13 +4770,13 @@ private:
 };
 
 template<class T, typename CT> Callback_SchedulerServer_getJobPtr
-newCallback_SchedulerServer_getJob(const IceUtil::Handle<T>& instance, void (T::*cb)(const ::scheduler::Job&, const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+newCallback_SchedulerServer_getJob(const IceUtil::Handle<T>& instance, void (T::*cb)(const ::scheduler::JobDTO&, const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
 {
     return new Callback_SchedulerServer_getJob<T, CT>(instance, cb, excb, sentcb);
 }
 
 template<class T, typename CT> Callback_SchedulerServer_getJobPtr
-newCallback_SchedulerServer_getJob(T* instance, void (T::*cb)(const ::scheduler::Job&, const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
+newCallback_SchedulerServer_getJob(T* instance, void (T::*cb)(const ::scheduler::JobDTO&, const CT&), void (T::*excb)(const ::Ice::Exception&, const CT&), void (T::*sentcb)(bool, const CT&) = 0)
 {
     return new Callback_SchedulerServer_getJob<T, CT>(instance, cb, excb, sentcb);
 }

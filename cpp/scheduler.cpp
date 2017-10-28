@@ -447,7 +447,7 @@ scheduler::SchedulerServer::_iceD_getJob(::IceInternal::Incoming& inS, const ::I
     istr->readAll(iceP_id);
     inS.endReadParams();
     auto inA = ::IceInternal::IncomingAsync::create(inS);
-    auto responseCB = [inA](const ::scheduler::Job& ret)
+    auto responseCB = [inA](const ::scheduler::JobDTO& ret)
     {
         auto ostr = inA->startWriteParams();
         ostr->writeAll(ret);
@@ -805,7 +805,7 @@ scheduler::SchedulerServerPrx::_iceI_getStartableJob(const ::std::shared_ptr<::I
 }
 
 void
-scheduler::SchedulerServerPrx::_iceI_getJob(const ::std::shared_ptr<::IceInternal::OutgoingAsyncT<::scheduler::Job>>& outAsync, const ::scheduler::JobId& iceP_id, const ::Ice::Context& context)
+scheduler::SchedulerServerPrx::_iceI_getJob(const ::std::shared_ptr<::IceInternal::OutgoingAsyncT<::scheduler::JobDTO>>& outAsync, const ::scheduler::JobId& iceP_id, const ::Ice::Context& context)
 {
     _checkTwowayOnly(iceC_scheduler_SchedulerServer_getJob_name);
     outAsync->invoke(iceC_scheduler_SchedulerServer_getJob_name, ::Ice::OperationMode::Normal, ::Ice::FormatType::DefaultFormat, context,
@@ -1390,7 +1390,7 @@ IceAsync::scheduler::AMD_SchedulerServer_getJob::AMD_SchedulerServer_getJob(::Ic
 }
 
 void
-IceAsync::scheduler::AMD_SchedulerServer_getJob::ice_response(const ::scheduler::Job& ret)
+IceAsync::scheduler::AMD_SchedulerServer_getJob::ice_response(const ::scheduler::JobDTO& ret)
 {
     ::Ice::OutputStream* ostr = startWriteParams();
     ostr->write(ret);
@@ -1920,11 +1920,11 @@ IceProxy::scheduler::SchedulerServer::_iceI_begin_getJob(const ::scheduler::JobI
     return result;
 }
 
-::scheduler::Job
+::scheduler::JobDTO
 IceProxy::scheduler::SchedulerServer::end_getJob(const ::Ice::AsyncResultPtr& result)
 {
     ::Ice::AsyncResult::_check(result, this, iceC_scheduler_SchedulerServer_getJob_name);
-    ::scheduler::Job ret;
+    ::scheduler::JobDTO ret;
     if(!result->_waitForResponse())
     {
         try

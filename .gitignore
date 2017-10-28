@@ -29,3 +29,5 @@ java/.idea/**
 /java/gui/gui.iml
 /java/scheduler.iml
 /states.png
+/cpp/schedulerServer
+.idea/**

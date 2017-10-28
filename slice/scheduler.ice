@@ -154,7 +154,7 @@ module scheduler {
         ["amd"] string dumpStatus();
         ["amd"] JobDTOSeq getJobs();
         ["amd"] JobSeq getStartableJob( WorkerId worker );
-        ["amd"] Job getJob( JobId id ) throws JobNotExist;
+        ["amd"] JobDTO getJob( JobId id ) throws JobNotExist;
         ["amd"] void addListener( SchedulerServerListener *listener);
         
         // For Javascript
