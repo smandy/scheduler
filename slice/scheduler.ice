@@ -3,6 +3,7 @@
 #include "Ice/Identity.ice"
 
 [["cpp:include:unordered_map"]]
+[["cpp:include:vector"]]
 
 module scheduler {
     sequence<string> StringSeq;
@@ -18,6 +19,9 @@ module scheduler {
 
     ["cpp:type:std::unordered_map<JobId, JobId>"] dictionary<JobId,JobId> tmpJobId;
 
+    ["cpp:type:std::unordered_map<JobId, std::vector<JobId>>"] dictionary<JobId,JobId> tmpJobId2;
+
+    
     enum EnumJobState {
         DORMANT,
         READY,

@@ -3,8 +3,8 @@ from os.path import expanduser as eu
 
 spdlog = '-I%s' % eu('~/repos/spdlog/include')
 
-env = Environment(CPPFLAGS = ['-DICE_CPP11_MAPPING', '--std=c++14', '-I.', spdlog ],
-                  SLICE_INCLUDES= ['/usr/share/Ice-3.6.1/slice'],
+env = Environment(CPPFLAGS = ['--std=c++14', '-I.', spdlog ],
+                  SLICE_INCLUDES= ['/usr/share/ice/slice'],
                   LIBPATH = ['/usr/lib/x86_64-linux-gnu/c++11'])
 
 #env.Slice2cpp(target = 'Security', source = 'slice/Security.ice')

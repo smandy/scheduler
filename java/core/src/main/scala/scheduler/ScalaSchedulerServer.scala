@@ -44,7 +44,6 @@ class ScalaSchedulerServer(val communicator: Communicator,
 
   def runOnExecutor(f: => Unit) = {
     val x: Runnable = () => {
-      // checkInvariants()
       f
       checkInvariants()
     }
@@ -108,7 +107,13 @@ class ScalaSchedulerServer(val communicator: Communicator,
   override def getStartableJobAsync(workerId: WorkerId, current: Current): CompletableFuture[Array[Job]] = {
     val cb = new CompletableFuture[Array[Job]]
     runOnExecutor {
-      graph.jobs.values.filter(_.isStartable).toArray.sortBy(_.priority).headOption match {
+      graph
+        .jobs
+        .values
+        .filter(_.isStartable)
+        .toArray
+        .sortBy(_.priority)
+        .headOption match {
         case Some(x) => {
           x.jobState.currentWorker = Array(workerId)
           x.jobState.state = EnumJobState.SCHEDULED
@@ -170,8 +175,10 @@ class ScalaSchedulerServer(val communicator: Communicator,
         val prx = SchedulerServerListenerPrx.uncheckedCast(rawPrx)
         val image = makeImage()
         prx.onImageAsync(image).whenComplete((r, x) => {
+          if (x!=null) {
           println("Call complete")
-          cb.complete(null)
+            cb.complete(null)
+          }
         })
       })
     }
