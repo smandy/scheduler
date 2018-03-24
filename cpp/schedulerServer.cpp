@@ -71,13 +71,9 @@ public:
     };
   }
 
-  template <typename T> struct TR;
-
   void blockDependenciesOf(const JobId &id) {
     for (auto &depId : dependants[id]) {
-
       auto depJob = find(depId);
-      // TR<decltype(depJob)> my_error;
       depJob->state.state = EnumJobState::READY;
     }
   }
@@ -242,7 +238,7 @@ public:
                std::function<void(std::__exception_ptr::exception_ptr)> error,
                const Ice::Current &) {
     cb(jobs);
-  };
+  }
 
   virtual void
   onWorkerUpdateAsync(WorkerUpdate wud, ::std::function<void()> cb,
@@ -326,20 +322,20 @@ public:
           };
         });
     cb();
-  };
+  }
 
   virtual void setStateAsync(::scheduler::JobId, ::scheduler::EnumJobState,
                              ::std::function<void()>,
                              ::std::function<void(::std::exception_ptr)>,
                              const ::Ice::Current &){
       // Not implemented
-  };
+  }
 
   virtual void getImageAsync(::std::function<void(const ::scheduler::Image &)>,
                              ::std::function<void(::std::exception_ptr)>,
                              const ::Ice::Current &){
       // Not implemented
-  };
+  }
 
   virtual void
   addListenerAsync(::std::shared_ptr<SchedulerServerListenerPrx> prx,
@@ -362,10 +358,9 @@ public:
         });
     log->debug("End method");
   }
-};
+}
 
 int main(int argc, char *argv[]) {
-
   spdlog::set_async_mode(4096, spdlog::async_overflow_policy::block_retry,
                          nullptr, std::chrono::seconds(2));
   auto log =
@@ -390,6 +385,6 @@ int main(int argc, char *argv[]) {
   communicator->destroy();
   log->info("Communicator destroyed. Game over");
   log->flush();
-};
+}
 
 loggerType SchedulerServerImpl::log{};

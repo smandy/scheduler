@@ -18,7 +18,6 @@ module scheduler {
     sequence<JobId> JobIdSeq;
 
     ["cpp:type:std::unordered_map<JobId, JobId>"] dictionary<JobId,JobId> tmpJobId;
-
     ["cpp:type:std::unordered_map<JobId, std::vector<JobId>>"] dictionary<JobId,JobId> tmpJobId2;
 
     
@@ -168,6 +167,5 @@ module scheduler {
         ["amd"] void setState( JobId id, EnumJobState state);
 
         ["amd"] Image getImage();
-
     };
 };

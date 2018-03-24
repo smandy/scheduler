@@ -2,7 +2,7 @@ package scheduler
 
 // Job is immutable
 class Node(val job : Job) {
-  def makeDTO() = new JobDTO( job, jobState)
+  def makeDTO() = new JobDTO(job, jobState)
 
   val jobState = new JobState(job.id,
     EnumJobState.DORMANT,
@@ -21,6 +21,4 @@ class Node(val job : Job) {
   def priority = job.priority
 
   def isStartable = JobStates.startable.contains(state)
-
-
 }
