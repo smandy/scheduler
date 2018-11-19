@@ -14,7 +14,7 @@
   <name>argo</name>
   <url>http://maven.apache.org</url>
   <properties>
-    <scala.version>2.12.1</scala.version>
+    <scala.version>2.12.6</scala.version>
     <ice.version>3.7.0</ice.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <output.directory>/home/andy</output.directory>

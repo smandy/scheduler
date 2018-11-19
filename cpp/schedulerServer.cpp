@@ -237,8 +237,7 @@ public:
   getJobsAsync(std::function<void(const std::vector<scheduler::JobDTO> &)> cb,
                std::function<void(std::__exception_ptr::exception_ptr)> error,
                const Ice::Current &) {
-    cb(jobs);
-  }
+    cb(jobs);  }
 
   virtual void
   onWorkerUpdateAsync(WorkerUpdate wud, ::std::function<void()> cb,
@@ -336,7 +335,6 @@ public:
                              const ::Ice::Current &){
       // Not implemented
   }
-
   virtual void
   addListenerAsync(::std::shared_ptr<SchedulerServerListenerPrx> prx,
                    ::std::function<void()> cb,
